@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ratito — juegos y experimentos para pasar el rato</title>
-<meta name="description" content="Juegos y experimentos web originales: tu vida en números, un viaje del Canal a la Luna, el círculo perfecto, arena que cae y pruebas de reflejos.">
+<meta name="description" content="Juegos y experimentos web originales: tu vida en números, el círculo perfecto, arena, reflejos, órbitas, una isla 3D, ondas de agua y demolición.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/estilo.css">
 <style>
@@ -14,12 +14,12 @@ h1{margin:0;font-size:clamp(3rem,10vw,5.6rem);line-height:.9;font-weight:900;let
 h1 i{font-style:normal;display:inline-block;width:.32em;height:.32em;border-radius:50%;background:var(--acc);margin-left:.04em;vertical-align:baseline}
 header p{margin:0;max-width:340px;color:var(--mut);font-size:1.05rem}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:22px}
-.card{display:block;text-decoration:none;border-radius:18px;overflow:hidden;background:var(--soft);transition:transform .15s}
+.card{display:flex;flex-direction:column;text-decoration:none;border-radius:18px;overflow:hidden;background:var(--soft);transition:transform .15s}
 .card:hover{transform:translateY(-3px)}
 .card:hover .thumb{filter:brightness(1.05)}
 .thumb{position:relative;aspect-ratio:4/3;overflow:hidden}
 .thumb svg{position:absolute;inset:0;width:100%;height:100%}
-.meta{padding:14px 16px 16px;background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 18px 18px}
+.meta{flex:1;padding:14px 16px 16px;background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 18px 18px}
 .meta h2{margin:0;font-size:1.15rem}
 .meta p{margin:3px 0 0;color:var(--mut);font-size:.92rem}
 footer{margin-top:50px;color:var(--mut);font-size:.88rem}
@@ -34,19 +34,6 @@ footer{margin-top:50px;color:var(--mut);font-size:.88rem}
   </header>
 
   <main class="grid">
-    <a class="card" href="/juegos/luna/">
-      <div class="thumb"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <defs><linearGradient id="g1" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#8CC0EC"/><stop offset=".45" stop-color="#2B5AA6"/><stop offset=".75" stop-color="#0A1533"/><stop offset="1" stop-color="#000"/></linearGradient>
-        <radialGradient id="m1" cx=".38" cy=".38" r=".7"><stop offset="0" stop-color="#EEECE7"/><stop offset=".75" stop-color="#ACA9A2"/><stop offset="1" stop-color="#6D6A64"/></radialGradient></defs>
-        <rect width="400" height="300" fill="url(#g1)"/>
-        <g fill="#fff"><circle cx="40" cy="30" r="1.2"/><circle cx="120" cy="60" r="1"/><circle cx="330" cy="40" r="1.4"/><circle cx="260" cy="20" r="1"/><circle cx="70" cy="90" r=".9"/><circle cx="360" cy="100" r="1"/><circle cx="200" cy="45" r="1.1"/></g>
-        <circle cx="300" cy="70" r="38" fill="url(#m1)"/><circle cx="288" cy="62" r="7" fill="#0002"/><circle cx="312" cy="84" r="5" fill="#0002"/>
-        <rect y="262" width="400" height="38" fill="#24576C"/><path d="M150 262h100l-8 8h-84z" fill="#1B2733"/><rect x="165" y="252" width="62" height="10" fill="#C6492F"/>
-        <path d="M200 250 C200 190 210 150 230 110" stroke="#fff" stroke-width="2" stroke-dasharray="3 6" fill="none" opacity=".8"/>
-      </svg></div>
-      <div class="meta"><h2>Del Canal a la Luna</h2><p>Sube 384,400 km pasando por el Barú, el Everest y la Estación Espacial.</p></div>
-    </a>
-
     <a class="card" href="/juegos/vida/">
       <div class="thumb"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
         <rect width="400" height="300" fill="#1B0F12"/>
@@ -90,6 +77,60 @@ footer{margin-top:50px;color:var(--mut);font-size:.88rem}
         <text x="300" y="186" text-anchor="middle" fill="#ffffffcc" font-family="Schibsted Grotesk,sans-serif" font-size="15">segundos</text>
       </svg></div>
       <div class="meta"><h2>Reflejos</h2><p>Mide tu tiempo de reacción y trata de parar el reloj en 10 segundos exactos.</p></div>
+    </a>
+    <a class="card" href="/juegos/isla/">
+      <div class="thumb"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs><linearGradient id="isk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7FA9CF"/><stop offset=".55" stop-color="#C9DCE9"/></linearGradient>
+        <linearGradient id="ise" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#245A72"/><stop offset="1" stop-color="#0E3A4E"/></linearGradient>
+        <linearGradient id="imt" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9A9188"/><stop offset="1" stop-color="#4E4A44"/></linearGradient></defs>
+        <rect width="400" height="300" fill="url(#isk)"/><rect y="165" width="400" height="135" fill="url(#ise)"/>
+        <path d="M60 205c40-18 70-30 110-32 30-40 50-70 70-74 22 6 40 40 62 70 30 4 50 16 48 36-60 16-230 18-290 0z" fill="#3D5A2A"/>
+        <path d="M200 120c12-18 26-26 40-21 16 10 32 40 48 68-30-10-52-14-74-10-12-12-14-24-14-37z" fill="url(#imt)"/>
+        <path d="M228 103c6-5 14-6 20-1l8 12c-10-3-20-4-28-2z" fill="#EEEDE8"/>
+        <path d="M56 206c80 12 210 12 296-2l-6 8c-90 12-200 12-284 2z" fill="#CDB68A"/>
+                <path d="M90 196l7-18 7 18zM110 192l8-20 8 20zM300 190l7-17 7 17zM318 194l6-15 6 15zM150 186l7-18 7 18zM270 184l7-17 7 17z" fill="#1F3A16"/>
+      </svg></div>
+      <div class="meta"><h2>Isla 3D</h2><p>Una isla distinta cada vez, con montañas, bosque y mar. Cambia la hora y mira el atardecer.</p></div>
+    </a>
+
+    <a class="card" href="/juegos/orbitas/">
+      <div class="thumb"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs><radialGradient id="osun"><stop offset="0" stop-color="#FFFDF4"/><stop offset=".6" stop-color="#FFE7A8"/><stop offset="1" stop-color="#FFB45C"/></radialGradient>
+        <radialGradient id="oglow"><stop offset="0" stop-color="#FFC68A" stop-opacity=".45"/><stop offset="1" stop-color="#FFC68A" stop-opacity="0"/></radialGradient>
+        <radialGradient id="oe" cx=".35" cy=".35"><stop offset="0" stop-color="#6FA8DC"/><stop offset="1" stop-color="#0F2A44"/></radialGradient>
+        <radialGradient id="oj" cx=".35" cy=".35"><stop offset="0" stop-color="#E3C9A0"/><stop offset="1" stop-color="#5E4630"/></radialGradient></defs>
+        <rect width="400" height="300" fill="#04050A"/>
+        <g fill="#fff" opacity=".7"><circle cx="30" cy="40" r="1"/><circle cx="350" cy="60" r="1.2"/><circle cx="90" cy="250" r="1"/><circle cx="320" cy="250" r=".9"/><circle cx="180" cy="30" r="1"/><circle cx="380" cy="160" r="1"/></g>
+        <circle cx="200" cy="150" r="90" fill="url(#oglow)"/>
+        <ellipse cx="200" cy="150" rx="80" ry="58" fill="none" stroke="#6FA8DC" stroke-opacity=".35"/>
+        <ellipse cx="200" cy="150" rx="150" ry="104" fill="none" stroke="#E3C9A0" stroke-opacity=".3"/>
+        <circle cx="200" cy="150" r="24" fill="url(#osun)"/>
+        <circle cx="270" cy="122" r="8" fill="url(#oe)"/><circle cx="76" cy="200" r="15" fill="url(#oj)"/>
+      </svg></div>
+      <div class="meta"><h2>Órbitas</h2><p>Lanza planetas alrededor de una estrella. ¿Logras una órbita que dure?</p></div>
+    </a>
+
+    <a class="card" href="/juegos/ondas/">
+      <div class="thumb"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs><filter id="pb"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="3" seed="4"/><feColorMatrix values="0 0 0 0 .45  0 0 0 0 .47  0 0 0 0 .44  0 0 0 1.4 -.3"/></filter></defs>
+        <rect width="400" height="300" fill="#6E7A72"/><rect width="400" height="300" filter="url(#pb)" opacity=".9"/>
+        <rect width="400" height="300" fill="#1E6A72" opacity=".35"/>
+        <g fill="none" stroke="#E8F6F4" stroke-opacity=".55"><circle cx="160" cy="140" r="30" stroke-width="3"/><circle cx="160" cy="140" r="62" stroke-width="2"/><circle cx="160" cy="140" r="98" stroke-width="1.4" stroke-opacity=".35"/><circle cx="290" cy="200" r="24" stroke-width="2.5"/><circle cx="290" cy="200" r="52" stroke-width="1.6" stroke-opacity=".4"/></g>
+      </svg></div>
+      <div class="meta"><h2>Ondas</h2><p>Toca el agua y mira cómo las ondas se cruzan sobre las piedras del río.</p></div>
+    </a>
+
+    <a class="card" href="/juegos/demolicion/">
+      <div class="thumb"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs><linearGradient id="dsk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A9C6DD"/><stop offset="1" stop-color="#DCE6EC"/></linearGradient></defs>
+        <rect width="400" height="300" fill="url(#dsk)"/><rect y="250" width="400" height="50" fill="#7A6450"/>
+        <g fill="#A7A39B" stroke="#8B867D"><rect x="230" y="200" width="40" height="50"/><rect x="272" y="200" width="40" height="50"/><rect x="230" y="150" width="40" height="50"/><rect x="290" y="166" width="40" height="34" transform="rotate(14 310 183)"/></g>
+        <g fill="#9C7449"><rect x="226" y="144" width="90" height="8" transform="rotate(-8 271 148)"/></g>
+        <g fill="#B9D6E0" fill-opacity=".8" stroke="#8FB3C1"><rect x="244" y="108" width="26" height="34" transform="rotate(-22 257 125)"/></g>
+        <line x1="60" y1="0" x2="150" y2="150" stroke="#4A4A4A" stroke-width="3"/><circle cx="160" cy="168" r="26" fill="#2E3033"/><circle cx="152" cy="160" r="8" fill="#55585C"/>
+        <g fill="#A7A39B"><rect x="330" y="236" width="10" height="8"/><rect x="346" y="240" width="7" height="6"/><rect x="214" y="238" width="8" height="8"/></g>
+      </svg></div>
+      <div class="meta"><h2>Demolición</h2><p>Lanza la bola y derriba edificios de concreto, madera y vidrio.</p></div>
     </a>
   </main>
 
