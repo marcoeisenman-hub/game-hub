@@ -29,8 +29,7 @@ h1{font-size:clamp(2.4rem,7vw,4.4rem);line-height:1;margin:0 0 14px;font-weight:
 .stat p{margin:6px 0 0;color:#C9AEB3;font-size:.92rem}
 h2{font-size:1.4rem;margin:44px 0 6px}
 .next{color:#C9AEB3;margin:0 0 12px}
-.mile{display:flex;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid #3A242A}
-.mile b{white-space:nowrap}
+.mile{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;padding:14px 0;border-bottom:1px solid #3A242A}
 .mile.past{opacity:.45}
 .note{color:#8E7479;font-size:.82rem;margin-top:34px}
 @media (prefers-reduced-motion:reduce){.heart svg{animation:none}}
@@ -102,7 +101,7 @@ $('f').onsubmit=e=>{
   if(b>Date.now()){$('err').textContent='Esa fecha está en el futuro. Revisa el año.';return}
   if(Y<1900){$('err').textContent='Escribe un año desde 1900.';return}
   $('err').textContent='';birth=b;localStorage.setItem('ratitoVida',$('d').value+'|'+$('h').value);
-  $('out').hidden=false;miles();tick();clearInterval(timer);timer=setInterval(tick,100);
+  $('out').hidden=false;miles();tick();clearInterval(timer);let k=0;timer=setInterval(()=>{tick();if(++k%600===0)miles()},100);
   $('out').scrollIntoView({behavior:'smooth',block:'start'});
 };
 const saved=localStorage.getItem('ratitoVida');

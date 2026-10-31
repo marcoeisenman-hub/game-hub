@@ -13,7 +13,7 @@ header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
 h1{margin:0;font-size:clamp(3rem,10vw,5.6rem);line-height:.9;font-weight:900;letter-spacing:-.05em}
 h1 i{font-style:normal;display:inline-block;width:.32em;height:.32em;border-radius:50%;background:var(--acc);margin-left:.04em;vertical-align:baseline}
 header p{margin:0;max-width:340px;color:var(--mut);font-size:1.05rem}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:22px}
 .card{display:block;text-decoration:none;border-radius:18px;overflow:hidden;background:var(--soft);transition:transform .15s}
 .card:hover{transform:translateY(-3px)}
 .card:hover .thumb{filter:brightness(1.05)}

@@ -46,7 +46,7 @@ body{background:#8CC0EC;color:#0E1A2B;transition:none;overflow-x:hidden}
   <canvas id="moon" width="600" height="600" aria-label="La Luna"></canvas>
   <div class="end">
     <h2>Llegaste a la Luna</h2>
-    <p>384,400 km desde el Canal. En carro a 100 km/h tardarías unos 160 días sin parar. La luz tarda poco más de 1 segundo.</p>
+    <p>La Luna está en promedio a 384,400 km de la Tierra. En carro a 100 km/h tardarías unos 160 días sin parar. La luz tarda poco más de 1 segundo.</p>
     <p>Los astronautas del Apolo tardaron unos 3 días.</p>
     <button class="btn" id="back">Volver a bajar</button>
   </div>
@@ -106,7 +106,7 @@ function stars(){st.width=innerWidth*devicePixelRatio;st.height=innerHeight*devi
 stars();
 function update(){
   const fromBottom=track.offsetHeight-(scrollY+innerHeight*.5);
-  const a=Math.min(MAX,aOf(fromBottom));
+  const a=scrollY<=40?MAX:Math.min(MAX,aOf(fromBottom));
   const c=sky(a),dark=a>20000;
   document.body.style.background=`rgb(${c})`;document.body.style.color=dark?'#E9EEF7':'#0E1A2B';
   st.style.opacity=Math.max(0,Math.min(1,(Math.log10(1+a)-4.3)/0.8));
