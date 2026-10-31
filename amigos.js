@@ -104,7 +104,7 @@ function wire(c,isHost){
 function again(){const g=gen;setTimeout(()=>{if(code&&g===gen)connect(code)},300+Math.random()*1200+Math.min(retry++,10)*400)}
 function connect(c){
   const g=++gen;
-  hc=null;conns=[];host=false;
+  hc=null;conns=[];host=false;for(const id of Object.keys(people))drop(id);
   if(peer)try{peer.destroy()}catch(e){}
   // 1) intentar ser el centro de la sala
   const p=new Peer(PRE+c);peer=p;

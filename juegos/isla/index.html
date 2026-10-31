@@ -84,7 +84,7 @@ function heightAt(x,z){
 }
 function build(){
   seed=(Math.random()*1e6)|0;noise=makeNoise(seed);document.getElementById('seed').textContent='Isla #'+seed;
-  if(terrain){scene.remove(terrain);terrain.geometry.dispose()}
+  if(terrain){scene.remove(terrain);terrain.geometry.dispose();terrain.material.dispose()}
   const geo=new THREE.PlaneGeometry(SIZE,SIZE,SEG,SEG);geo.rotateX(-Math.PI/2);
   const pos=geo.attributes.position,cols=new Float32Array(pos.count*3);heights=new Float32Array(pos.count);
   for(let i=0;i<pos.count;i++){const h=heightAt(pos.getX(i),pos.getZ(i));pos.setY(i,h);heights[i]=h}
@@ -109,7 +109,7 @@ function paint(){
   water.position.y=sea;shallow.position.y=sea+.4;
 }
 function placeTrees(){
-  if(trees){trees.forEach(t=>{scene.remove(t);t.geometry.dispose()})}
+  if(trees){trees.forEach(t=>{scene.remove(t);t.geometry.dispose();t.material.dispose();t.dispose()})}
   const sea=seaLevel(),r=mulberry(seed+3),spots=[];
   for(let k=0;k<9000&&spots.length<1400;k++){const x=(r()-.5)*SIZE*.95,z=(r()-.5)*SIZE*.95,h=heightAt(x,z)-sea;
     if(h<12||h>120)continue;const e=1.5,s=(heightAt(x+e,z)-heightAt(x-e,z))**2+(heightAt(x,z+e)-heightAt(x,z-e))**2;if(s>9)continue;
