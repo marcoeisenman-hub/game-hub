@@ -5,8 +5,7 @@
 const PRE='ratito-sala-',COLORS=['#2563EB','#059669','#D97706','#7C3AED','#DB2777','#0891B2','#DC2626','#4D7C0F'];
 const ABC='abcdefghijklmnopqrstuvwxyz0123456789';
 const rid=n=>Array.from(crypto.getRandomValues(new Uint8Array(n)),x=>ABC[x%36]).join('');
-const me={id:sessionStorage.getItem('ratitoId')||rid(10),name:localStorage.getItem('ratitoNombre')||'Amigo '+(10+crypto.getRandomValues(new Uint8Array(1))[0]%90)};
-sessionStorage.setItem('ratitoId',me.id);
+const me={id:rid(10),name:localStorage.getItem('ratitoNombre')||'Amigo '+(10+crypto.getRandomValues(new Uint8Array(1))[0]%90)};
 const PAGE=location.pathname.replace(/index\.html$/,'');
 const PAGES={'/':'la portada','/juegos/vida/':'Tu vida en vivo','/juegos/luna/':'Del Canal a la Luna','/juegos/circulo/':'Círculo perfecto','/juegos/arena/':'Arena','/juegos/reflejos/':'Reflejos'};
 const color=id=>{let h=0;for(const c of id)h=(h*31+c.charCodeAt(0))>>>0;return COLORS[h%COLORS.length]};
@@ -96,7 +95,7 @@ function wire(c,isHost){
   const wg=gen;
   c.on('open',()=>{c.send({t:'hi',id:me.id,name:me.name,page:PAGE});
     if(isHost)for(const p of Object.values(people))c.send({t:'hi',id:p.id,name:p.name,page:p.page})});
-  c.on('data',m=>onMsg(m,isHost?c:null));
+  c.on('data',m=>{if(!isHost&&m&&m.t==='full'){leave();status('La sala está llena (máximo 8 personas). Crea otra sala.');return}onMsg(m,isHost?c:null)});
   c.on('close',()=>{
     if(wg!==gen)return;
     if(isHost){conns=conns.filter(x=>x!==c);if(c._pid){drop(c._pid);relay({t:'bye',id:c._pid,name:''},null)}}
@@ -110,7 +109,7 @@ function connect(c){
   // 1) intentar ser el centro de la sala
   const p=new Peer(PRE+c);peer=p;
   p.on('open',()=>{if(g!==gen)return;host=true;retry=0;setCode(c)});
-  p.on('connection',cn=>{if(g!==gen)return;if(conns.length>=7){cn.on('open',()=>cn.close());return}conns.push(cn);wire(cn,true)});
+  p.on('connection',cn=>{if(g!==gen)return;if(conns.length>=7){cn.on('open',()=>{cn.send({t:'full'});setTimeout(()=>cn.close(),300)});return}conns.push(cn);wire(cn,true)});
   p.on('error',err=>{if(g!==gen)return;
     if(err.type==='unavailable-id'){ // 2) ya hay centro: entrar como invitado
       try{p.destroy()}catch(e){}
