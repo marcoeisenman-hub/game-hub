@@ -82,8 +82,8 @@ function heightAt(x,z){
   const ridge=1-Math.abs(noise(nx*3.1+50,nz*3.1+50));
   return (h*.75+ridge*.35+.18)*fall*260-40-Math.max(0,d-.9)*400;
 }
-function build(){
-  seed=(Math.random()*1e6)|0;noise=makeNoise(seed);document.getElementById('seed').textContent='Isla #'+seed;
+function build(sd){
+  seed=sd!=null?sd:(Math.random()*1e6)|0;noise=makeNoise(seed);document.getElementById('seed').textContent='Isla #'+seed;
   if(terrain){scene.remove(terrain);terrain.geometry.dispose();terrain.material.dispose()}
   const geo=new THREE.PlaneGeometry(SIZE,SIZE,SEG,SEG);geo.rotateX(-Math.PI/2);
   const pos=geo.attributes.position,cols=new Float32Array(pos.count*3);heights=new Float32Array(pos.count);
@@ -133,14 +133,42 @@ function setHour(h){
   if(envRT)envRT.dispose();envRT=pmrem.fromScene(sky);scene.environment=envRT.texture;
   const hh=Math.floor(h),mm=Math.round((h-hh)*60);document.getElementById('hourV').textContent=`${hh}:${String(mm%60).padStart(2,'0')}`;
 }
-document.getElementById('new').onclick=()=>{build()};
-document.getElementById('sea').oninput=()=>{paint()};
-document.getElementById('sea').onchange=()=>placeTrees();
-document.getElementById('hour').oninput=e=>setHour(+e.target.value);
+const seaEl=document.getElementById('sea'),hourEl=document.getElementById('hour');
+function estado(){return{seed,sea:+seaEl.value,hour:+hourEl.value}}
+document.getElementById('new').onclick=()=>{build();tx({mundo:estado()})};
+seaEl.oninput=()=>{paint();tx({mundo:estado(),rapido:1})};
+seaEl.onchange=()=>{placeTrees();tx({mundo:estado()})};
+hourEl.oninput=e=>{setHour(+e.target.value);tx({mundo:estado(),rapido:1})};
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 build();setHour(9.5);document.getElementById('load').remove();
 const clock=new THREE.Clock();
-renderer.setAnimationLoop(()=>{const t=clock.getElapsedTime();water.material.clearcoatRoughness=.08+.04*Math.sin(t*.8);controls.update();renderer.render(scene,camera)});
+/* jugar con amigos */
+let sala=null,camT=0;const drones={};
+const tx=d=>{if(sala&&sala.activo)sala.enviar(d)};
+const badge=document.createElement('div');badge.style.cssText='position:fixed;right:16px;top:100px;background:#ffffffe8;border-radius:10px;padding:6px 10px;font-size:.8rem;box-shadow:0 2px 10px #0002';badge.hidden=true;document.body.append(badge);
+function aplicar(m,rapido){if(!m)return;const sd=m.seed|0,sea=Math.max(0,Math.min(100,+m.sea)),hr=Math.max(5,Math.min(19,+m.hour));
+  if(!Number.isFinite(sea)||!Number.isFinite(hr))return;
+  if(sd!==seed){seaEl.value=sea;build(sd)}else if(+seaEl.value!==sea){seaEl.value=sea;paint();if(!rapido)placeTrees()}
+  if(+hourEl.value!==hr){hourEl.value=hr;setHour(hr)}}
+function dron(de){let d=drones[de.id];if(d)return d;
+  const g=new THREE.Group(),m=new THREE.Mesh(new THREE.SphereGeometry(6,16,12),new THREE.MeshStandardMaterial({color:de.color,emissive:de.color,emissiveIntensity:.5}));g.add(m);
+  const cv=document.createElement('canvas');cv.width=256;cv.height=64;const c2=cv.getContext('2d');c2.fillStyle=de.color;c2.beginPath();c2.roundRect(0,8,256,48,12);c2.fill();c2.fillStyle='#fff';c2.font='bold 30px sans-serif';c2.textAlign='center';c2.fillText(de.name,128,43);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),depthTest:false}));sp.scale.set(48,12,1);sp.position.y=14;g.add(sp);scene.add(g);
+  return drones[de.id]=d={g,to:new THREE.Vector3(),seen:0}}
+function conSala(fn){window.RatitoSala?fn(RatitoSala):addEventListener('ratitosala',()=>fn(RatitoSala),{once:true})}
+conSala(S0=>{sala=S0;
+  sala.al('mensaje',(d,de)=>{if(!d||typeof d!=='object')return;
+    if(d.mundo)aplicar(d.mundo,d.rapido);
+    if(Array.isArray(d.cam)&&d.cam.length===3&&d.cam.every(v=>Number.isFinite(v)&&Math.abs(v)<5000)){const k=dron(de);k.to.set(...d.cam);if(!k.seen)k.g.position.copy(k.to);k.seen=1}});
+  sala.al('cambio',()=>{
+    const ids=sala.jugadores().map(j=>j.id);for(const id of Object.keys(drones))if(!ids.includes(id)){scene.remove(drones[id].g);delete drones[id]}
+    const otros=sala.jugadores().filter(j=>!j.yo);badge.hidden=!sala.activo||!otros.length;badge.textContent='Jugando con: '+otros.map(j=>j.name).join(', ');
+    if(sala.activo&&sala.lider())tx({mundo:estado()})});
+});
+renderer.setAnimationLoop(()=>{const t=clock.getElapsedTime();water.material.clearcoatRoughness=.08+.04*Math.sin(t*.8);controls.update();
+  for(const d of Object.values(drones))d.g.position.lerp(d.to,.15);
+  if(sala&&sala.activo&&t-camT>.2){camT=t;tx({cam:[+camera.position.x.toFixed(1),+camera.position.y.toFixed(1),+camera.position.z.toFixed(1)]})}
+  renderer.render(scene,camera)});
 </script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
 <script src="/amigos.js" defer></script>

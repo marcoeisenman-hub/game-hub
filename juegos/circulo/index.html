@@ -15,44 +15,72 @@ canvas{position:fixed;inset:0;width:100%;height:100%;cursor:crosshair}
 .hud p{margin:6px 0 0;color:var(--mut)}
 #score{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);font-size:clamp(2.4rem,9vw,4.4rem);line-height:1;font-weight:900;pointer-events:none;letter-spacing:-.04em}
 #msg{position:fixed;left:0;right:0;bottom:40px;text-align:center;font-weight:700;font-size:1.1rem;pointer-events:none;padding:0 16px}
+#tabla{position:fixed;right:16px;top:60px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:.85rem;min-width:190px;z-index:5}
+#tabla[hidden]{display:none}
+#tabla h2{margin:0 0 6px;font-size:.9rem}
+#tabla div{display:flex;align-items:center;gap:8px;padding:2px 0}
+#tabla i{width:10px;height:10px;border-radius:50%;flex:none}
+#tabla span{margin-left:auto;font-weight:700}
+#tabla small{color:var(--mut);font-weight:400}
 #best{position:fixed;right:16px;top:16px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:700;font-size:.9rem}
 </style>
 </head>
 <body>
 <a class="volver" href="/">← Ratito</a>
 <div id="best">Mejor: —</div>
+<div id="tabla" hidden aria-live="polite"></div>
 <canvas id="c" aria-label="Zona para dibujar el círculo"></canvas>
 <div class="hud"><h1>Círculo perfecto</h1><p>Dibuja un círculo alrededor del punto, de una sola pasada.</p></div>
 <div id="score"></div>
 <div id="msg" role="status"></div>
 <script>
 const c=document.getElementById('c'),x=c.getContext('2d'),S=document.getElementById('score'),M=document.getElementById('msg');
-let W,H,dpr,pts=[],drawing=false,cx,cy,done=false,best=+localStorage.getItem('ratitoCirculo')||0;
+let W,H,dpr,pts=[],drawing=false,cx,cy,done=false,best=+localStorage.getItem('ratitoCirculo')||0,last=null;
+const amigos={};let sala=null,sendT=0;const U=()=>Math.min(W,H)/2;
 const showBest=()=>document.getElementById('best').textContent='Mejor: '+(best?best.toFixed(1)+'%':'—');showBest();
 function size(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;c.width=W*dpr;c.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0);cx=W/2;cy=H/2+20;draw()}
 function col(err){ // err 0..1 → verde a rojo
   const t=Math.min(1,err*5);return `hsl(${130-130*t},70%,${42}%)`}
+let doneScore=null;
 function draw(score){
+  if(score==null)score=doneScore;
   x.clearRect(0,0,W,H);
   x.fillStyle='#15171C';x.beginPath();x.arc(cx,cy,5,0,7);x.fill();
+  drawFriends();
   if(pts.length<2)return;
   const rs=pts.map(p=>Math.hypot(p.x-cx,p.y-cy)),r=rs.reduce((a,b)=>a+b,0)/rs.length;
   x.lineCap='round';x.lineJoin='round';x.lineWidth=7;
   for(let i=1;i<pts.length;i++){x.strokeStyle=col(Math.abs(rs[i]-r)/r);x.beginPath();x.moveTo(pts[i-1].x,pts[i-1].y);x.lineTo(pts[i].x,pts[i].y);x.stroke()}
   if(done&&score!=null){x.setLineDash([4,8]);x.lineWidth=1.5;x.strokeStyle='#15171C55';x.beginPath();x.arc(cx,cy,r,0,7);x.stroke();x.setLineDash([])}
 }
+function drawFriends(){
+  const now=performance.now();
+  for(const a of Object.values(amigos)){
+    if(a.pts.length<2)continue;const age=a.end?now-a.end:0;if(age>4000)continue;
+    x.globalAlpha=(1-age/4000)*.7;x.strokeStyle=a.color;x.lineWidth=5;x.lineCap='round';x.lineJoin='round';x.beginPath();
+    a.pts.forEach(([nx,ny],k)=>{const px=cx+nx*U(),py=cy+ny*U();k?x.lineTo(px,py):x.moveTo(px,py)});x.stroke();
+    if(a.end&&a.score!=null){const [nx,ny]=a.pts[a.pts.length-1];x.fillStyle=a.color;x.font='700 14px Schibsted Grotesk,sans-serif';x.fillText(a.name+' '+a.score.toFixed(1)+'%',cx+nx*U()+10,cy+ny*U()-10)}
+    x.globalAlpha=1}
+}
+function tabla(){
+  const t=document.getElementById('tabla');if(!sala||!sala.activo||sala.jugadores().length<2){t.hidden=true;return}
+  const rows=sala.jugadores().map(j=>{const a=j.yo?{last,best}:amigos[j.id]||{};return{...j,last:a.last,best:a.best||0}}).sort((p,q)=>q.best-p.best);
+  t.hidden=false;t.innerHTML='<h2>Jugando juntos</h2>'+rows.map((p,k)=>`<div><i style="background:${p.color}"></i>${k===0&&p.best?'🏆 ':''}${p.name}${p.yo?' (tú)':''}<span>${p.best?p.best.toFixed(1)+'%':'—'} <small>${p.last!=null?'últ. '+p.last.toFixed(1):''}</small></span></div>`).join('');
+}
+function tx(d){if(sala&&sala.activo)sala.enviar(d)}
 function angle(p){return Math.atan2(p.y-cy,p.x-cx)}
 function swept(){let s=0;for(let i=1;i<pts.length;i++){let d=angle(pts[i])-angle(pts[i-1]);if(d>Math.PI)d-=2*Math.PI;if(d<-Math.PI)d+=2*Math.PI;s+=d}return s}
-function fail(t){done=true;drawing=false;S.textContent='';M.textContent=t;draw()}
+function fail(t){if(drawing)tx({s:'fail'});done=true;drawing=false;S.textContent='';M.textContent=t;draw()}
 function live(){
   const rs=pts.map(p=>Math.hypot(p.x-cx,p.y-cy)),r=rs.reduce((a,b)=>a+b,0)/rs.length;
   const dev=Math.sqrt(rs.reduce((a,v)=>a+(v-r)**2,0)/rs.length)/r;
   return {r,score:Math.max(0,100-dev*100*3.2)};
 }
-c.addEventListener('pointerdown',e=>{c.setPointerCapture(e.pointerId);pts=[{x:e.clientX,y:e.clientY,t:performance.now()}];drawing=true;done=false;M.textContent='';S.textContent='';
+c.addEventListener('pointerdown',e=>{c.setPointerCapture(e.pointerId);pts=[{x:e.clientX,y:e.clientY,t:performance.now()}];drawing=true;done=false;doneScore=null;M.textContent='';S.textContent='';tx({s:'start',p:[(e.clientX-cx)/U(),(e.clientY-cy)/U()]});
   if(Math.hypot(e.clientX-cx,e.clientY-cy)<40)fail('Muy cerca del punto. Empieza más lejos.')});
 c.addEventListener('pointermove',e=>{if(!drawing)return;const p={x:e.clientX,y:e.clientY,t:performance.now()};
   const l=pts[pts.length-1];if(Math.hypot(p.x-l.x,p.y-l.y)<2)return;pts.push(p);
+  if(p.t-sendT>35){sendT=p.t;tx({s:'pt',p:[(p.x-cx)/U(),(p.y-cy)/U()]})}
   if(Math.hypot(p.x-cx,p.y-cy)<30)return fail('Te acercaste demasiado al punto.');
   if(p.t-pts[0].t>12000)return fail('Muy lento. Intenta más rápido.');
   const s=swept();
@@ -63,11 +91,27 @@ c.addEventListener('pointerup',()=>{if(drawing){const s=Math.abs(swept());if(s<2
 function finish(){
   drawing=false;done=true;const {r,score}=live();
   if(r<50)return fail('Muy pequeño. Hazlo más grande.');
-  S.textContent=score.toFixed(1)+'%';S.style.color=col((100-score)/320);draw(score);
+  S.textContent=score.toFixed(1)+'%';S.style.color=col((100-score)/320);doneScore=score;draw(score);
   const nuevo=score>best;if(nuevo){best=score;localStorage.setItem('ratitoCirculo',best);showBest()}
+  last=score;tx({s:'end',score,best,p:[(pts[pts.length-1].x-cx)/U(),(pts[pts.length-1].y-cy)/U()]});tabla();
   M.textContent=(nuevo?'¡Nuevo récord! ':'')+(score>=97?'Casi una máquina.':score>=92?'Excelente pulso.':score>=85?'Bastante bien.':score>=70?'Puedes mejorar.':'Ánimo, otra vez.')+' Toca para intentar de nuevo.';
 }
 addEventListener('resize',size);size();
+/* jugar con amigos */
+function conSala(fn){window.RatitoSala?fn(RatitoSala):addEventListener('ratitosala',()=>fn(RatitoSala),{once:true})}
+const ok=v=>Number.isFinite(v)&&Math.abs(v)<4,okP=p=>Array.isArray(p)&&ok(p[0])&&ok(p[1]);
+conSala(S0=>{sala=S0;
+  sala.al('mensaje',(d,de)=>{if(!d||typeof d!=='object')return;
+    const a=amigos[de.id]||(amigos[de.id]={pts:[],best:0,last:null});a.name=de.name;a.color=de.color;
+    if(d.s==='start'&&okP(d.p)){a.pts=[d.p];a.end=0;a.score=null}
+    else if(d.s==='pt'&&okP(d.p)&&!a.end){a.pts.push(d.p);if(a.pts.length>800)a.pts.shift()}
+    else if(d.s==='end'&&ok(d.score/100)){if(okP(d.p))a.pts.push(d.p);a.end=performance.now();a.score=+d.score;a.last=+d.score;a.best=Math.max(a.best,+d.best||0)}
+    else if(d.s==='fail'){a.end=performance.now();a.score=null}
+    else if(d.s==='hola'){a.best=Math.max(a.best,+d.best||0);if(d.last!=null&&ok(d.last/100))a.last=+d.last}
+    tabla();draw()});
+  sala.al('cambio',()=>{for(const id of Object.keys(amigos))if(!sala.jugadores().some(j=>j.id===id))delete amigos[id];tx({s:'hola',best,last});tabla();draw()});
+  tabla()});
+(function tick(){if(Object.values(amigos).some(a=>a.pts.length>1))draw();requestAnimationFrame(tick)})();
 </script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
 <script src="/amigos.js" defer></script>

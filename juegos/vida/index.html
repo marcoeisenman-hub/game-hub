@@ -21,7 +21,7 @@ h1{font-size:clamp(2.4rem,7vw,4.4rem);line-height:1;margin:0 0 14px;font-weight:
 .heart{display:flex;align-items:center;gap:18px;margin:34px 0 10px;padding:26px;border-radius:18px;background:#2A1A1E;border:1px solid #4A2E34}
 .heart svg{flex:none;animation:beat .833s infinite}
 @keyframes beat{0%,100%{transform:scale(1)}12%{transform:scale(1.18)}24%{transform:scale(1)}36%{transform:scale(1.1)}}
-.heart b{display:block;font-size:clamp(2rem,6vw,3.6rem);font-weight:900;line-height:1.05}
+.heart b{display:block;font-size:clamp(1.5rem,7.5vw,3.6rem);overflow-wrap:anywhere;font-weight:900;line-height:1.05}
 .heart span{color:#C9AEB3}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px;margin-top:12px}
 .stat{padding:20px;border-radius:14px;background:#24151A;border:1px solid #3A242A}
@@ -31,6 +31,12 @@ h2{font-size:1.4rem;margin:44px 0 6px}
 .next{color:#C9AEB3;margin:0 0 12px}
 .mile{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;padding:14px 0;border-bottom:1px solid #3A242A}
 .mile.past{opacity:.45}
+.duo[hidden]{display:none}
+.duo .row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #3A242A}
+.duo i{width:12px;height:12px;border-radius:50%}
+.duo b{font-size:1.2rem}
+.duo small{color:#C9AEB3;display:block}
+.duo .r{text-align:right}
 .note{color:#8E7479;font-size:.82rem;margin-top:34px}
 @media (prefers-reduced-motion:reduce){.heart svg{animation:none}}
 </style>
@@ -56,6 +62,7 @@ h2{font-size:1.4rem;margin:44px 0 6px}
     <h2>Tus próximos récords</h2>
     <p class="next">Momentos redondos que casi nadie celebra. Anótalos.</p>
     <div id="miles"></div>
+    <div class="duo" id="duo" hidden><h2>Con tus amigos</h2><p class="next">Todos los de la sala que pusieron su fecha. Tus amigos ven tu fecha de nacimiento.</p><div id="duoL"></div></div>
     <p class="note">Son aproximaciones con promedios: 75 latidos y 16 respiraciones por minuto, 15 parpadeos por minuto despierto, 8 horas de sueño al día. Nada de lo que escribes sale de tu navegador.</p>
   </div>
 </div>
@@ -80,6 +87,7 @@ function tick(){
   const s=(Date.now()-birth)/1000;
   $('beats').textContent=n0(s/60*75);
   for(const [id,,f] of STATS)$('s_'+id).textContent=n0(f(s));
+  duo();
 }
 function miles(){
   const now=Date.now(),day=864e5,list=[];
@@ -101,9 +109,25 @@ $('f').onsubmit=e=>{
   if(b>Date.now()){$('err').textContent='Esa fecha está en el futuro. Revisa el año.';return}
   if(Y<1900){$('err').textContent='Escribe un año desde 1900.';return}
   $('err').textContent='';birth=b;localStorage.setItem('ratitoVida',$('d').value+'|'+$('h').value);
-  $('out').hidden=false;miles();tick();clearInterval(timer);let k=0;timer=setInterval(()=>{tick();if(++k%600===0)miles()},100);
+  $('out').hidden=false;tx({birth:b});miles();tick();clearInterval(timer);let k=0;timer=setInterval(()=>{tick();if(++k%600===0)miles()},100);
   $('out').scrollIntoView({behavior:'smooth',block:'start'});
 };
+/* jugar con amigos */
+let sala=null;const amigos={};
+const tx=d=>{if(sala&&sala.activo)sala.enviar(d)};
+function duo(){
+  const box=$('duo');if(!sala||!sala.activo||!birth){box.hidden=true;return}
+  const rows=sala.jugadores().map(j=>({...j,b:j.yo?birth:amigos[j.id]})).filter(r=>r.b);
+  if(rows.length<2){box.hidden=false;$('duoL').innerHTML='<p class="next">Esperando a que tus amigos pongan su fecha…</p>';return}
+  box.hidden=false;rows.sort((a,b)=>a.b-b.b);const now=Date.now();
+  $('duoL').innerHTML=rows.map((r,k)=>{const sec=(now-r.b)/1000,dif=k?Math.round((r.b-rows[0].b)/864e5):0;
+    return `<div class="row"><i style="background:${r.color}"></i><div>${r.name}${r.yo?' (tú)':''}<small>${k===0?'el que más ha vivido':nf.format(dif)+' días menos que '+rows[0].name}</small></div><div class="r"><b>${n0(sec/60*75)}</b><small>latidos</small></div></div>`}).join('');
+}
+function conSala(fn){window.RatitoSala?fn(RatitoSala):addEventListener('ratitosala',()=>fn(RatitoSala),{once:true})}
+conSala(S0=>{sala=S0;
+  sala.al('mensaje',(d,de)=>{const b=+(d&&d.birth);if(Number.isFinite(b)&&b>-22e11&&b<Date.now()){amigos[de.id]=b;duo()}});
+  sala.al('cambio',()=>{for(const id of Object.keys(amigos))if(!sala.jugadores().some(j=>j.id===id))delete amigos[id];if(birth)tx({birth});duo()});
+});
 const saved=localStorage.getItem('ratitoVida');
 $('d').max=new Date().toISOString().slice(0,10);
 if(saved){const [d,h]=saved.split('|');$('d').value=d;if(h)$('h').value=h}

@@ -55,8 +55,9 @@ function size(){dpr=Math.min(2,devicePixelRatio||1);W=innerWidth;H=innerHeight;c
   stars=[];for(let i=0;i<Math.round(W*H/2200);i++)stars.push([Math.random()*W,Math.random()*H,Math.random()*1.2+.2,Math.random()]);}
 addEventListener('resize',size);size();
 
-function star(x,y,m=2200,vx=0,vy=0){return{x,y,vx,vy,m,r:26*Math.cbrt(m/2200),star:true,trail:[],age:0}}
-function planet(x,y,vx,vy,k){const t=TYPES[k];return{x,y,vx,vy,m:t.m,r:t.r,t:k,trail:[],age:0,tilt:Math.random()*Math.PI}}
+let nid=1;
+function star(x,y,m=2200,vx=0,vy=0){return{id:nid++,x,y,vx,vy,m,r:26*Math.cbrt(m/2200),star:true,trail:[],age:0}}
+function planet(x,y,vx,vy,k){const t=TYPES[k];return{id:nid++,x,y,vx,vy,m:t.m,r:t.r,t:k,trail:[],age:0,tilt:Math.random()*Math.PI}}
 function reset(){bodies=[star(W/2,H/2-30)];years=0;merges=0;lost=0}
 function orbitV(p,c){const dx=p.x-c.x,dy=p.y-c.y,d=Math.hypot(dx,dy),v=Math.sqrt(G*c.m/d);return[-dy/d*v+c.vx,dx/d*v+c.vy]}
 function preset(){reset();const s=bodies[0];
@@ -65,7 +66,11 @@ function preset(){reset();const s=bodies[0];
 function binary(){bodies=[];const d=70,m=1400,v=Math.sqrt(G*m/(4*d));
   bodies.push(star(W/2-d,H/2-30,m,0,-v),star(W/2+d,H/2-30,m,0,v));years=0;merges=0;lost=0;
   for(const [r,k,a] of [[260,2,0],[340,1,2]]){const p=planet(W/2+Math.cos(a)*r,H/2-30+Math.sin(a)*r,0,0,k);const c={x:W/2,y:H/2-30,vx:0,vy:0,m:2*m};[p.vx,p.vy]=orbitV(p,c);bodies.push(p)}}
-document.getElementById('preset').onclick=preset;document.getElementById('binary').onclick=binary;document.getElementById('clear').onclick=reset;
+const CX=()=>W/2,CY=()=>H/2-30;
+let sala=null;const tx=d=>{if(sala&&sala.activo)sala.enviar(d)};
+const soyLider=()=>!sala||!sala.activo||sala.lider();
+function orden(c){if(soyLider()){({preset,binary,clear:reset})[c]();enviarEstado()}else tx({cmd:c})}
+document.getElementById('preset').onclick=()=>orden('preset');document.getElementById('binary').onclick=()=>orden('binary');document.getElementById('clear').onclick=()=>orden('clear');
 preset();
 
 /* física */
@@ -77,6 +82,7 @@ function accel(list){
 function physics(dt){
   accel(bodies);
   for(const b of bodies){b.vx+=b.ax*dt;b.vy+=b.ay*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;b.age+=dt}
+  if(!soyLider())return; // los invitados solo predicen; el líder decide choques
   // choques: se unen conservando masa y momento
   for(let i=0;i<bodies.length;i++)for(let j=i+1;j<bodies.length;j++){
     const a=bodies[i],b=bodies[j];if(!a||!b)continue;
@@ -84,7 +90,7 @@ function physics(dt){
       const big=a.m>=b.m?a:b,small=big===a?b:a,M=a.m+b.m;
       big.vx=(a.vx*a.m+b.vx*b.m)/M;big.vy=(a.vy*a.m+b.vy*b.m)/M;big.x=(a.x*a.m+b.x*b.m)/M;big.y=(a.y*a.m+b.y*b.m)/M;
       if(!big.star){big.r=Math.cbrt(big.r**3+small.r**3);}else big.r=26*Math.cbrt(M/2200);
-      big.m=M;flashes.push({x:small.x,y:small.y,r:small.r*3+8,life:1,c:small.star?'#FFF2C4':'#FFD9A8'});
+      big.m=M;flashes.push({x:small.x,y:small.y,r:small.r*3+8,life:1,c:small.star?'#FFF2C4':'#FFD9A8'});nuevosFlash.push([small.x-CX(),small.y-CY(),small.r*3+8,small.star?1:0]);
       if(!small.star&&big.star)lost++;else merges++;
       bodies.splice(bodies.indexOf(small),1);j--}}
   // fuera de la pantalla, muy lejos
@@ -100,7 +106,7 @@ function predict(x,y,vx,vy,m){
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,ex:e.clientX,ey:e.clientY}});
 cv.addEventListener('pointermove',e=>{if(drag){drag.ex=e.clientX;drag.ey=e.clientY}});
 cv.addEventListener('pointerup',()=>{if(!drag)return;const vx=(drag.x-drag.ex)*1.4,vy=(drag.y-drag.ey)*1.4;
-  if(bodies.length<60)bodies.push(planet(drag.x,drag.y,vx,vy,sel));drag=null});
+  if(soyLider()){if(bodies.length<60)bodies.push(planet(drag.x,drag.y,vx,vy,sel))}else tx({cmd:'lanzar',x:drag.x-CX(),y:drag.y-CY(),vx,vy,k:sel});drag=null});
 cv.addEventListener('pointercancel',()=>drag=null);
 
 /* dibujo */
@@ -146,6 +152,34 @@ function frame(now){
   document.getElementById('stats').innerHTML=`<b>${pl.length}</b> planetas · el más viejo lleva <b>${Math.floor(oldest)}</b> s en órbita · <b>${merges}</b> choques · <b>${lost}</b> perdidos`;
   requestAnimationFrame(frame)}
 requestAnimationFrame(frame);
+/* jugar con amigos: el líder manda el estado */
+let nuevosFlash=[],estT=0;
+const fin=v=>Number.isFinite(v)&&Math.abs(v)<1e5;
+function enviarEstado(){if(!sala||!sala.activo)return;
+  tx({st:bodies.map(b=>[b.id,+(b.x-CX()).toFixed(2),+(b.y-CY()).toFixed(2),+b.vx.toFixed(3),+b.vy.toFixed(3),b.m,+b.r.toFixed(2),b.star?-1:b.t,+b.age.toFixed(1)]),mg:merges,lo:lost,fl:nuevosFlash});nuevosFlash=[]}
+setInterval(()=>{if(sala&&sala.activo&&sala.lider())enviarEstado()},100);
+function recibirEstado(d){
+  if(!Array.isArray(d.st)||d.st.length>80)return;const old=new Map(bodies.map(b=>[b.id,b])),next=[];
+  for(const a of d.st){if(!Array.isArray(a)||a.length<9||!a.slice(1,8).every(fin))continue;const [id,x,y,vx,vy,m,r,t,age]=a;
+    let b=old.get(id);if(!b){b=t===-1?star(0,0,m):planet(0,0,0,0,Math.max(0,Math.min(3,t|0)));b.id=id;b.trail=[]}
+    const nx=x+CX(),ny=y+CY();if(Math.hypot(b.x-nx,b.y-ny)>40)b.trail=[];
+    Object.assign(b,{x:nx,y:ny,vx,vy,m,r,age:+age||0});next.push(b)}
+  bodies=next;if(Number.isFinite(d.mg))merges=d.mg;if(Number.isFinite(d.lo))lost=d.lo;
+  if(Array.isArray(d.fl))for(const f of d.fl.slice(0,20))if(Array.isArray(f)&&f.slice(0,3).every(fin))flashes.push({x:f[0]+CX(),y:f[1]+CY(),r:f[2],life:1,c:f[3]?'#FFF2C4':'#FFD9A8'});
+  nid=Math.max(nid,...bodies.map(b=>b.id+1));
+}
+const badge=document.createElement('div');badge.style.cssText='position:fixed;right:16px;top:80px;color:#D9DDE6;font-size:.8rem;text-shadow:0 1px 4px #000';badge.hidden=true;document.body.append(badge);
+function conSala(fn){window.RatitoSala?fn(RatitoSala):addEventListener('ratitosala',()=>fn(RatitoSala),{once:true})}
+conSala(S0=>{sala=S0;
+  sala.al('mensaje',(d,de)=>{if(!d||typeof d!=='object')return;
+    if(d.st&&!sala.lider())recibirEstado(d);
+    else if(d.cmd&&sala.lider()){
+      if(d.cmd==='lanzar'&&[d.x,d.y,d.vx,d.vy].every(fin)&&bodies.length<60){const p=planet(d.x+CX(),d.y+CY(),d.vx,d.vy,Math.max(0,Math.min(3,d.k|0)));bodies.push(p)}
+      else if(['preset','binary','clear'].includes(d.cmd))({preset,binary,clear:reset})[d.cmd]();
+      enviarEstado()}});
+  sala.al('cambio',()=>{const o=sala.jugadores().filter(j=>!j.yo);badge.hidden=!sala.activo||!o.length;badge.textContent='Jugando con: '+o.map(j=>j.name).join(', ')+(sala.lider()?' (tú calculas la física)':'');
+    if(sala.activo&&sala.lider())enviarEstado()});
+});
 </script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
 <script src="/amigos.js" defer></script>

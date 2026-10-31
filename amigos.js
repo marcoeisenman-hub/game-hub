@@ -8,7 +8,7 @@ const rid=n=>Array.from(crypto.getRandomValues(new Uint8Array(n)),x=>ABC[x%36]).
 const me={id:rid(10),name:localStorage.getItem('ratitoNombre')||'Amigo '+(10+crypto.getRandomValues(new Uint8Array(1))[0]%90)};
 const PAGE=location.pathname.replace(/index\.html$/,'');
 const PAGES={'/':'la portada','/juegos/vida/':'Tu vida en vivo','/juegos/orbitas/':'Órbitas','/juegos/isla/':'Isla 3D','/juegos/ondas/':'Ondas','/juegos/demolicion/':'Demolición','/juegos/circulo/':'Círculo perfecto','/juegos/arena/':'Arena','/juegos/reflejos/':'Reflejos'};
-const color=id=>{let h=0;for(const c of id)h=(h*31+c.charCodeAt(0))>>>0;return COLORS[h%COLORS.length]};
+function color(id){const ids=[me.id].concat(Object.keys(people)).sort();const k=Math.max(0,ids.indexOf(id));return COLORS[k%COLORS.length]}
 const clean=s=>String(s||'').replace(/[<>&"]/g,'').slice(0,16)||'Amigo';
 
 /* ---------- interfaz ---------- */
@@ -43,7 +43,7 @@ const st=document.createElement('style');st.textContent=css;document.head.append
 const btn=document.createElement('button');btn.className='am-btn';btn.type='button';btn.innerHTML='Jugar con amigos';
 const panel=document.createElement('div');panel.className='am-panel';panel.hidden=true;
 panel.innerHTML=`<h3>Jugar con amigos</h3>
-<p id="am-st">Crea una sala, manda el link y verán el cursor del otro en vivo, en cualquier juego.</p>
+<p id="am-st">Crea una sala y manda el link: jugarán la misma partida y verán el cursor del otro, en cualquier juego.</p>
 <div id="am-off"><button class="w" id="am-new">Crear sala</button></div>
 <div id="am-on" hidden>
   <div class="am-row"><input id="am-url" readonly aria-label="Link de la sala"><button class="sec" id="am-copy">Copiar</button></div>
@@ -64,12 +64,15 @@ const status=t=>$('am-st').textContent=t;
 function send(m){m.id=me.id;m.name=me.name;m.page=PAGE;
   if(host)conns.forEach(c=>c.open&&c.send(m));else if(hc&&hc.open)hc.send(m)}
 function relay(m,from){conns.forEach(c=>c!==from&&c.open&&c.send(m))}
+function recolor(){for(const p of Object.values(people)){const c=color(p.id);if(p.c===c)continue;p.c=c;p.el.style.setProperty('--pc',c);p.el.querySelector('path').setAttribute('fill',c);p.el.querySelector('span').style.background=c;p.edge.style.background=c}}
 function list(){
+  recolor();
   const all=[{id:me.id,name:me.name+' (tú)',page:PAGE}].concat(Object.values(people));
   $('am-list').innerHTML=all.map(p=>`<li><i style="background:${color(p.id)}"></i>${clean(p.name.replace(' (tú)',''))}${p.id===me.id?' (tú)':''}<small>${p.page===PAGE?'aquí':'en '+(PAGES[p.page]||'otra página')}</small></li>`).join('');
   const n=Object.keys(people).length;
   btn.innerHTML=code?`Amigos <b>${n+1}</b>`:'Jugar con amigos';
-  if(code)status(n?`En la sala: ${n+1} personas.`:'Esperando a tus amigos… mándales el link.');
+  if(code)status(n?`En la sala: ${n+1} personas. Ya están jugando juntos.`:'Esperando a tus amigos… mándales el link.');
+  changed();
 }
 function getP(m){
   let p=people[m.id];
@@ -89,6 +92,7 @@ function onMsg(m,from){
   else if(m.t==='m'){const p=getP(m);p.d={k:typeof m.k==='string'?m.k.slice(0,80):'',fx:+m.fx,fy:+m.fy,px:+m.px,py:+m.py}}
   else if(m.t==='c'){const p=getP(m);p.el.classList.remove('click');void p.el.offsetWidth;p.el.classList.add('click')}
   else if(m.t==='hi')getP(m);
+  else if(m.t==='g'){getP(m);if(m.page===PAGE)emit('mensaje',m.d,info(m.id))}
   if(host&&from)relay(m,from);
 }
 function wire(c,isHost){
@@ -116,7 +120,7 @@ function connect(c){
       try{p.destroy()}catch(e){}
       const q=new Peer();peer=q;
       q.on('disconnected',()=>{if(g!==gen||q.destroyed)return;try{q.reconnect()}catch(e){again()}});
-      q.on('open',()=>{if(g!==gen)return;const h=hc=q.connect(PRE+c,{reliable:false});wire(h,false);
+      q.on('open',()=>{if(g!==gen)return;const h=hc=q.connect(PRE+c,{reliable:true});wire(h,false);
         h.on('open',()=>{if(g!==gen)return;retry=0;setCode(c)});
         setTimeout(()=>{if(g===gen&&hc===h&&!h.open){status('Reconectando…');again()}},6000)});
       q.on('error',e2=>{if(g!==gen)return;if(e2.type==='peer-unavailable'||e2.type==='network'||e2.type==='disconnected')again();else status('No se pudo conectar. Revisa tu internet.')});
@@ -133,11 +137,29 @@ function start(c){
 }
 function leave(){if(code)send({t:'bye'});gen++;code=null;sessionStorage.removeItem('ratitoSala');
   for(const id of Object.keys(people))drop(id);if(peer)try{peer.destroy()}catch(e){}peer=null;conns=[];hc=null;host=false;
-  $('am-off').hidden=false;$('am-on').hidden=true;btn.innerHTML='Jugar con amigos';status('Crea una sala, manda el link y verán el cursor del otro en vivo, en cualquier juego.')}
+  $('am-off').hidden=false;$('am-on').hidden=true;btn.innerHTML='Jugar con amigos';status('Crea una sala y manda el link: jugarán la misma partida y verán el cursor del otro, en cualquier juego.');changed()}
 $('am-new').onclick=()=>{const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';start(Array.from(crypto.getRandomValues(new Uint8Array(6)),x=>A[x%A.length]).join(''))};
 $('am-leave').onclick=leave;
 $('am-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('am-url').value);$('am-copy').textContent='¡Listo!';setTimeout(()=>$('am-copy').textContent='Copiar',1200)}catch(e){$('am-url').select()}};
 addEventListener('pagehide',()=>{if(code)send({t:'bye'})});
+
+
+/* ---------- API para los juegos: window.RatitoSala ---------- */
+const handlers={mensaje:[],cambio:[]};
+function emit(ev,...a){for(const f of handlers[ev])try{f(...a)}catch(e){console.error(e)}}
+function info(id){const p=id===me.id?me:people[id];return{id,name:p?clean(p.name):'Amigo',color:color(id),yo:id===me.id}}
+function jugadores(){const list=[info(me.id)];for(const p of Object.values(people))if(p.page===PAGE)list.push(info(p.id));return list.sort((a,b)=>a.id<b.id?-1:1)}
+let lastSig='';
+function changed(){const act=!!code&&(host||(hc&&hc.open));const sig=(act?'1':'0')+jugadores().map(j=>j.id+j.name).join(',');if(sig!==lastSig){lastSig=sig;emit('cambio')}}
+window.RatitoSala={
+  get activo(){return !!code&&!!(host||(hc&&hc.open))},
+  get yo(){return info(me.id)},
+  jugadores,
+  lider(){return jugadores()[0].id===me.id},
+  enviar(d){if(code)send({t:'g',d})},
+  al(ev,fn){if(handlers[ev])handlers[ev].push(fn)},
+};
+dispatchEvent(new Event('ratitosala'));
 
 /* ---------- posiciones ---------- */
 function keyOf(el){
