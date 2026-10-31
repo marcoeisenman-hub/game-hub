@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Círculo perfecto — Ratito</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/estilo.css">
+<style>
+html,body{height:100%;overflow:hidden;touch-action:none}
+body{background:#F7F7F4}
+canvas{position:fixed;inset:0;width:100%;height:100%;cursor:crosshair}
+.hud{position:fixed;left:0;right:0;top:64px;text-align:center;pointer-events:none;padding:0 16px}
+.hud h1{margin:0;font-size:clamp(1.6rem,5vw,2.4rem);font-weight:900;letter-spacing:-.02em}
+.hud p{margin:6px 0 0;color:var(--mut)}
+#score{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-size:clamp(3rem,13vw,6.5rem);font-weight:900;pointer-events:none;letter-spacing:-.04em}
+#msg{position:fixed;left:0;right:0;bottom:56px;text-align:center;font-weight:700;font-size:1.1rem;pointer-events:none;padding:0 16px}
+#best{position:fixed;right:16px;top:16px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:700;font-size:.9rem}
+</style>
+</head>
+<body>
+<a class="volver" href="/">← Ratito</a>
+<div id="best">Mejor: —</div>
+<canvas id="c" aria-label="Zona para dibujar el círculo"></canvas>
+<div class="hud"><h1>Círculo perfecto</h1><p>Dibuja un círculo alrededor del punto, de una sola pasada.</p></div>
+<div id="score"></div>
+<div id="msg" role="status"></div>
+<script>
+const c=document.getElementById('c'),x=c.getContext('2d'),S=document.getElementById('score'),M=document.getElementById('msg');
+let W,H,dpr,pts=[],drawing=false,cx,cy,done=false,best=+localStorage.getItem('ratitoCirculo')||0;
+const showBest=()=>document.getElementById('best').textContent='Mejor: '+(best?best.toFixed(1)+'%':'—');showBest();
+function size(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;c.width=W*dpr;c.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0);cx=W/2;cy=H/2+20;draw()}
+function col(err){ // err 0..1 → verde a rojo
+  const t=Math.min(1,err*5);return `hsl(${130-130*t},70%,${42}%)`}
+function draw(score){
+  x.clearRect(0,0,W,H);
+  x.fillStyle='#15171C';x.beginPath();x.arc(cx,cy,5,0,7);x.fill();
+  if(pts.length<2)return;
+  const rs=pts.map(p=>Math.hypot(p.x-cx,p.y-cy)),r=rs.reduce((a,b)=>a+b,0)/rs.length;
+  x.lineCap='round';x.lineJoin='round';x.lineWidth=7;
+  for(let i=1;i<pts.length;i++){x.strokeStyle=col(Math.abs(rs[i]-r)/r);x.beginPath();x.moveTo(pts[i-1].x,pts[i-1].y);x.lineTo(pts[i].x,pts[i].y);x.stroke()}
+  if(done&&score!=null){x.setLineDash([4,8]);x.lineWidth=1.5;x.strokeStyle='#15171C55';x.beginPath();x.arc(cx,cy,r,0,7);x.stroke();x.setLineDash([])}
+}
+function angle(p){return Math.atan2(p.y-cy,p.x-cx)}
+function swept(){let s=0;for(let i=1;i<pts.length;i++){let d=angle(pts[i])-angle(pts[i-1]);if(d>Math.PI)d-=2*Math.PI;if(d<-Math.PI)d+=2*Math.PI;s+=d}return s}
+function fail(t){done=true;drawing=false;S.textContent='';M.textContent=t;draw()}
+function live(){
+  const rs=pts.map(p=>Math.hypot(p.x-cx,p.y-cy)),r=rs.reduce((a,b)=>a+b,0)/rs.length;
+  const dev=Math.sqrt(rs.reduce((a,v)=>a+(v-r)**2,0)/rs.length)/r;
+  return {r,score:Math.max(0,100-dev*100*3.2)};
+}
+c.addEventListener('pointerdown',e=>{c.setPointerCapture(e.pointerId);pts=[{x:e.clientX,y:e.clientY,t:performance.now()}];drawing=true;done=false;M.textContent='';S.textContent='';
+  if(Math.hypot(e.clientX-cx,e.clientY-cy)<40)fail('Muy cerca del punto. Empieza más lejos.')});
+c.addEventListener('pointermove',e=>{if(!drawing)return;const p={x:e.clientX,y:e.clientY,t:performance.now()};
+  const l=pts[pts.length-1];if(Math.hypot(p.x-l.x,p.y-l.y)<2)return;pts.push(p);
+  if(Math.hypot(p.x-cx,p.y-cy)<30)return fail('Te acercaste demasiado al punto.');
+  if(p.t-pts[0].t>12000)return fail('Muy lento. Intenta más rápido.');
+  const s=swept();
+  if(pts.length>12){const {score}=live();S.textContent=score.toFixed(1)+'%';S.style.color=col((100-score)/320)}
+  if(Math.abs(s)>=2*Math.PI){finish();return}
+  draw()});
+c.addEventListener('pointerup',()=>{if(drawing){const s=Math.abs(swept());if(s<2*Math.PI*.9)fail(s<Math.PI?'Eso no es un círculo. Da la vuelta completa.':'Te faltó cerrar el círculo.');else finish()}});
+function finish(){
+  drawing=false;done=true;const {r,score}=live();
+  if(r<50)return fail('Muy pequeño. Hazlo más grande.');
+  S.textContent=score.toFixed(1)+'%';S.style.color=col((100-score)/320);draw(score);
+  const nuevo=score>best;if(nuevo){best=score;localStorage.setItem('ratitoCirculo',best);showBest()}
+  M.textContent=(nuevo?'¡Nuevo récord! ':'')+(score>=97?'Casi una máquina.':score>=92?'Excelente pulso.':score>=85?'Bastante bien.':score>=70?'Puedes mejorar.':'Ánimo, otra vez.')+' Toca para intentar de nuevo.';
+}
+addEventListener('resize',size);size();
+</script>
+</body>
+</html>

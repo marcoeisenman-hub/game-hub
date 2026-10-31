@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Arena — Ratito</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/estilo.css">
+<style>
+html,body{height:100%;overflow:hidden;background:#171a1d}canvas{display:block;width:100%;height:100%;touch-action:none;image-rendering:pixelated}.intro{position:fixed;top:14px;right:18px;color:#c1c4c7;text-align:right;pointer-events:none}.intro h1{font-size:18px;margin:0;font-weight:500}.intro p{font-size:12px;margin:2px 0}.tools{position:fixed;bottom:0;left:0;right:0;background:#f9f9f7f5;border-top:1px solid #ffffff25;padding:12px max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px}.materials{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}button{font:inherit;cursor:pointer}.material{border:1px solid transparent;background:transparent;border-radius:7px;padding:7px 9px;font-size:13px;color:#41454a;display:flex;gap:6px;align-items:center}.material[aria-pressed=true]{border-color:#373c40;background:#fff;color:#15171c}.dot{width:10px;height:10px;border-radius:50%;background:var(--color);box-shadow:inset 0 0 0 1px #0002}label{font-size:12px;display:flex;align-items:center;gap:7px}input{width:90px;accent-color:#555}#clear{font-size:12px;padding:8px 12px}output{min-width:22px}@media(max-width:560px){.intro p{max-width:170px}.tools{gap:7px;padding-top:8px}.material{padding:6px 7px;font-size:12px}.materials{gap:2px;width:100%}}
+</style></head>
+<body><a class="volver" href="/">← Ratito</a><div class="intro"><h1>Arena que cae</h1><p>Dibuja y mezcla los materiales.</p></div><canvas aria-label="Simulación de arena. Elige un material y dibuja con el dedo o el mouse."></canvas>
+<div class="tools"><div class="materials" role="group" aria-label="Material"></div><label>Pincel <input id="size" type="range" min="1" max="18" value="5"><output for="size">5</output></label><button class="btn sec" id="clear">Limpiar</button></div>
+<script>
+'use strict';
+const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d',{alpha:false}),buffer=document.createElement('canvas'),bc=buffer.getContext('2d'),tools=document.querySelector('.tools');
+const names=['Borrador','Arena','Agua','Piedra','Fuego','Humo','Madera','Vapor'],colors=['#ddd','#c6b087','#477990','#7f8384','#df9941','#777b7e','#796047','#b6c6cd'];
+let w,h,cells,shade,life,moved,pixels,selected=1,brush=5,tick=0,last=0,acc=0;
+const pointers=new Map();
+for(const id of [1,2,3,4,5,6,7,0]){const b=document.createElement('button');b.className='material';b.innerHTML='<span class="dot" style="--color:'+colors[id]+'"></span>'+names[id];b.setAttribute('aria-pressed',id===selected);b.onclick=()=>{selected=id;document.querySelectorAll('.material').forEach(e=>e.setAttribute('aria-pressed',e===b));};document.querySelector('.materials').append(b);}
+document.querySelector('#size').oninput=e=>{brush=+e.target.value;document.querySelector('output').value=brush;};
+document.querySelector('#clear').onclick=()=>{cells.fill(0);life.fill(0);};
+function resize(){const nw=Math.max(1,Math.ceil(innerWidth/4)),nh=Math.max(1,Math.ceil((innerHeight-tools.getBoundingClientRect().height)/4));canvas.style.height=(innerHeight-tools.getBoundingClientRect().height)+'px';if(nw===w&&nh===h)return;const old=cells,os=shade,ol=life,ow=w,oh=h;w=nw;h=nh;canvas.style.height=(innerHeight-tools.getBoundingClientRect().height)+'px';canvas.width=buffer.width=w;canvas.height=buffer.height=h;cells=new Uint8Array(w*h);shade=new Uint8Array(w*h);life=new Uint8Array(w*h);moved=new Uint8Array(w*h);pixels=bc.createImageData(w,h);if(old)for(let y=0;y<Math.min(h,oh);y++)for(let x=0;x<Math.min(w,ow);x++){let i=(y+Math.max(0,h-oh))*w+x,j=(y+Math.max(0,oh-h))*ow+x;cells[i]=old[j];shade[i]=os[j];life[i]=ol[j];}}
+new ResizeObserver(resize).observe(tools);window.addEventListener('resize',resize);resize();
+function put(i,t){cells[i]=t;shade[i]=Math.random()*32;life[i]=t===4?35+Math.random()*65:t===5?70+Math.random()*80:t===7?100+Math.random()*100:0;moved[i]=1;}
+function paint(x,y){const r=brush;for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(dx*dx+dy*dy>r*r)continue;let xx=x+dx,yy=y+dy;if(xx<0||xx>=w||yy<0||yy>=h)continue;let i=yy*w+xx;if(selected===0||selected===3||selected===6||Math.random()<.45)put(i,selected);}}
+function point(e){const r=canvas.getBoundingClientRect();return {x:Math.floor((e.clientX-r.left)*w/r.width),y:Math.floor((e.clientY-r.top)*h/r.height)};}
+canvas.onpointerdown=e=>{if(e.button!==0)return;e.preventDefault();canvas.setPointerCapture(e.pointerId);const p=point(e);pointers.set(e.pointerId,p);paint(p.x,p.y);};
+canvas.onpointermove=e=>{if(!pointers.has(e.pointerId))return;const a=pointers.get(e.pointerId),b=point(e),n=Math.max(Math.abs(b.x-a.x),Math.abs(b.y-a.y),1);for(let j=0;j<=n;j++)paint(Math.round(a.x+(b.x-a.x)*j/n),Math.round(a.y+(b.y-a.y)*j/n));pointers.set(e.pointerId,b);};
+for(const name of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(name,e=>pointers.delete(e.pointerId));
+window.addEventListener('blur',()=>pointers.clear());
+function swap(i,j){const t=cells[j],s=shade[j],l=life[j];cells[j]=cells[i];shade[j]=shade[i];life[j]=life[i];cells[i]=t;shade[i]=s;life[i]=l;moved[i]=moved[j]=1;}
+function move(i,x,y,t){if(x<0||x>=w||y<0||y>=h)return false;const j=y*w+x,q=cells[j];if(!q||((t===1||t===2)&&(q===5||q===7))||(t===1&&q===2)){swap(i,j);return true;}return false;}
+function step(){moved.fill(0);tick++;for(const p of pointers.values())paint(p.x,p.y);for(let i=0;i<cells.length;i++){if(cells[i]!==4||moved[i])continue;const y=Math.floor(i/w);for(const d of [-w,w,-1,1]){const j=i+d;if(j<0||j>=cells.length||((d===1||d===-1)&&Math.floor(j/w)!==y))continue;if(cells[j]===2){put(j,7);cells[i]=0;break;}if(cells[j]===6&&Math.random()<.22){put(j,4);life[j]=180;}}}for(let yy=0;yy<h;yy++){const y=tick%2?yy:h-1-yy;const dir=Math.random()<.5?1:-1;for(let k=0;k<w;k++){const x=dir===1?k:w-1-k,i=y*w+x,t=cells[i];if(!t||moved[i])continue;
+if(t===4||t===5||t===7){if(life[i]===0){cells[i]=t===7&&Math.random()<.15?2:0;continue;}life[i]--;}
+if(t===4){if(Math.random()<.13&&y>0&&!cells[i-w])put(i-w,5);if(life[i]<100&&Math.random()<.5)move(i,x,y-1,t)||move(i,x+dir,y-1,t);}
+else if(t===1||t===2){if(move(i,x,y+1,t)||move(i,x+dir,y+1,t)||move(i,x-dir,y+1,t))continue;if(t===2){let target=x;for(let d=1;d<=3;d++){const xx=x+dir*d;if(xx<0||xx>=w||cells[y*w+xx])break;target=xx;}if(target!==x)swap(i,y*w+target);}}
+else if(t===5||t===7){if(Math.random()<.7)(move(i,x,y-1,t)||move(i,x+dir,y-1,t)||move(i,x-dir,y-1,t)||move(i,x+dir,y,t));}
+}}}
+const bases=[[23,26,29],[195,174,134],[54,101,126],[116,120,121],[223,125,38],[80,85,89],[112,83,55],[135,153,163]];
+function draw(){const a=pixels.data;for(let i=0;i<cells.length;i++){const t=cells[i],b=bases[t],v=t?(shade[i]-16):0,j=i*4,f=t===4?Math.random()*60:0;a[j]=b[0]+v+f*.5;a[j+1]=b[1]+v+f;a[j+2]=b[2]+v;if(t===2){const shimmer=(shade[i]%7)*2;a[j]=35+v*.4+shimmer;a[j+1]=72+v*.6+shimmer;a[j+2]=95+v*.8+shimmer;}a[j+3]=t===2?185:t===5?155:t===7?125:255;}bc.putImageData(pixels,0,0);ctx.fillStyle='#171a1d';ctx.fillRect(0,0,w,h);ctx.drawImage(buffer,0,0);}
+function frame(now){acc+=Math.min(now-last,50);last=now;let changed=false;while(acc>=1000/60){step();acc-=1000/60;changed=true;}if(changed)draw();requestAnimationFrame(frame);}requestAnimationFrame(frame);
+</script></body></html>
