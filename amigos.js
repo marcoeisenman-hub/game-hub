@@ -108,12 +108,14 @@ function connect(c){
   if(peer)try{peer.destroy()}catch(e){}
   // 1) intentar ser el centro de la sala
   const p=new Peer(PRE+c);peer=p;
+  p.on('disconnected',()=>{if(g!==gen||p.destroyed)return;try{p.reconnect()}catch(e){again()}});
   p.on('open',()=>{if(g!==gen)return;host=true;retry=0;setCode(c)});
   p.on('connection',cn=>{if(g!==gen)return;if(conns.length>=7){cn.on('open',()=>{cn.send({t:'full'});setTimeout(()=>cn.close(),300)});return}conns.push(cn);wire(cn,true)});
   p.on('error',err=>{if(g!==gen)return;
     if(err.type==='unavailable-id'){ // 2) ya hay centro: entrar como invitado
       try{p.destroy()}catch(e){}
       const q=new Peer();peer=q;
+      q.on('disconnected',()=>{if(g!==gen||q.destroyed)return;try{q.reconnect()}catch(e){again()}});
       q.on('open',()=>{if(g!==gen)return;const h=hc=q.connect(PRE+c,{reliable:false});wire(h,false);
         h.on('open',()=>{if(g!==gen)return;retry=0;setCode(c)});
         setTimeout(()=>{if(g===gen&&hc===h&&!h.open){status('Reconectando…');again()}},6000)});

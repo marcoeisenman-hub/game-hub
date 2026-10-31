@@ -83,7 +83,7 @@ function physics(dt){
     if(Math.hypot(a.x-b.x,a.y-b.y)<(a.r+b.r)*.8){
       const big=a.m>=b.m?a:b,small=big===a?b:a,M=a.m+b.m;
       big.vx=(a.vx*a.m+b.vx*b.m)/M;big.vy=(a.vy*a.m+b.vy*b.m)/M;big.x=(a.x*a.m+b.x*b.m)/M;big.y=(a.y*a.m+b.y*b.m)/M;
-      if(!big.star){big.r=Math.cbrt(big.r**3+small.r**3);}else big.r=26*Math.cbrt(big.m/2200);
+      if(!big.star){big.r=Math.cbrt(big.r**3+small.r**3);}else big.r=26*Math.cbrt(M/2200);
       big.m=M;flashes.push({x:small.x,y:small.y,r:small.r*3+8,life:1,c:small.star?'#FFF2C4':'#FFD9A8'});
       if(!small.star&&big.star)lost++;else merges++;
       bodies.splice(bodies.indexOf(small),1);j--}}
