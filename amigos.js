@@ -93,18 +93,20 @@ function onMsg(m,from){
   if(host&&from)relay(m,from);
 }
 function wire(c,isHost){
+  const wg=gen;
   c.on('open',()=>{c.send({t:'hi',id:me.id,name:me.name,page:PAGE});
     if(isHost)for(const p of Object.values(people))c.send({t:'hi',id:p.id,name:p.name,page:p.page})});
   c.on('data',m=>onMsg(m,isHost?c:null));
   c.on('close',()=>{
+    if(wg!==gen)return;
     if(isHost){conns=conns.filter(x=>x!==c);if(c._pid){drop(c._pid);relay({t:'bye',id:c._pid,name:''},null)}}
     else if(code&&c===hc){for(const id of Object.keys(people))drop(id);status('Reconectando…');again()}});
 }
 function again(){const g=gen;setTimeout(()=>{if(code&&g===gen)connect(code)},300+Math.random()*1200+Math.min(retry++,10)*400)}
 function connect(c){
   const g=++gen;
+  hc=null;conns=[];host=false;
   if(peer)try{peer.destroy()}catch(e){}
-  host=false;conns=[];hc=null;
   // 1) intentar ser el centro de la sala
   const p=new Peer(PRE+c);peer=p;
   p.on('open',()=>{if(g!==gen)return;host=true;retry=0;setCode(c)});

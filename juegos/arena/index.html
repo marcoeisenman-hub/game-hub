@@ -100,10 +100,9 @@ function fall(i,x,y,t,maxV,spread){
   while(k<(v+1>>1)&&yy<H-1&&enter(t,type[j+W])){j+=W;yy++;k++}
   if(k){vel[j]=v;swap(i,j);if(j!==i)vel[j]=v;return true}
   vel[i]=0;
-  if(y>=H-1)return false;
   const d=R()<.5?1:-1;
   const wetSand=t===SAND&&(near(i,x,y,WATER)>=0);
-  if(!(wetSand&&R()<.9)&&!(t===SAND&&R()<.12)){
+  if(y<H-1&&!(wetSand&&R()<.9)&&!(t===SAND&&R()<.12)){
     for(const s of [d,-d]){const xx=x+s;if(xx<0||xx>=W)continue;const j2=i+W+s;if(enter(t,type[j2])&&(type[i+s]===E||liquid(type[i+s])||gas(type[i+s]))){swap(i,j2);return true}}
   }
   if(spread){ // líquidos se esparcen
