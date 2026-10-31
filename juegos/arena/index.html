@@ -1,40 +1,230 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Arena — Ratito</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/estilo.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Arena — Ratito</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/estilo.css">
 <style>
-html,body{height:100%;overflow:hidden;background:#171a1d}canvas{display:block;width:100%;height:100%;touch-action:none;image-rendering:pixelated}.intro{position:fixed;top:14px;right:18px;color:#c1c4c7;text-align:right;pointer-events:none}.intro h1{font-size:18px;margin:0;font-weight:500}.intro p{font-size:12px;margin:2px 0}.tools{position:fixed;bottom:0;left:0;right:0;background:#f9f9f7f5;border-top:1px solid #ffffff25;padding:12px max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px}.materials{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}button{font:inherit;cursor:pointer}.material{border:1px solid transparent;background:transparent;border-radius:7px;padding:7px 9px;font-size:13px;color:#41454a;display:flex;gap:6px;align-items:center}.material[aria-pressed=true]{border-color:#373c40;background:#fff;color:#15171c}.dot{width:10px;height:10px;border-radius:50%;background:var(--color);box-shadow:inset 0 0 0 1px #0002}label{font-size:12px;display:flex;align-items:center;gap:7px}input{width:90px;accent-color:#555}#clear{font-size:12px;padding:8px 12px}output{min-width:22px}@media(max-width:560px){.intro p{max-width:170px}.tools{gap:7px;padding-top:8px}.material{padding:6px 7px;font-size:12px}.materials{gap:2px;width:100%}}
-</style></head>
-<body><a class="volver" href="/">← Ratito</a><div class="intro"><h1>Arena que cae</h1><p>Dibuja y mezcla los materiales.</p></div><canvas aria-label="Simulación de arena. Elige un material y dibuja con el dedo o el mouse."></canvas>
-<div class="tools"><div class="materials" role="group" aria-label="Material"></div><label>Pincel <input id="size" type="range" min="1" max="18" value="5"><output for="size">5</output></label><button class="btn sec" id="clear">Limpiar</button></div>
+html,body{height:100%;overflow:hidden;background:#121315}
+#view{position:fixed;left:0;top:0;width:100%;touch-action:none;cursor:crosshair}
+.intro{position:fixed;top:14px;right:18px;color:#d4d1cb;text-align:right;pointer-events:none;text-shadow:0 1px 4px #000}
+.intro h1{font-size:1.15rem;margin:0;font-weight:700}
+.intro p{font-size:.8rem;margin:2px 0;color:#a9a59d}
+.tools{position:fixed;bottom:0;left:0;right:0;background:#1C1D20;border-top:1px solid #2E3035;padding:10px max(12px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px 16px;color:#E6E3DD}
+.materials{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+.mat{font:inherit;cursor:pointer;border:1px solid transparent;background:transparent;color:#C9C5BD;border-radius:9px;padding:6px 10px;font-size:.85rem;display:flex;gap:7px;align-items:center}
+.mat:hover{background:#26282C}
+.mat[aria-pressed=true]{border-color:#5A5D63;background:#2B2D32;color:#fff}
+.sw{width:14px;height:14px;border-radius:4px;background:var(--c);box-shadow:inset 0 0 0 1px #0005}
+.tools label{font-size:.8rem;display:flex;align-items:center;gap:8px;color:#A9A59D}
+.tools input{width:96px;accent-color:#D8BE8A}
+.tools .btn{background:#2B2D32;color:#E6E3DD;border:1px solid #3A3D43;padding:7px 12px;font-size:.82rem}
+.tools .btn:hover{background:#34373C}
+@media(max-width:560px){.intro p{display:none}.mat{padding:5px 7px;font-size:.78rem}.materials{gap:2px}}
+</style>
+</head>
+<body>
+<a class="volver" href="/">← Ratito</a>
+<div class="intro"><h1>Arena</h1><p>Elige un material y dibuja. Prueba lava sobre agua o fuego en el aceite.</p></div>
+<canvas id="view" aria-label="Simulación de arena. Elige un material y dibuja con el dedo o el mouse."></canvas>
+<div class="tools">
+  <div class="materials" role="group" aria-label="Material"></div>
+  <label>Pincel <input id="size" type="range" min="1" max="16" value="5"></label>
+  <button class="btn" id="pause" aria-pressed="false">Pausa</button>
+  <button class="btn" id="clear">Limpiar</button>
+</div>
 <script>
 'use strict';
-const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d',{alpha:false}),buffer=document.createElement('canvas'),bc=buffer.getContext('2d'),tools=document.querySelector('.tools');
-const names=['Borrador','Arena','Agua','Piedra','Fuego','Humo','Madera','Vapor'],colors=['#ddd','#c6b087','#477990','#7f8384','#df9941','#777b7e','#796047','#b6c6cd'];
-let w,h,cells,shade,life,moved,pixels,selected=1,brush=5,tick=0,last=0,acc=0;
-const pointers=new Map();
-for(const id of [1,2,3,4,5,6,7,0]){const b=document.createElement('button');b.className='material';b.innerHTML='<span class="dot" style="--color:'+colors[id]+'"></span>'+names[id];b.setAttribute('aria-pressed',id===selected);b.onclick=()=>{selected=id;document.querySelectorAll('.material').forEach(e=>e.setAttribute('aria-pressed',e===b));};document.querySelector('.materials').append(b);}
-document.querySelector('#size').oninput=e=>{brush=+e.target.value;document.querySelector('output').value=brush;};
-document.querySelector('#clear').onclick=()=>{cells.fill(0);life.fill(0);};
-function resize(){const nw=Math.max(1,Math.ceil(innerWidth/4)),nh=Math.max(1,Math.ceil((innerHeight-tools.getBoundingClientRect().height)/4));canvas.style.height=(innerHeight-tools.getBoundingClientRect().height)+'px';if(nw===w&&nh===h)return;const old=cells,os=shade,ol=life,ow=w,oh=h;w=nw;h=nh;canvas.style.height=(innerHeight-tools.getBoundingClientRect().height)+'px';canvas.width=buffer.width=w;canvas.height=buffer.height=h;cells=new Uint8Array(w*h);shade=new Uint8Array(w*h);life=new Uint8Array(w*h);moved=new Uint8Array(w*h);pixels=bc.createImageData(w,h);if(old)for(let y=0;y<Math.min(h,oh);y++)for(let x=0;x<Math.min(w,ow);x++){let i=(y+Math.max(0,h-oh))*w+x,j=(y+Math.max(0,oh-h))*ow+x;cells[i]=old[j];shade[i]=os[j];life[i]=ol[j];}}
-new ResizeObserver(resize).observe(tools);window.addEventListener('resize',resize);resize();
-function put(i,t){cells[i]=t;shade[i]=Math.random()*32;life[i]=t===4?35+Math.random()*65:t===5?70+Math.random()*80:t===7?100+Math.random()*100:0;moved[i]=1;}
-function paint(x,y){const r=brush;for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(dx*dx+dy*dy>r*r)continue;let xx=x+dx,yy=y+dy;if(xx<0||xx>=w||yy<0||yy>=h)continue;let i=yy*w+xx;if(selected===0||selected===3||selected===6||Math.random()<.45)put(i,selected);}}
-function point(e){const r=canvas.getBoundingClientRect();return {x:Math.floor((e.clientX-r.left)*w/r.width),y:Math.floor((e.clientY-r.top)*h/r.height)};}
-canvas.onpointerdown=e=>{if(e.button!==0)return;e.preventDefault();canvas.setPointerCapture(e.pointerId);const p=point(e);pointers.set(e.pointerId,p);paint(p.x,p.y);};
-canvas.onpointermove=e=>{if(!pointers.has(e.pointerId))return;const a=pointers.get(e.pointerId),b=point(e),n=Math.max(Math.abs(b.x-a.x),Math.abs(b.y-a.y),1);for(let j=0;j<=n;j++)paint(Math.round(a.x+(b.x-a.x)*j/n),Math.round(a.y+(b.y-a.y)*j/n));pointers.set(e.pointerId,b);};
-for(const name of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(name,e=>pointers.delete(e.pointerId));
-window.addEventListener('blur',()=>pointers.clear());
-function swap(i,j){const t=cells[j],s=shade[j],l=life[j];cells[j]=cells[i];shade[j]=shade[i];life[j]=life[i];cells[i]=t;shade[i]=s;life[i]=l;moved[i]=moved[j]=1;}
-function move(i,x,y,t){if(x<0||x>=w||y<0||y>=h)return false;const j=y*w+x,q=cells[j];if(!q||((t===1||t===2)&&(q===5||q===7))||(t===1&&q===2)){swap(i,j);return true;}return false;}
-function step(){moved.fill(0);tick++;for(const p of pointers.values())paint(p.x,p.y);for(let i=0;i<cells.length;i++){if(cells[i]!==4||moved[i])continue;const y=Math.floor(i/w);for(const d of [-w,w,-1,1]){const j=i+d;if(j<0||j>=cells.length||((d===1||d===-1)&&Math.floor(j/w)!==y))continue;if(cells[j]===2){put(j,7);cells[i]=0;break;}if(cells[j]===6&&Math.random()<.22){put(j,4);life[j]=180;}}}for(let yy=0;yy<h;yy++){const y=tick%2?yy:h-1-yy;const dir=Math.random()<.5?1:-1;for(let k=0;k<w;k++){const x=dir===1?k:w-1-k,i=y*w+x,t=cells[i];if(!t||moved[i])continue;
-if(t===4||t===5||t===7){if(life[i]===0){cells[i]=t===7&&Math.random()<.15?2:0;continue;}life[i]--;}
-if(t===4){if(Math.random()<.13&&y>0&&!cells[i-w])put(i-w,5);if(life[i]<100&&Math.random()<.5)move(i,x,y-1,t)||move(i,x+dir,y-1,t);}
-else if(t===1||t===2){if(move(i,x,y+1,t)||move(i,x+dir,y+1,t)||move(i,x-dir,y+1,t))continue;if(t===2){let target=x;for(let d=1;d<=3;d++){const xx=x+dir*d;if(xx<0||xx>=w||cells[y*w+xx])break;target=xx;}if(target!==x)swap(i,y*w+target);}}
-else if(t===5||t===7){if(Math.random()<.7)(move(i,x,y-1,t)||move(i,x+dir,y-1,t)||move(i,x-dir,y-1,t)||move(i,x+dir,y,t));}
-}}}
-const bases=[[23,26,29],[195,174,134],[54,101,126],[116,120,121],[223,125,38],[80,85,89],[112,83,55],[135,153,163]];
-function draw(){const a=pixels.data;for(let i=0;i<cells.length;i++){const t=cells[i],b=bases[t],v=t?(shade[i]-16):0,j=i*4,f=t===4?Math.random()*60:0;a[j]=b[0]+v+f*.5;a[j+1]=b[1]+v+f;a[j+2]=b[2]+v;if(t===2){const shimmer=(shade[i]%7)*2;a[j]=35+v*.4+shimmer;a[j+1]=72+v*.6+shimmer;a[j+2]=95+v*.8+shimmer;}a[j+3]=t===2?185:t===5?155:t===7?125:255;}bc.putImageData(pixels,0,0);ctx.fillStyle='#171a1d';ctx.fillRect(0,0,w,h);ctx.drawImage(buffer,0,0);}
-function frame(now){acc+=Math.min(now-last,50);last=now;let changed=false;while(acc>=1000/60){step();acc-=1000/60;changed=true;}if(changed)draw();requestAnimationFrame(frame);}requestAnimationFrame(frame);
-</script></body></html>
+/* tipos */
+const E=0,SAND=1,WATER=2,STONE=3,WOOD=4,FIRE=5,SMOKE=6,STEAM=7,OIL=8,LAVA=9,ASH=10,EMBER=11;
+const MENU=[[SAND,'Arena','#D2B98A'],[WATER,'Agua','#2F6F98'],[STONE,'Piedra','#7D7F80'],[WOOD,'Madera','#7A5634'],[OIL,'Aceite','#4A3816'],[FIRE,'Fuego','#F08A24'],[LAVA,'Lava','#E8501C'],[E,'Borrador','#3A3C40']];
+const view=document.getElementById('view'),vctx=view.getContext('2d'),tools=document.querySelector('.tools');
+const sim=document.createElement('canvas'),sctx=sim.getContext('2d');
+const glow=document.createElement('canvas'),gctx=glow.getContext('2d');
+const tiny=document.createElement('canvas'),tctx=tiny.getContext('2d');
+const bg=document.createElement('canvas'),bgx=bg.getContext('2d');
+let W=0,H=0,CELL=2,N=0,type,shade,life,vel,stamp,img,gimg,sel=SAND,brush=5,tick=0,paused=false,dpr=1,viewH=0;
+const ptr=new Map();
+
+/* menú */
+for(const [t,n,c] of MENU){const b=document.createElement('button');b.className='mat';b.innerHTML=`<span class="sw" style="--c:${c}"></span>${n}`;
+  b.setAttribute('aria-pressed',t===sel);b.onclick=()=>{sel=t;document.querySelectorAll('.mat').forEach(x=>x.setAttribute('aria-pressed',x===b))};document.querySelector('.materials').append(b)}
+document.getElementById('size').oninput=e=>brush=+e.target.value;
+document.getElementById('clear').onclick=()=>{type.fill(0);life.fill(0);vel.fill(0)};
+document.getElementById('pause').onclick=e=>{paused=!paused;e.target.textContent=paused?'Seguir':'Pausa';e.target.setAttribute('aria-pressed',paused)};
+
+/* tamaño */
+function resize(){
+  dpr=Math.min(2,devicePixelRatio||1);viewH=innerHeight-tools.getBoundingClientRect().height;
+  view.style.height=viewH+'px';view.width=Math.round(innerWidth*dpr);view.height=Math.round(viewH*dpr);
+  const area=innerWidth*viewH;CELL=Math.max(2,Math.round(Math.sqrt(area/150000)));
+  const nw=Math.ceil(innerWidth/CELL),nh=Math.ceil(viewH/CELL);
+  if(nw!==W||nh!==H){
+    const o={W,H,type,shade,life,vel};W=nw;H=nh;N=W*H;
+    type=new Uint8Array(N);shade=new Uint8Array(N);life=new Uint16Array(N);vel=new Uint8Array(N);stamp=new Uint8Array(N);
+    if(o.type)for(let y=0;y<Math.min(H,o.H);y++)for(let x=0;x<Math.min(W,o.W);x++){const i=(H-1-y)*W+x,j=(o.H-1-y)*o.W+x;type[i]=o.type[j];shade[i]=o.shade[j];life[i]=o.life[j]}
+    sim.width=glow.width=W;sim.height=glow.height=H;tiny.width=Math.max(1,W>>3);tiny.height=Math.max(1,H>>3);
+    img=sctx.createImageData(W,H);gimg=gctx.createImageData(W,H);
+  }
+  bg.width=view.width;bg.height=view.height;
+  const g=bgx.createLinearGradient(0,0,0,bg.height);g.addColorStop(0,'#1A1B1E');g.addColorStop(1,'#0E0F11');bgx.fillStyle=g;bgx.fillRect(0,0,bg.width,bg.height);
+  const v=bgx.createRadialGradient(bg.width/2,bg.height*.45,bg.height*.2,bg.width/2,bg.height*.5,Math.max(bg.width,bg.height)*.75);v.addColorStop(0,'rgba(255,240,220,.035)');v.addColorStop(1,'rgba(0,0,0,.35)');bgx.fillStyle=v;bgx.fillRect(0,0,bg.width,bg.height);
+}
+new ResizeObserver(resize).observe(tools);addEventListener('resize',resize);resize();
+
+/* utilidades */
+const R=Math.random;
+function set(i,t){type[i]=t;shade[i]=R()*256|0;vel[i]=0;stamp[i]=tick;
+  life[i]=t===FIRE?18+R()*40:t===SMOKE?90+R()*140:t===STEAM?140+R()*180:t===EMBER?260+R()*300:t===LAVA?0:0}
+function swap(i,j){let t=type[i];type[i]=type[j];type[j]=t;t=shade[i];shade[i]=shade[j];shade[j]=t;t=life[i];life[i]=life[j];life[j]=t;t=vel[i];vel[i]=vel[j];vel[j]=t;stamp[i]=stamp[j]=tick}
+const liquid=t=>t===WATER||t===OIL;
+const gas=t=>t===SMOKE||t===STEAM||t===FIRE;
+function enter(t,q){ // ¿t puede ocupar el lugar de q?
+  if(q===E)return true;
+  if(gas(q))return t!==FIRE&&!gas(t);
+  if(t===SAND||t===ASH)return liquid(q)&&R()<.45;
+  if(t===WATER)return q===OIL&&R()<.5;
+  if(t===LAVA)return false;
+  return false;
+}
+function near(i,x,y,t){ // ¿hay t alrededor?
+  if(x>0&&type[i-1]===t)return i-1;if(x<W-1&&type[i+1]===t)return i+1;
+  if(y>0&&type[i-W]===t)return i-W;if(y<H-1&&type[i+W]===t)return i+W;return -1}
+
+/* física */
+function fall(i,x,y,t,maxV,spread){
+  // caída con aceleración
+  let v=Math.min(maxV,vel[i]+1),j=i,yy=y,k=0;
+  while(k<(v+1>>1)&&yy<H-1&&enter(t,type[j+W])){j+=W;yy++;k++}
+  if(k){vel[j]=v;swap(i,j);if(j!==i)vel[j]=v;return true}
+  vel[i]=0;
+  if(y>=H-1)return false;
+  const d=R()<.5?1:-1;
+  const wetSand=t===SAND&&(near(i,x,y,WATER)>=0);
+  if(!(wetSand&&R()<.9)&&!(t===SAND&&R()<.12)){
+    for(const s of [d,-d]){const xx=x+s;if(xx<0||xx>=W)continue;const j2=i+W+s;if(enter(t,type[j2])&&(type[i+s]===E||liquid(type[i+s])||gas(type[i+s]))){swap(i,j2);return true}}
+  }
+  if(spread){ // líquidos se esparcen
+    let best=i;for(let s=1;s<=spread;s++){const xx=x+d*s;if(xx<0||xx>=W)break;const q=type[i+d*s];if(q===E||gas(q))best=i+d*s;else break;
+      if(y<H-1&&type[i+d*s+W]===E){best=i+d*s;break}}
+    if(best!==i){swap(i,best);return true}
+  }
+  return false;
+}
+function rise(i,x,y,t,jitter){
+  if(y===0){if(t!==FIRE&&R()<.04)type[i]=E;return}
+  const d=R()<.5?1:-1,opts=[i-W,i-W+d,i-W-d];
+  for(const j of opts){const xx=j%W;if(Math.abs(xx-x)>1)continue;const q=type[j];if(q===E||(liquid(q)&&t!==FIRE&&R()<.3)){if(R()<jitter){swap(i,j);return}}}
+  const s=i+d;if(x+d>=0&&x+d<W&&type[s]===E&&R()<.5)swap(i,s);
+}
+function ignite(j){const q=type[j];if(q===WOOD&&R()<.035)set(j,EMBER);else if(q===OIL&&R()<.25){set(j,FIRE);life[j]=60+R()*60}}
+function step(){
+  tick=(tick+1)&255;
+  for(const p of ptr.values())paint(p.x,p.y);
+  const lr=tick&1;
+  for(let y=H-1;y>=0;y--){
+    for(let k=0;k<W;k++){
+      const x=lr?k:W-1-k,i=y*W+x,t=type[i];
+      if(t===E||t===STONE||t===WOOD||stamp[i]===tick)continue;
+      switch(t){
+        case SAND:fall(i,x,y,t,10,0);break;
+        case ASH:if(R()<.6)fall(i,x,y,t,3,0);break;
+        case WATER:{const f=near(i,x,y,FIRE);if(f>=0&&R()<.5){type[f]=E;if(R()<.15)set(i,STEAM);break}
+          fall(i,x,y,t,10,6);break}
+        case OIL:{const f=near(i,x,y,FIRE);if(f>=0)ignite(i);else{const e=near(i,x,y,EMBER);if(e>=0)ignite(i)}
+          if(type[i]===OIL)fall(i,x,y,t,8,4);break}
+        case LAVA:{
+          const w=near(i,x,y,WATER);if(w>=0){set(w,STEAM);if(R()<.45){set(i,STONE);break}}
+          for(const j of [i-1,i+1,i-W,i+W])if(j>=0&&j<N)ignite(j);
+          if(y>0&&type[i-W]===E&&R()<.004)set(i-W,SMOKE);
+          if(tick%3===0)fall(i,x,y,t,2,1);break}
+        case FIRE:{
+          if(--life[i]<=0){type[i]=R()<.35?SMOKE:E;if(type[i]===SMOKE)life[i]=60+R()*90;break}
+          for(const j of [i-1,i+1,i-W,i+W])if(j>=0&&j<N)ignite(j);
+          rise(i,x,y,t,.55);break}
+        case EMBER:{ // madera ardiendo
+          if(--life[i]<=0){if(R()<.55){set(i,ASH)}else type[i]=E;break}
+          if(near(i,x,y,WATER)>=0&&R()<.3){type[i]=WOOD;const w=near(i,x,y,WATER);if(w>=0)set(w,STEAM);break}
+          if(y>0&&type[i-W]===E&&R()<.35)set(i-W,R()<.8?FIRE:SMOKE);
+          for(const j of [i-1,i+1,i-W,i+W])if(j>=0&&j<N)ignite(j);
+          break}
+        case SMOKE:if(--life[i]<=0){type[i]=E;break}rise(i,x,y,t,.6);break;
+        case STEAM:if(--life[i]<=0){type[i]=R()<.25?WATER:E;break}rise(i,x,y,t,.7);break;
+      }
+    }
+  }
+}
+
+/* pincel */
+function paint(cx,cy){const r=brush;
+  for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
+    if(dx*dx+dy*dy>r*r)continue;const x=cx+dx,y=cy+dy;if(x<0||x>=W||y<0||y>=H)continue;const i=y*W+x;
+    if(sel===E){type[i]=E;continue}
+    if(sel===STONE||sel===WOOD){if(type[i]===E||gas(type[i]))set(i,sel);continue}
+    if(type[i]===E&&R()<(sel===FIRE?.35:.5))set(i,sel)}}
+function pos(e){const r=view.getBoundingClientRect();return{x:Math.floor((e.clientX-r.left)/CELL),y:Math.floor((e.clientY-r.top)/CELL)}}
+view.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();view.setPointerCapture(e.pointerId);const p=pos(e);ptr.set(e.pointerId,p);paint(p.x,p.y)});
+view.addEventListener('pointermove',e=>{if(!ptr.has(e.pointerId))return;const a=ptr.get(e.pointerId),b=pos(e),n=Math.max(Math.abs(b.x-a.x),Math.abs(b.y-a.y),1);
+  for(let k=1;k<=n;k+=Math.max(1,brush>>1))paint(Math.round(a.x+(b.x-a.x)*k/n),Math.round(a.y+(b.y-a.y)*k/n));ptr.set(e.pointerId,b)});
+for(const n of ['pointerup','pointercancel','lostpointercapture'])view.addEventListener(n,e=>ptr.delete(e.pointerId));
+addEventListener('blur',()=>ptr.clear());
+
+/* dibujo */
+const SANDC=[[219,196,147],[207,182,132],[228,208,163],[196,170,121],[214,188,138],[186,160,112]];
+function render(){
+  const a=img.data,g=gimg.data;
+  for(let x=0;x<W;x++){
+    let depth=0,oilD=0;
+    for(let y=0;y<H;y++){
+      const i=y*W+x,t=type[i],s=shade[i],j=i*4;let r=0,gg=0,b=0,al=255,em=0;
+      if(t!==WATER)depth=0;if(t!==OIL)oilD=0;
+      const top=y>0?type[i-W]:E,lit=(top===E||gas(top))?14:0;
+      switch(t){
+        case E:al=0;break;
+        case SAND:{const c=SANDC[s%6];let m=1;if(y<H-1&&(type[i+W]===WATER||type[i-1]===WATER||type[i+1]===WATER||top===WATER))m=.66;r=c[0]*m+lit;gg=c[1]*m+lit;b=c[2]*m+lit*.8;break}
+        case WATER:{depth++;const d=Math.min(depth,40)/40;r=38-20*d;gg=104-46*d;b=146-50*d;al=150+70*d;
+          if(depth===1){r+=55;gg+=60;b+=55;al=220}else if((s+tick)%61===0){r+=18;gg+=22;b+=24}break}
+        case OIL:{oilD++;r=70-oilD*.6;gg=52-oilD*.5;b=20;al=225;if(oilD===1){r+=50;gg+=42;b+=20}break}
+        case STONE:{const v=(s%40)-20,sp=s>246?-35:0;r=118+v+sp+lit*.6;gg=120+v+sp+lit*.6;b=121+v+sp+lit*.6;break}
+        case WOOD:{const ring=Math.sin(y*.9+(s%9)*.15+x*.05)*14;r=120+ring+(s%12)-6;gg=84+ring*.7+(s%10)-5;b=52+ring*.4;break}
+        case ASH:{const v=(s%30)-15;r=112+v;gg=108+v;b=103+v;break}
+        case FIRE:{const k=Math.min(1,life[i]/45),f=R()*.25;r=255;gg=90+150*k*(1-f);b=20+120*Math.max(0,k-.6)*(1-f);al=210+45*k;em=220*k+60;break}
+        case EMBER:{const f=.6+R()*.4;r=200*f+40;gg=70*f;b=20;em=150*f;break}
+        case LAVA:{const f=Math.sin((s+tick*2)*.08)*.5+.5;r=235+20*f;gg=70+80*f;b=15+20*f;em=170+60*f;break}
+        case SMOKE:{const k=Math.min(1,life[i]/120);r=gg=b=70+(s%20);al=40+110*k;break}
+        case STEAM:{const k=Math.min(1,life[i]/150);r=205;gg=214;b=222;al=25+90*k;break}
+      }
+      a[j]=r;a[j+1]=gg;a[j+2]=b;a[j+3]=al;
+      if(em){g[j]=255;g[j+1]=t===LAVA?110:140;g[j+2]=40;g[j+3]=em}else g[j+3]=0;
+    }
+  }
+  sctx.putImageData(img,0,0);gctx.putImageData(gimg,0,0);
+  vctx.globalCompositeOperation='source-over';vctx.drawImage(bg,0,0);
+  vctx.imageSmoothingEnabled=false;vctx.drawImage(sim,0,0,W*CELL*dpr,H*CELL*dpr);
+  // resplandor: reducir y ampliar = desenfoque barato
+  tctx.clearRect(0,0,tiny.width,tiny.height);tctx.imageSmoothingEnabled=true;tctx.drawImage(glow,0,0,tiny.width,tiny.height);
+  vctx.globalCompositeOperation='lighter';vctx.imageSmoothingEnabled=true;vctx.globalAlpha=.9;
+  vctx.drawImage(tiny,0,0,W*CELL*dpr,H*CELL*dpr);vctx.globalAlpha=1;vctx.globalCompositeOperation='source-over';
+}
+let last=performance.now(),acc=0;
+function frame(now){acc+=Math.min(now-last,50);last=now;
+  if(!paused)while(acc>=1000/60){step();acc-=1000/60}else{acc=0;for(const p of ptr.values())paint(p.x,p.y)}
+  render();requestAnimationFrame(frame)}
+requestAnimationFrame(frame);
+
+/* escena inicial para que no empiece vacío */
+(()=>{const gy=H-Math.round(H*.12);
+  for(let x=0;x<W;x++){const h=Math.round(H*.07+Math.sin(x*.03)*H*.025);for(let y=H-h;y<H;y++)set(y*W+x,SAND)}
+  const x0=Math.round(W*.62),x1=Math.round(W*.8),yw=Math.round(H*.55);for(let x=x0;x<x1;x++)for(let y=yw;y<yw+4;y++)set(y*W+x,WOOD);
+  const s0=Math.round(W*.12),s1=Math.round(W*.34),ys=Math.round(H*.62);
+  for(let x=s0;x<s1;x++)for(let y=ys;y<ys+4;y++)set(y*W+x,STONE);
+  for(let y=ys-26;y<ys;y++)for(const x of [s0,s0+1,s0+2,s1-3,s1-2,s1-1])set(y*W+x,STONE);
+  for(let x=s0+3;x<s1-3;x++)for(let y=ys-18;y<ys;y++)set(y*W+x,WATER);
+})();
+</script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
+<script src="/amigos.js" defer></script>
+</body>
+</html>

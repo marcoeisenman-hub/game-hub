@@ -22,4 +22,6 @@ for(const id of ['reaction','clock'])$('#'+id).onclick=()=>{mode=id;for(const ot
 $('#reset').onclick=()=>{reset();pad.focus({preventScroll:true});};
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&(state==='waiting'||state==='ready'||state==='running')){if(mode==='reaction'){cancel();state='between';show('Intento en pausa','Toca para repetir este intento.');}else reset();$('#result').textContent='Pausa al cambiar de pestaña. Continúa cuando estés listo.';}});
 reset();
-</script></body></html>
+</script><script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
+<script src="/amigos.js" defer></script>
+</body></html>
