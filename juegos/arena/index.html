@@ -119,6 +119,7 @@ function rise(i,x,y,t,jitter){
   const s=i+d;if(x+d>=0&&x+d<W&&type[s]===E&&R()<.5)swap(i,s);
 }
 function ignite(j){const q=type[j];if(q===WOOD&&R()<.035)set(j,EMBER);else if(q===OIL&&R()<.25){set(j,FIRE);life[j]=60+R()*60}}
+function igniteAround(i,x,y){if(x>0)ignite(i-1);if(x<W-1)ignite(i+1);if(y>0)ignite(i-W);if(y<H-1)ignite(i+W)}
 function step(){
   tick=(tick+1)&255;
   for(const p of ptr.values())paint(p.x,p.y);
@@ -136,18 +137,18 @@ function step(){
           if(type[i]===OIL)fall(i,x,y,t,8,4);break}
         case LAVA:{
           const w=near(i,x,y,WATER);if(w>=0){set(w,STEAM);if(R()<.45){set(i,STONE);break}}
-          for(const j of [i-1,i+1,i-W,i+W])if(j>=0&&j<N)ignite(j);
+          igniteAround(i,x,y);
           if(y>0&&type[i-W]===E&&R()<.004)set(i-W,SMOKE);
           if(tick%3===0)fall(i,x,y,t,2,1);break}
         case FIRE:{
           if(--life[i]<=0){type[i]=R()<.35?SMOKE:E;if(type[i]===SMOKE)life[i]=60+R()*90;break}
-          for(const j of [i-1,i+1,i-W,i+W])if(j>=0&&j<N)ignite(j);
+          igniteAround(i,x,y);
           rise(i,x,y,t,.55);break}
         case EMBER:{ // madera ardiendo
           if(--life[i]<=0){if(R()<.55){set(i,ASH)}else type[i]=E;break}
           if(near(i,x,y,WATER)>=0&&R()<.3){type[i]=WOOD;const w=near(i,x,y,WATER);if(w>=0)set(w,STEAM);break}
           if(y>0&&type[i-W]===E&&R()<.35)set(i-W,R()<.8?FIRE:SMOKE);
-          for(const j of [i-1,i+1,i-W,i+W])if(j>=0&&j<N)ignite(j);
+          igniteAround(i,x,y);
           break}
         case SMOKE:if(--life[i]<=0){type[i]=E;break}rise(i,x,y,t,.6);break;
         case STEAM:if(--life[i]<=0){type[i]=R()<.25?WATER:E;break}rise(i,x,y,t,.7);break;
