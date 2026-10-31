@@ -6,6 +6,7 @@ const PRE='ratito-sala-',COLORS=['#2563EB','#059669','#D97706','#7C3AED','#DB277
 const ABC='abcdefghijklmnopqrstuvwxyz0123456789';
 const rid=n=>Array.from(crypto.getRandomValues(new Uint8Array(n)),x=>ABC[x%36]).join('');
 const me={id:rid(10),name:localStorage.getItem('ratitoNombre')||'Amigo '+(10+crypto.getRandomValues(new Uint8Array(1))[0]%90)};
+const SINCE=Date.now();
 const PAGE=location.pathname.replace(/index\.html$/,'');
 const PAGES={'/':'la portada','/juegos/vida/':'Tu vida en vivo','/juegos/orbitas/':'Órbitas','/juegos/isla/':'Isla 3D','/juegos/ondas/':'Ondas','/juegos/demolicion/':'Demolición','/juegos/circulo/':'Círculo perfecto','/juegos/arena/':'Arena','/juegos/reflejos/':'Reflejos'};
 function color(id){const ids=[me.id].concat(Object.keys(people)).sort();const k=Math.max(0,ids.indexOf(id));return COLORS[k%COLORS.length]}
@@ -61,7 +62,7 @@ $('am-name').oninput=()=>{me.name=clean($('am-name').value.trim());localStorage.
 /* ---------- red ---------- */
 let peer=null,host=false,conns=[],hc=null,code=null,people=Object.create(null),sendT=0,lc=null,retry=0,running=false,gen=0;
 const status=t=>$('am-st').textContent=t;
-function send(m){m.id=me.id;m.name=me.name;m.page=PAGE;
+function send(m){m.id=me.id;m.name=me.name;m.page=PAGE;m.age=Date.now()-SINCE;
   if(host)conns.forEach(c=>c.open&&c.send(m));else if(hc&&hc.open)hc.send(m)}
 function relay(m,from){conns.forEach(c=>c!==from&&c.open&&c.send(m))}
 function recolor(){for(const p of Object.values(people)){const c=color(p.id);if(p.c===c)continue;p.c=c;p.el.style.setProperty('--pc',c);p.el.querySelector('path').setAttribute('fill',c);p.el.querySelector('span').style.background=c;p.edge.style.background=c}}
@@ -82,7 +83,10 @@ function getP(m){
     document.body.append(el,edge);
     p=people[m.id]={id:m.id,name:'',page:'',el,edge,x:null,y:null,d:null,seen:Date.now()};
     edge.onclick=()=>{const t=target(p);if(t)scrollTo({top:scrollY+t.y-innerHeight/2,behavior:'smooth'})};}
-  p.name=clean(m.name);p.page=typeof m.page==='string'?m.page.slice(0,40):'';p.seen=Date.now();
+  const pg=typeof m.page==='string'?m.page.slice(0,40):'';
+  if(pg!==p.page)p.since=null;
+  if(Number.isFinite(m.age)&&m.age>=0){const est=Date.now()-m.age;if(p.since==null||Math.abs(est-p.since)>3000)p.since=est}
+  p.name=clean(m.name);p.page=pg;p.seen=Date.now();
   p.el.querySelector('span').textContent=p.name;list();return p}
 function drop(id){const p=people[id];if(!p)return;p.el.remove();p.edge.remove();delete people[id];list()}
 function onMsg(m,from){
@@ -97,8 +101,8 @@ function onMsg(m,from){
 }
 function wire(c,isHost){
   const wg=gen;
-  c.on('open',()=>{c.send({t:'hi',id:me.id,name:me.name,page:PAGE});
-    if(isHost)for(const p of Object.values(people))c.send({t:'hi',id:p.id,name:p.name,page:p.page})});
+  c.on('open',()=>{c.send({t:'hi',id:me.id,name:me.name,page:PAGE,age:Date.now()-SINCE});
+    if(isHost)for(const p of Object.values(people))c.send({t:'hi',id:p.id,name:p.name,page:p.page,age:p.since?Date.now()-p.since:undefined})});
   c.on('data',m=>{if(!isHost&&m&&m.t==='full'){leave();status('La sala está llena (máximo 8 personas). Crea otra sala.');return}onMsg(m,isHost?c:null)});
   c.on('close',()=>{
     if(wg!==gen)return;
@@ -148,7 +152,9 @@ addEventListener('pagehide',()=>{if(code)send({t:'bye'})});
 const handlers={mensaje:[],cambio:[]};
 function emit(ev,...a){for(const f of handlers[ev])try{f(...a)}catch(e){console.error(e)}}
 function info(id){const p=id===me.id?me:people[id];return{id,name:p?clean(p.name):'Amigo',color:color(id),yo:id===me.id}}
-function jugadores(){const list=[info(me.id)];for(const p of Object.values(people))if(p.page===PAGE)list.push(info(p.id));return list.sort((a,b)=>a.id<b.id?-1:1)}
+function jugadores(){const list=[{...info(me.id),since:SINCE}];for(const p of Object.values(people))if(p.page===PAGE)list.push({...info(p.id),since:p.since==null?0:p.since});
+  // el líder es el que llegó primero a este juego (así nadie que entra tarde borra la partida)
+  return list.sort((a,b)=>Math.abs(a.since-b.since)>1500?a.since-b.since:(a.id<b.id?-1:1)).map(({since,...j})=>j)}
 let lastSig='';
 function changed(){const act=!!code&&(host||(hc&&hc.open));const sig=(act?'1':'0')+jugadores().map(j=>j.id+j.name).join(',');if(sig!==lastSig){lastSig=sig;emit('cambio')}}
 window.RatitoSala={

@@ -148,7 +148,7 @@ const tx=d=>{if(sala&&sala.activo)sala.enviar(d)};
 const badge=document.createElement('div');badge.style.cssText='position:fixed;right:16px;top:100px;background:#ffffffe8;border-radius:10px;padding:6px 10px;font-size:.8rem;box-shadow:0 2px 10px #0002';badge.hidden=true;document.body.append(badge);
 function aplicar(m,rapido){if(!m)return;const sd=m.seed|0,sea=Math.max(0,Math.min(100,+m.sea)),hr=Math.max(5,Math.min(19,+m.hour));
   if(!Number.isFinite(sea)||!Number.isFinite(hr))return;
-  if(sd!==seed){seaEl.value=sea;build(sd)}else if(+seaEl.value!==sea){seaEl.value=sea;paint();if(!rapido)placeTrees()}
+  if(sd!==seed){seaEl.value=sea;build(sd)}else{if(+seaEl.value!==sea){seaEl.value=sea;paint()}if(!rapido)placeTrees()}
   if(+hourEl.value!==hr){hourEl.value=hr;setHour(hr)}}
 function dron(de){let d=drones[de.id];if(d)return d;
   const g=new THREE.Group(),m=new THREE.Mesh(new THREE.SphereGeometry(6,16,12),new THREE.MeshStandardMaterial({color:de.color,emissive:de.color,emissiveIntensity:.5}));g.add(m);
