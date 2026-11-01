@@ -104,7 +104,7 @@ function wire(c,isHost){
   const wg=gen;
   c.on('open',()=>{c.send({t:'hi',id:me.id,name:me.name,page:PAGE,since:SINCE+OFF,now:isHost?Date.now()+OFF:undefined});
     if(isHost)for(const p of Object.values(people))c.send({t:'hi',id:p.id,name:p.name,page:p.page,since:p.since==null?undefined:p.since})});
-  c.on('data',m=>{if(!isHost&&m&&m.t==='hi'&&Number.isFinite(m.now)&&!c._off){c._off=1;OFF=m.now-Date.now();send({t:'hi'})}
+  c.on('data',m=>{if(!isHost&&m&&m.t==='hi'&&Number.isFinite(m.now)&&!c._off){c._off=1;OFF=m.now-Date.now();send({t:'hi'});changed()}
     if(!isHost&&m&&m.t==='full'){leave();status('La sala está llena (máximo 8 personas). Crea otra sala.');return}onMsg(m,isHost?c:null)});
   c.on('close',()=>{
     if(wg!==gen)return;
@@ -154,7 +154,7 @@ addEventListener('pagehide',()=>{if(code)send({t:'bye'})});
 const handlers={mensaje:[],cambio:[]};
 function emit(ev,...a){for(const f of handlers[ev])try{f(...a)}catch(e){console.error(e)}}
 function info(id){const p=id===me.id?me:people[id];return{id,name:p?clean(p.name):'Amigo',color:color(id),yo:id===me.id}}
-function jugadores(){const list=[{...info(me.id),since:SINCE}];for(const p of Object.values(people))if(p.page===PAGE)list.push({...info(p.id),since:p.since==null?0:p.since});
+function jugadores(){const list=[{...info(me.id),since:SINCE+OFF}];for(const p of Object.values(people))if(p.page===PAGE)list.push({...info(p.id),since:p.since==null?0:p.since});
   // el líder es el que llegó primero a este juego (así nadie que entra tarde borra la partida)
   return list.sort((a,b)=>a.since-b.since||(a.id<b.id?-1:a.id>b.id?1:0)).map(({since,...j})=>j)}
 let lastSig='';
