@@ -134,9 +134,9 @@ async function grabar(btn,barra,alTerminar){
   if(pidiendo)return;
   parar();error();
   if(!navigator.mediaDevices||!window.MediaRecorder){error('Tu navegador no deja grabar. Prueba con Chrome o Safari actualizados, o sube un audio.');return}
-  let stream;pidiendo=true;try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}})}
+  let stream;const miVuelta=vuelta;pidiendo=true;try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}})}
   catch(e){pidiendo=false;error('No hay permiso para el micrófono. Actívalo en el candado de la barra de direcciones, o sube un audio.');return}
-  pidiendo=false;const miVuelta=vuelta;
+  pidiendo=false;if(miVuelta!==vuelta){stream.getTracks().forEach(t=>t.stop());return}
   ac();const partes=[];rec=new MediaRecorder(stream);rec.ondataavailable=e=>e.data.size&&partes.push(e.data);
   const t0=performance.now(),i=barra.querySelector('i');btn.classList.add('on');btn.querySelector('span').dataset.t=btn.querySelector('span').textContent;btn.querySelector('span').textContent='Parar';
   const tic=setInterval(()=>{const p=(performance.now()-t0)/1000/MAX;i.style.width=Math.min(100,p*100)+'%';if(p>=1&&rec&&rec.state==='recording')rec.stop()},50);
