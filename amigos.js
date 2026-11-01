@@ -6,6 +6,7 @@ const PRE='ratito-sala-',COLORS=['#2563EB','#059669','#D97706','#7C3AED','#DB277
 const ABC='abcdefghijklmnopqrstuvwxyz0123456789';
 const rid=n=>Array.from(crypto.getRandomValues(new Uint8Array(n)),x=>ABC[x%36]).join('');
 const me={id:rid(10),name:localStorage.getItem('ratitoNombre')||'Amigo '+(10+crypto.getRandomValues(new Uint8Array(1))[0]%90)};
+let OFF=0; // diferencia con el reloj del anfitrión de la sala: así todos miden la llegada con el mismo reloj
 let SINCE=Date.now(); // cuándo entré a la sala en esta página (reloj propio: todos ordenan igual)
 const PAGE=location.pathname.replace(/index\.html$/,'');
 const PAGES={'/':'la portada','/juegos/vida/':'Tu vida en vivo','/juegos/orbitas/':'Órbitas','/juegos/isla/':'Isla 3D','/juegos/ondas/':'Ondas','/juegos/demolicion/':'Demolición','/juegos/circulo/':'Círculo perfecto','/juegos/arena/':'Arena','/juegos/reflejos/':'Reflejos'};
@@ -62,7 +63,7 @@ $('am-name').oninput=()=>{me.name=clean($('am-name').value.trim());localStorage.
 /* ---------- red ---------- */
 let peer=null,host=false,conns=[],hc=null,code=null,people=Object.create(null),sendT=0,lc=null,retry=0,running=false,gen=0;
 const status=t=>$('am-st').textContent=t;
-function send(m){m.id=me.id;m.name=me.name;m.page=PAGE;m.since=SINCE;
+function send(m){m.id=me.id;m.name=me.name;m.page=PAGE;m.since=SINCE+OFF;
   if(host)conns.forEach(c=>c.open&&c.send(m));else if(hc&&hc.open)hc.send(m)}
 function relay(m,from){conns.forEach(c=>{if(c===from||!c.open)return;if(m.t==='g'){const p=people[c._pid];if(!p||p.page!==m.page)return}c.send(m)})}
 function recolor(){for(const p of Object.values(people)){const c=color(p.id);if(p.c===c)continue;p.c=c;p.el.style.setProperty('--pc',c);p.el.querySelector('path').setAttribute('fill',c);p.el.querySelector('span').style.background=c;p.edge.style.background=c}}
@@ -101,9 +102,10 @@ function onMsg(m,from){
 }
 function wire(c,isHost){
   const wg=gen;
-  c.on('open',()=>{c.send({t:'hi',id:me.id,name:me.name,page:PAGE,since:SINCE});
+  c.on('open',()=>{c.send({t:'hi',id:me.id,name:me.name,page:PAGE,since:SINCE+OFF,now:isHost?Date.now()+OFF:undefined});
     if(isHost)for(const p of Object.values(people))c.send({t:'hi',id:p.id,name:p.name,page:p.page,since:p.since==null?undefined:p.since})});
-  c.on('data',m=>{if(!isHost&&m&&m.t==='full'){leave();status('La sala está llena (máximo 8 personas). Crea otra sala.');return}onMsg(m,isHost?c:null)});
+  c.on('data',m=>{if(!isHost&&m&&m.t==='hi'&&Number.isFinite(m.now)&&!c._off){c._off=1;OFF=m.now-Date.now();send({t:'hi'})}
+    if(!isHost&&m&&m.t==='full'){leave();status('La sala está llena (máximo 8 personas). Crea otra sala.');return}onMsg(m,isHost?c:null)});
   c.on('close',()=>{
     if(wg!==gen)return;
     if(isHost){conns=conns.filter(x=>x!==c);if(c._pid){drop(c._pid);relay({t:'bye',id:c._pid,name:''},null)}}
