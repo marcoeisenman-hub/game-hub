@@ -3,140 +3,110 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ratito — juegos y experimentos para pasar el rato</title>
-<meta name="description" content="Juegos y experimentos web originales: tu vida en números, el círculo perfecto, arena, reflejos, órbitas, una isla 3D, ondas de agua y demolición.">
+<title>Vaina — juegos raros para jugar solo o con amigos</title>
+<meta name="description" content="Juegos originales en el navegador: adivina dónde queda un lugar, calcula a ojo, rehaz un color, carrera de tecleo, reflejos, el círculo perfecto, arena y órbitas. Solo o con amigos.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/estilo.css">
 <style>
-.wrap{max-width:1120px;margin:0 auto;padding:56px 22px 70px}
-header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:34px}
-h1{margin:0;font-size:clamp(3rem,10vw,5.6rem);line-height:.9;font-weight:900;letter-spacing:-.05em}
-h1 i{font-style:normal;display:inline-block;width:.32em;height:.32em;border-radius:50%;background:var(--acc);margin-left:.04em;vertical-align:baseline}
+.wrap{max-width:1120px;margin:0 auto;padding:64px 22px 70px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:26px}
+.logo{display:flex;align-items:center;gap:14px}
+.logo svg{width:clamp(54px,11vw,78px);height:auto}
+h1{margin:0;font-size:clamp(3rem,10vw,5.2rem);line-height:.9;font-weight:900;letter-spacing:-.05em}
 header p{margin:0;max-width:340px;color:var(--mut);font-size:1.05rem}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:22px}
-.card{display:flex;flex-direction:column;text-decoration:none;border-radius:18px;overflow:hidden;background:var(--soft);transition:transform .15s}
-.card:hover{transform:translateY(-3px)}
-.card:hover .thumb{filter:brightness(1.05)}
-.thumb{position:relative;aspect-ratio:4/3;overflow:hidden}
-.thumb svg{position:absolute;inset:0;width:100%;height:100%}
-.meta{flex:1;padding:14px 16px 16px;background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 18px 18px}
-.meta h2{margin:0;font-size:1.15rem}
+.tabs{display:flex;gap:6px;margin:0 0 24px;border-bottom:1px solid var(--line)}
+.tabs button{font:700 1rem inherit;background:none;border:0;padding:10px 4px;margin-right:18px;color:var(--mut);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected=true]{color:var(--ink);border-color:var(--ink)}
+.tabs b{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--soft);font-size:.78rem;margin-left:6px;color:var(--ink)}
+.mp{display:none;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:var(--ink);color:#fff;border-radius:16px;padding:18px 20px;margin-bottom:22px}
+.mp.on{display:flex}
+.mp h2{margin:0;font-size:1.2rem}
+.mp p{margin:3px 0 0;color:#C7CAD1;max-width:560px}
+.mp .btn{background:#fff;color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:20px}
+.card{display:flex;flex-direction:column;text-decoration:none;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#fff;transition:border-color .15s}
+.card:hover{border-color:var(--ink)}
+.thumb{aspect-ratio:16/10;background:var(--soft);display:grid;place-items:center;overflow:hidden}
+.thumb svg{width:100%;height:100%}
+.meta{flex:1;padding:13px 15px 15px}
+.meta h3{margin:0;font-size:1.1rem;display:flex;align-items:center;gap:8px}
 .meta p{margin:3px 0 0;color:var(--mut);font-size:.92rem}
+.tag{font-size:.72rem;font-weight:700;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:1px 8px;margin-left:auto;white-space:nowrap}
+.card[hidden]{display:none}
 footer{margin-top:50px;color:var(--mut);font-size:.88rem}
-@media (prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>Ratito<i></i></h1>
-    <p>Juegos y experimentos raros hechos desde cero. Abre uno y pasa un ratito.</p>
+    <div class="logo">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M6 44C14 18 42 6 60 12 56 34 30 56 6 44Z" fill="#15171C"/><path d="M6 44C22 40 44 26 60 12" fill="none" stroke="#3A3E46" stroke-width="2"/><circle cx="22" cy="37" r="6" fill="#F2F3F5"/><circle cx="34" cy="29" r="6.5" fill="#E4572E"/><circle cx="46" cy="21" r="6" fill="#F2F3F5"/></svg>
+      <h1>Vaina</h1>
+    </div>
+    <p>Juegos raros hechos desde cero en Panamá. Juega solo o arma una sala con tus amigos.</p>
   </header>
 
-  <main class="grid">
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-f="todos">Todos <b id="nTodos"></b></button>
+    <button role="tab" aria-selected="false" data-f="mp">Multiplayer <b id="nMp"></b></button>
+  </nav>
+
+  <section class="mp" id="mpInfo">
+    <div><h2>Jugar con amigos</h2><p>Crea una sala, mándale el link a tus amigos y abran el mismo juego. Juegan la misma partida, con puntos para cada uno y el cursor del otro en vivo.</p></div>
+    <button class="btn" id="crear" type="button">Crear sala</button>
+  </section>
+
+  <main class="grid" id="grid">
+    <a class="card" href="/juegos/mapa/" data-mp>
+      <div class="thumb"><svg viewBox="0 0 320 200"><g fill="#C9CDD3"><circle cx="160" cy="100" r="78" fill="none" stroke="#C9CDD3" stroke-width="2"/><ellipse cx="160" cy="100" rx="34" ry="78" fill="none" stroke="#DDE0E4" stroke-width="2"/><line x1="82" y1="100" x2="238" y2="100" stroke="#DDE0E4" stroke-width="2"/></g><path d="M120 70c10-12 30-10 34 2s-8 18-2 28-16 22-26 12-16-30-6-42z" fill="#B8BDC4"/><path d="M176 60c14-6 34 4 36 18s-14 10-18 22-18 6-22-6 -10-28 4-34z" fill="#B8BDC4"/><line x1="140" y1="92" x2="190" y2="120" stroke="#15171C" stroke-width="2" stroke-dasharray="5 5"/><circle cx="140" cy="92" r="6" fill="#15171C" stroke="#fff" stroke-width="2.5"/><circle cx="190" cy="120" r="8" fill="#E4572E" stroke="#fff" stroke-width="2.5"/></svg></div>
+      <div class="meta"><h3>¿Dónde queda? <span class="tag">Multiplayer</span></h3><p>Te dan un lugar del mundo y lo marcas en el mapa. Más cerca, más puntos.</p></div>
+    </a>
+    <a class="card" href="/juegos/aojo/" data-mp>
+      <div class="thumb"><svg viewBox="0 0 320 200"><text x="160" y="96" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="54" letter-spacing="-2" fill="#15171C">8.849 m</text><line x1="50" y1="140" x2="270" y2="140" stroke="#C9CDD3" stroke-width="3"/><circle cx="118" cy="140" r="7" fill="#9AA0A8"/><circle cx="206" cy="140" r="7" fill="#15171C"/><circle cx="172" cy="140" r="9" fill="#E4572E"/></svg></div>
+      <div class="meta"><h3>A ojo <span class="tag">Multiplayer</span></h3><p>¿Cuánto mide el Everest? ¿Cuántos huesos tienes? Calcula sin buscar.</p></div>
+    </a>
+    <a class="card" href="/juegos/color/" data-mp>
+      <div class="thumb"><svg viewBox="0 0 320 200"><rect x="78" y="44" width="80" height="112" rx="10" fill="#2F6F8F"/><rect x="162" y="44" width="80" height="112" rx="10" fill="#3A7898"/><text x="160" y="182" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="700" font-size="15" fill="#6B7079">9,4 / 10</text></svg></div>
+      <div class="meta"><h3>Mismo color <span class="tag">Multiplayer</span></h3><p>Mira un color tres segundos y rehazlo de memoria.</p></div>
+    </a>
+    <a class="card" href="/juegos/teclazo/" data-mp>
+      <div class="thumb"><svg viewBox="0 0 320 200"><g fill="#fff" stroke="#C9CDD3" stroke-width="2"><rect x="44" y="70" width="28" height="28" rx="5"/><rect x="78" y="70" width="28" height="28" rx="5"/><rect x="112" y="70" width="28" height="28" rx="5" fill="#15171C" stroke="#15171C"/><rect x="146" y="70" width="28" height="28" rx="5"/><rect x="180" y="70" width="28" height="28" rx="5"/><rect x="214" y="70" width="28" height="28" rx="5"/><rect x="248" y="70" width="28" height="28" rx="5"/><rect x="60" y="104" width="28" height="28" rx="5"/><rect x="94" y="104" width="28" height="28" rx="5"/><rect x="128" y="104" width="28" height="28" rx="5"/><rect x="162" y="104" width="28" height="28" rx="5" fill="#E4572E" stroke="#E4572E"/><rect x="196" y="104" width="28" height="28" rx="5"/><rect x="230" y="104" width="28" height="28" rx="5"/><rect x="96" y="138" width="128" height="22" rx="5"/></g><text x="160" y="50" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="22" fill="#15171C">74 ppm</text></svg></div>
+      <div class="meta"><h3>Teclazo <span class="tag">Multiplayer</span></h3><p>Carrera de tecleo: misma frase, gana el que escribe más rápido y sin errores.</p></div>
+    </a>
+    <a class="card" href="/juegos/reflejos/" data-mp>
+      <div class="thumb"><svg viewBox="0 0 320 200"><text x="160" y="112" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="64" letter-spacing="-3" fill="#15171C">214<tspan font-size="26" fill="#6B7079"> ms</tspan></text><rect x="110" y="140" width="100" height="6" rx="3" fill="#E4572E"/></svg></div>
+      <div class="meta"><h3>Reflejos <span class="tag">Multiplayer</span></h3><p>Toca apenas cambie, o para el reloj en 10 segundos exactos.</p></div>
+    </a>
+    <a class="card" href="/juegos/circulo/" data-mp>
+      <div class="thumb"><svg viewBox="0 0 320 200"><path d="M160 34c40 1 68 30 66 68-2 37-32 64-68 63-37-1-64-31-62-67 2-35 30-62 60-64" fill="none" stroke="#15171C" stroke-width="6" stroke-linecap="round"/><circle cx="160" cy="100" r="5" fill="#E4572E"/></svg></div>
+      <div class="meta"><h3>Círculo perfecto <span class="tag">Multiplayer</span></h3><p>Dibuja un círculo de una pasada. ¿Llegas al 95 %?</p></div>
+    </a>
+    <a class="card" href="/juegos/orbitas/" data-mp>
+      <div class="thumb"><svg viewBox="0 0 320 200"><ellipse cx="160" cy="100" rx="120" ry="48" fill="none" stroke="#C9CDD3" stroke-width="2"/><ellipse cx="160" cy="100" rx="70" ry="28" fill="none" stroke="#C9CDD3" stroke-width="2"/><circle cx="160" cy="100" r="14" fill="#15171C"/><circle cx="230" cy="100" r="6" fill="#E4572E"/><circle cx="62" cy="128" r="4" fill="#15171C"/></svg></div>
+      <div class="meta"><h3>Órbitas <span class="tag">Multiplayer</span></h3><p>Lanza planetas alrededor de una estrella y mantenlos en órbita.</p></div>
+    </a>
+    <a class="card" href="/juegos/arena/" data-mp>
+      <div class="thumb"><svg viewBox="0 0 320 200"><path d="M40 170c40-30 70-62 120-62s80 32 120 62z" fill="#C9B48A"/><path d="M150 40v50" stroke="#C9B48A" stroke-width="6" stroke-dasharray="2 6" stroke-linecap="round"/><rect x="40" y="170" width="240" height="6" fill="#9AA0A8"/></svg></div>
+      <div class="meta"><h3>Arena <span class="tag">Multiplayer</span></h3><p>Arena, agua, lava y fuego que caen y reaccionan de verdad.</p></div>
+    </a>
     <a class="card" href="/juegos/vida/">
-      <div class="thumb"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <rect width="400" height="300" fill="#1B0F12"/>
-        <path d="M0 170h120l18-50 24 110 22-90 14 30h202" stroke="#E5484D" stroke-width="5" fill="none" stroke-linejoin="round"/>
-        <text x="28" y="80" fill="#F6EDEE" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="42">498,312,077</text>
-        <text x="30" y="104" fill="#C9AEB3" font-family="Schibsted Grotesk,sans-serif" font-size="16">latidos y contando</text>
-      </svg></div>
-      <div class="meta"><h2>Tu vida en vivo</h2><p>Latidos, respiraciones y km por el espacio desde que naciste, en tiempo real.</p></div>
-    </a>
-
-    <a class="card" href="/juegos/circulo/">
-      <div class="thumb"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <rect width="400" height="300" fill="#F7F7F4"/>
-        <path d="M200 62 C282 60 318 112 316 156 C314 214 262 240 196 238 C130 236 86 200 86 150 C88 96 132 64 204 66" stroke="#2F9E44" stroke-width="9" fill="none" stroke-linecap="round"/>
-        <path d="M86 150 C88 96 132 64 204 66" stroke="#D9A21B" stroke-width="9" fill="none" stroke-linecap="round"/>
-        <circle cx="200" cy="150" r="6" fill="#15171C"/>
-        <text x="200" y="166" text-anchor="middle" fill="#15171C" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="40" dy="-30">94.2%</text>
-      </svg></div>
-      <div class="meta"><h2>Círculo perfecto</h2><p>Dibuja un círculo a mano alzada. ¿Qué tan perfecto te sale?</p></div>
-    </a>
-
-    <a class="card" href="/juegos/arena/">
-      <div class="thumb"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <defs><filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .35 0"/><feComposite in2="SourceGraphic" operator="in"/></filter></defs>
-        <rect width="400" height="300" fill="#22272E"/>
-        <path d="M0 300V210c60-30 110-60 170-40s110 50 230 10v120z" fill="#D8BE8A"/>
-        <path d="M0 300v-50c80-20 150 10 220-10s120-20 180 0v60z" fill="#2E6FA0" opacity=".85"/>
-        <path d="M190 60l6 120M210 60l-4 112M200 50v130" stroke="#D8BE8A" stroke-width="5" stroke-dasharray="2 5"/>
-        <rect x="270" y="150" width="70" height="40" fill="#7A5634"/><path d="M280 150c6-30 18-20 22-46 8 22 22 18 26 46z" fill="#F08A24"/><path d="M292 150c4-16 10-12 12-26 6 12 12 12 14 26z" fill="#FFD25A"/>
-        <rect width="400" height="300" filter="url(#grain)"/>
-      </svg></div>
-      <div class="meta"><h2>Arena</h2><p>Arena, agua, aceite, fuego y lava. Mira qué pasa cuando se mezclan.</p></div>
-    </a>
-
-    <a class="card" href="/juegos/reflejos/">
-      <div class="thumb"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <rect width="400" height="300" fill="#1F8A4C"/>
-        <rect x="200" width="200" height="300" fill="#C9372C"/>
-        <text x="100" y="168" text-anchor="middle" fill="#fff" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="46">¡YA!</text>
-        <text x="300" y="160" text-anchor="middle" fill="#fff" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="40">10.000</text>
-        <text x="300" y="186" text-anchor="middle" fill="#ffffffcc" font-family="Schibsted Grotesk,sans-serif" font-size="15">segundos</text>
-      </svg></div>
-      <div class="meta"><h2>Reflejos</h2><p>Mide tu tiempo de reacción y trata de parar el reloj en 10 segundos exactos.</p></div>
-    </a>
-    <a class="card" href="/juegos/isla/">
-      <div class="thumb"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <defs><linearGradient id="isk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7FA9CF"/><stop offset=".55" stop-color="#C9DCE9"/></linearGradient>
-        <linearGradient id="ise" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#245A72"/><stop offset="1" stop-color="#0E3A4E"/></linearGradient>
-        <linearGradient id="imt" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9A9188"/><stop offset="1" stop-color="#4E4A44"/></linearGradient></defs>
-        <rect width="400" height="300" fill="url(#isk)"/><rect y="165" width="400" height="135" fill="url(#ise)"/>
-        <path d="M60 205c40-18 70-30 110-32 30-40 50-70 70-74 22 6 40 40 62 70 30 4 50 16 48 36-60 16-230 18-290 0z" fill="#3D5A2A"/>
-        <path d="M200 120c12-18 26-26 40-21 16 10 32 40 48 68-30-10-52-14-74-10-12-12-14-24-14-37z" fill="url(#imt)"/>
-        <path d="M228 103c6-5 14-6 20-1l8 12c-10-3-20-4-28-2z" fill="#EEEDE8"/>
-        <path d="M56 206c80 12 210 12 296-2l-6 8c-90 12-200 12-284 2z" fill="#CDB68A"/>
-                <path d="M90 196l7-18 7 18zM110 192l8-20 8 20zM300 190l7-17 7 17zM318 194l6-15 6 15zM150 186l7-18 7 18zM270 184l7-17 7 17z" fill="#1F3A16"/>
-      </svg></div>
-      <div class="meta"><h2>Isla 3D</h2><p>Una isla distinta cada vez, con montañas, bosque y mar. Cambia la hora y mira el atardecer.</p></div>
-    </a>
-
-    <a class="card" href="/juegos/orbitas/">
-      <div class="thumb"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <defs><radialGradient id="osun"><stop offset="0" stop-color="#FFFDF4"/><stop offset=".6" stop-color="#FFE7A8"/><stop offset="1" stop-color="#FFB45C"/></radialGradient>
-        <radialGradient id="oglow"><stop offset="0" stop-color="#FFC68A" stop-opacity=".45"/><stop offset="1" stop-color="#FFC68A" stop-opacity="0"/></radialGradient>
-        <radialGradient id="oe" cx=".35" cy=".35"><stop offset="0" stop-color="#6FA8DC"/><stop offset="1" stop-color="#0F2A44"/></radialGradient>
-        <radialGradient id="oj" cx=".35" cy=".35"><stop offset="0" stop-color="#E3C9A0"/><stop offset="1" stop-color="#5E4630"/></radialGradient></defs>
-        <rect width="400" height="300" fill="#04050A"/>
-        <g fill="#fff" opacity=".7"><circle cx="30" cy="40" r="1"/><circle cx="350" cy="60" r="1.2"/><circle cx="90" cy="250" r="1"/><circle cx="320" cy="250" r=".9"/><circle cx="180" cy="30" r="1"/><circle cx="380" cy="160" r="1"/></g>
-        <circle cx="200" cy="150" r="90" fill="url(#oglow)"/>
-        <ellipse cx="200" cy="150" rx="80" ry="58" fill="none" stroke="#6FA8DC" stroke-opacity=".35"/>
-        <ellipse cx="200" cy="150" rx="150" ry="104" fill="none" stroke="#E3C9A0" stroke-opacity=".3"/>
-        <circle cx="200" cy="150" r="24" fill="url(#osun)"/>
-        <circle cx="270" cy="122" r="8" fill="url(#oe)"/><circle cx="76" cy="200" r="15" fill="url(#oj)"/>
-      </svg></div>
-      <div class="meta"><h2>Órbitas</h2><p>Lanza planetas alrededor de una estrella. ¿Logras una órbita que dure?</p></div>
-    </a>
-
-    <a class="card" href="/juegos/ondas/">
-      <div class="thumb"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <defs><filter id="pb"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="3" seed="4"/><feColorMatrix values="0 0 0 0 .45  0 0 0 0 .47  0 0 0 0 .44  0 0 0 1.4 -.3"/></filter></defs>
-        <rect width="400" height="300" fill="#6E7A72"/><rect width="400" height="300" filter="url(#pb)" opacity=".9"/>
-        <rect width="400" height="300" fill="#1E6A72" opacity=".35"/>
-        <g fill="none" stroke="#E8F6F4" stroke-opacity=".55"><circle cx="160" cy="140" r="30" stroke-width="3"/><circle cx="160" cy="140" r="62" stroke-width="2"/><circle cx="160" cy="140" r="98" stroke-width="1.4" stroke-opacity=".35"/><circle cx="290" cy="200" r="24" stroke-width="2.5"/><circle cx="290" cy="200" r="52" stroke-width="1.6" stroke-opacity=".4"/></g>
-      </svg></div>
-      <div class="meta"><h2>Ondas</h2><p>Toca el agua y mira cómo las ondas se cruzan sobre las piedras del río.</p></div>
-    </a>
-
-    <a class="card" href="/juegos/demolicion/">
-      <div class="thumb"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <defs><linearGradient id="dsk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A9C6DD"/><stop offset="1" stop-color="#DCE6EC"/></linearGradient></defs>
-        <rect width="400" height="300" fill="url(#dsk)"/><rect y="250" width="400" height="50" fill="#7A6450"/>
-        <g fill="#A7A39B" stroke="#8B867D"><rect x="230" y="200" width="40" height="50"/><rect x="272" y="200" width="40" height="50"/><rect x="230" y="150" width="40" height="50"/><rect x="290" y="166" width="40" height="34" transform="rotate(14 310 183)"/></g>
-        <g fill="#9C7449"><rect x="226" y="144" width="90" height="8" transform="rotate(-8 271 148)"/></g>
-        <g fill="#B9D6E0" fill-opacity=".8" stroke="#8FB3C1"><rect x="244" y="108" width="26" height="34" transform="rotate(-22 257 125)"/></g>
-        <line x1="60" y1="0" x2="150" y2="150" stroke="#4A4A4A" stroke-width="3"/><circle cx="160" cy="168" r="26" fill="#2E3033"/><circle cx="152" cy="160" r="8" fill="#55585C"/>
-        <g fill="#A7A39B"><rect x="330" y="236" width="10" height="8"/><rect x="346" y="240" width="7" height="6"/><rect x="214" y="238" width="8" height="8"/></g>
-      </svg></div>
-      <div class="meta"><h2>Demolición</h2><p>Lanza la bola y derriba edificios de concreto, madera y vidrio.</p></div>
+      <div class="thumb"><svg viewBox="0 0 320 200"><text x="160" y="96" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="40" letter-spacing="-1" fill="#15171C">571.028.925</text><polyline points="70,140 120,140 132,120 144,160 156,128 166,140 250,140" fill="none" stroke="#E4572E" stroke-width="3"/></svg></div>
+      <div class="meta"><h3>Tu vida en vivo</h3><p>Tus latidos, respiraciones y días contando en tiempo real.</p></div>
     </a>
   </main>
 
-  <footer>Ratito, hecho en Panamá. Todos los juegos son originales y funcionan en tu navegador.</footer>
+  <footer>Vaina, hecho en Panamá. Todos los juegos son originales y funcionan en tu navegador.</footer>
 </div>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
+<script>
+const cards=[...document.querySelectorAll('.card')],tabs=[...document.querySelectorAll('.tabs button')];
+document.getElementById('nTodos').textContent=cards.length;document.getElementById('nMp').textContent=cards.filter(c=>c.hasAttribute('data-mp')).length;
+function filtro(f){tabs.forEach(t=>t.setAttribute('aria-selected',t.dataset.f===f));cards.forEach(c=>c.hidden=f==='mp'&&!c.hasAttribute('data-mp'));
+  document.getElementById('mpInfo').classList.toggle('on',f==='mp');history.replaceState(null,'',f==='mp'?'#multiplayer':location.pathname+location.search)}
+tabs.forEach(t=>t.onclick=()=>filtro(t.dataset.f));
+if(location.hash==='#multiplayer')filtro('mp');
+document.getElementById('crear').onclick=()=>{const b=document.querySelector('.am-btn');if(!b)return;b.click();setTimeout(()=>{const n=document.getElementById('am-new');if(n&&!n.closest('[hidden]'))n.click()},50)};
+</script>
+<script src="/lib/peerjs.min.js" defer></script>
 <script src="/amigos.js" defer></script>
 </body>
 </html>

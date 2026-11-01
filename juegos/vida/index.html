@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tu vida en vivo — Ratito</title>
+<title>Tu vida en vivo — Vaina</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/estilo.css">
 <style>
@@ -43,7 +43,7 @@ h2{font-size:1.4rem;margin:44px 0 6px}
 </style>
 </head>
 <body>
-<a class="volver" href="/">← Ratito</a>
+<a class="volver" href="/">← Vaina</a>
 <div class="wrap">
   <h1>Tu vida en vivo</h1>
   <p class="intro">Pon tu fecha de nacimiento y mira cuántas veces ha latido tu corazón, cuánto has viajado por el espacio y qué récord personal viene después. Los números cambian mientras miras.</p>
@@ -135,7 +135,7 @@ const saved=localStorage.getItem('ratitoVida');
 $('d').max=new Date().toISOString().slice(0,10);
 if(saved){const [d,h]=saved.split('|');$('d').value=d;if(h)$('h').value=h}
 </script>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
+<script src="/lib/peerjs.min.js" defer></script>
 <script src="/amigos.js" defer></script>
 </body>
 </html>

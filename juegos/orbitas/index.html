@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Órbitas — Ratito</title>
+<title>Órbitas — Vaina</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/estilo.css">
 <style>
@@ -25,7 +25,7 @@ html,body{height:100%;overflow:hidden;background:#04050A;touch-action:none}
 </style>
 </head>
 <body>
-<a class="volver" href="/">← Ratito</a>
+<a class="volver" href="/">← Vaina</a>
 <canvas id="space" aria-label="Espacio. Arrastra para lanzar un planeta."></canvas>
 <div class="hud"><h1>Órbitas</h1><p>Arrastra y suelta para lanzar un planeta. La línea punteada muestra hacia dónde irá. Si chocan, se unen.</p></div>
 <div class="stats" id="stats"></div>
@@ -181,7 +181,7 @@ conSala(S0=>{sala=S0;
     if(sala.activo&&sala.lider())enviarEstado()});
 });
 </script>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
+<script src="/lib/peerjs.min.js" defer></script>
 <script src="/amigos.js" defer></script>
 </body>
 </html>

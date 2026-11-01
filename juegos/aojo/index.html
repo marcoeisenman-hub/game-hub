@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A ojo — Vaina</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/estilo.css">
+<style>
+body{background:#fff}
+main{max-width:720px;margin:0 auto;padding:84px 20px 60px}
+.nr{color:var(--mut);font-weight:500;display:flex;justify-content:space-between}
+h1{font-size:clamp(1.6rem,5.5vw,2.5rem);line-height:1.12;letter-spacing:-.03em;margin:10px 0 28px;min-height:2.3em}
+.val{display:flex;align-items:baseline;gap:10px;justify-content:center;margin-bottom:6px}
+.val input{font:900 clamp(2.2rem,9vw,3.6rem) "Schibsted Grotesk",sans-serif;letter-spacing:-.04em;width:min(100%,9ch);text-align:right;border:0;border-bottom:2px solid var(--line);padding:0 2px;color:var(--ink);background:none}
+.val input:focus{outline:0;border-color:var(--ink)}
+.val span{color:var(--mut);font-weight:700;font-size:1.1rem}
+input[type=range]{width:100%;margin:18px 0 6px;accent-color:var(--ink);height:28px}
+.esc{display:flex;justify-content:space-between;color:var(--mut);font-size:.82rem}
+.acc{display:flex;gap:10px;justify-content:center;margin-top:26px;flex-wrap:wrap}
+.btn:disabled{opacity:.35;cursor:default}
+.linea{position:relative;height:120px;margin:34px 6px 10px}
+.linea .eje{position:absolute;left:0;right:0;top:60px;height:2px;background:var(--line)}
+.p{position:absolute;top:60px;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center}
+.p i{width:14px;height:14px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 0 0 1px #0002}
+.p small{position:absolute;white-space:nowrap;font-weight:700;font-size:.8rem;bottom:14px}
+.p.abajo small{bottom:auto;top:14px}
+.p.real i{width:18px;height:18px;background:var(--acc)}
+.p.real small{color:var(--acc);font-size:.9rem;bottom:16px}
+.dato{background:var(--soft);border-radius:12px;padding:14px 16px;margin-top:10px}
+.dato b{font-size:1.15rem}
+.dato p{margin:4px 0 0;color:var(--mut)}
+#tabla{position:fixed;right:14px;top:14px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:.85rem;min-width:180px;z-index:6}
+#tabla[hidden]{display:none}
+#tabla div{display:flex;gap:8px;align-items:center;padding:2px 0}
+#tabla i{width:10px;height:10px;border-radius:50%;flex:none}
+#tabla b{margin-left:auto}
+#tabla em{font-style:normal;color:var(--mut);font-size:.78rem}
+.fin{text-align:center;padding-top:30px}
+.fin h2{font-size:3.2rem;letter-spacing:-.04em;margin:0}
+.fin ol{display:inline-block;text-align:left}
+[hidden]{display:none!important}
+@media (max-width:640px){#tabla{position:static;margin:0 0 18px}}
+</style>
+</head>
+<body>
+<a class="volver" href="/">← Vaina</a>
+<main>
+  <div id="tabla" hidden></div>
+  <section id="juego">
+    <div class="nr"><span id="nr">Pregunta 1 de 7</span><span id="tot">0 pts</span></div>
+    <h1 id="q"></h1>
+    <div id="pregunta">
+      <div class="val"><input id="num" inputmode="decimal" aria-label="Tu respuesta"><span id="uni"></span></div>
+      <input type="range" id="sl" min="0" max="1000" value="500" aria-label="Desliza para elegir">
+      <div class="esc"><span id="lo"></span><span id="hi"></span></div>
+      <div class="acc"><button class="btn" id="ok">Responder</button></div>
+    </div>
+    <div id="resultado" hidden>
+      <div class="linea" id="linea"><div class="eje"></div></div>
+      <div class="dato"><b id="real"></b><p id="nota"></p></div>
+      <div class="acc"><button class="btn" id="sig">Siguiente</button></div>
+    </div>
+  </section>
+  <section class="fin" id="fin" hidden><small>Puntaje final</small><h2 id="ftot"></h2><p id="fmsg"></p><ol id="frank"></ol><div class="acc"><button class="btn" id="otra">Jugar otra vez</button></div></section>
+</main>
+<script src="/lib/partida.js"></script>
+<script>
+// [pregunta, respuesta, unidad, mínimo del deslizador, máximo, dato]
+const PREG=[
+['¿Cuántos metros mide el monte Everest?',8849,'m',100,100000,'Medición oficial de China y Nepal en 2020.'],
+['¿Cuántos huesos tiene el cuerpo de un adulto?',206,'huesos',10,10000,'Un bebé nace con unos 300; varios se fusionan al crecer.'],
+['¿A cuántos kilómetros está la Luna?',384400,'km',1000,100000000,'Es la distancia promedio; la luz tarda 1,3 segundos en llegar.'],
+['¿Cuántos kilómetros por segundo viaja la luz?',299792,'km/s',100,100000000,'Le daría 7,5 vueltas a la Tierra en un segundo.'],
+['¿Cuántos metros de profundidad tiene la fosa de las Marianas?',10935,'m',100,1000000,'Si pusieras el Everest adentro, aún faltarían más de 2 km.'],
+['¿Cuántas teclas tiene un piano normal?',88,'teclas',10,1000,'52 blancas y 36 negras.'],
+['¿Cuántos metros mide el Burj Khalifa?',828,'m',50,10000,'Más del doble que la Torre Eiffel con su antena.'],
+['¿Cuántos goles ha marcado Messi en Mundiales?',13,'goles',1,200,'Contando del 2006 al 2022.'],
+['¿Cuántos años luz hay hasta la estrella más cercana después del Sol?',4.24,'años luz',0.1,1000,'Es Próxima Centauri.'],
+['¿Hace cuántos millones de años empezó el universo?',13800,'millones de años',10,1000000,'Calculado con la luz más antigua que se puede ver.'],
+['¿Cuántos metros mide el volcán Barú?',3474,'m',100,100000,'Desde la cima, en días claros, se ven los dos océanos.'],
+['¿Cuántos segundos tiene un día?',86400,'s',100,10000000,'24 × 60 × 60.'],
+['¿Cuántos litros de sangre tiene un adulto?',5,'litros',0.1,500,'Más o menos el 7 % del peso del cuerpo.'],
+['¿Cuántos años tiene el Canal de Panamá?',112,'años',5,5000,'Lo inauguraron el 15 de agosto de 1914.'],
+['¿Cuántos kilómetros cuadrados mide Panamá?',75517,'km²',1000,10000000,'Cabría unas 130 veces en Brasil.'],
+['¿Cuántos metros mide la Torre Eiffel?',330,'m',10,10000,'En verano crece unos centímetros por el calor.'],
+['¿Cuántos dientes tiene un adulto?',32,'dientes',2,1000,'Contando las cuatro muelas del juicio.'],
+['¿Cuántos millones de kilómetros hay de la Tierra al Sol?',150,'millones de km',1,100000,'La luz del Sol tarda unos 8 minutos en llegar.'],
+['¿Cuántos metros por segundo viaja el sonido en el aire?',343,'m/s',10,100000,'A 20 °C. Por eso el trueno llega después del rayo.'],
+['¿Cuántos kilómetros de diámetro tiene la Tierra?',12742,'km',100,10000000,'En el ecuador es un poco más ancha que de polo a polo.'],
+['¿Cuántos grados Celsius hay en la superficie del Sol?',5500,'°C',10,10000000,'El centro llega a unos 15 millones de grados.'],
+['¿Cuántos países son miembros de la ONU?',193,'países',10,5000,'El último en entrar fue Sudán del Sur, en 2011.'],
+['¿Cuántos millones de personas viven en el mundo?',8100,'millones',10,1000000,'Pasamos los 8.000 millones en noviembre de 2022.'],
+['¿Cuántos millones de personas viven en Panamá?',4.4,'millones',0.1,1000,'Cerca de la mitad vive en la zona de la capital.'],
+['¿Cuántos kilómetros mide el Canal de Panamá?',82,'km',1,10000,'Un barco tarda entre 8 y 10 horas en cruzarlo.'],
+['¿Cuántos Mundiales ha ganado Brasil?',5,'Mundiales',1,100,'1958, 1962, 1970, 1994 y 2002.'],
+['¿Cuántos kilómetros por hora corre un guepardo?',110,'km/h',5,5000,'Solo aguanta esa velocidad unos 20 o 30 segundos.'],
+['¿Cuántas toneladas puede pesar una ballena azul?',150,'toneladas',1,100000,'Es el animal más pesado que ha existido.'],
+['¿Cuántos miles de millones de neuronas tiene el cerebro?',86,'mil millones',1,100000,'Cada una se conecta con miles de otras.'],
+['¿Cuántos metros puede medir una jirafa?',5.5,'m',0.5,100,'Su cuello tiene 7 vértebras, igual que el tuyo.'],
+['¿Cuántos kilómetros mide el río Amazonas?',6400,'km',100,1000000,'Lleva más agua que cualquier otro río del planeta.'],
+['¿Cuántos años tiene la Gran Pirámide de Guiza?',4500,'años',50,1000000,'Fue el edificio más alto del mundo durante casi 4.000 años.'],
+];
+const RONDAS=7,nf=new Intl.NumberFormat('es',{maximumFractionDigits:2});
+const $=id=>document.getElementById(id);
+let lista=[];
+const P=Partida({rondas:RONDAS,alCambiar:t=>{if(t==='partida'){armar();$('fin').hidden=true;$('juego').hidden=false}if(t==='partida'||t==='ronda')nueva();pintar()}});
+function armar(){lista=barajar(PREG.map((_,i)=>i),azar(P.seed)).slice(0,RONDAS)}
+const Q=()=>PREG[lista[P.ronda]];
+const lg=Math.log10;
+function desdeSl(v){const [, , ,lo,hi]=Q();return 10**(lg(lo)+(lg(hi)-lg(lo))*v/1000)}
+function haciaSl(x){const [, , ,lo,hi]=Q();return Math.round(1000*(lg(x)-lg(lo))/(lg(hi)-lg(lo)))}
+function bonito(x){if(x>=100)return Math.round(x);if(x>=10)return Math.round(x*10)/10;return Math.round(x*100)/100}
+function leer(){let t=$('num').value.replace(/\s/g,'');t=/^\d+\.\d{1,2}$/.test(t)?t:t.replace(/\./g,'').replace(',','.');const v=parseFloat(t);return Number.isFinite(v)&&v>0?v:null}
+const puntos=(g,r)=>Math.round(1000*Math.max(0,1-Math.abs(lg(g/r))/1.3));
+function nueva(){const q=Q();$('sl').value=500;$('num').value=nf.format(bonito(desdeSl(500)));}
+$('sl').oninput=()=>{$('num').value=nf.format(bonito(desdeSl(+$('sl').value)))};
+$('num').oninput=()=>{const v=leer();if(v)$('sl').value=Math.max(0,Math.min(1000,haciaSl(v)))};
+$('num').onkeydown=e=>{if(e.key==='Enter')$('ok').click()};
+$('ok').onclick=()=>{const g=leer();if(!g){$('num').focus();return}const r=Q()[1];P.responder({g,pts:puntos(g,r)})};
+function pintar(){
+  if(!lista.length){armar();nueva()}
+  const q=Q(),mia=P.mia(),t=P.puntos(),yo=P.jugadores().find(j=>j.yo)||{id:'yo'};
+  $('nr').textContent=`Pregunta ${P.ronda+1} de ${RONDAS}`+(P.enSala?' · con amigos':'');$('tot').textContent=nf.format(t[yo.id]||0)+' pts';
+  $('q').textContent=q[0];$('uni').textContent=q[2];$('lo').textContent=nf.format(q[3]);$('hi').textContent=nf.format(q[4]);
+  $('pregunta').hidden=!!mia;$('resultado').hidden=!mia;
+  if(mia){
+    const rs=P.respuestas(),vals=Object.values(rs).map(x=>x.d.g).concat(q[1]);
+    let a=Math.min(...vals),b=Math.max(...vals);a=lg(a)-.15;b=lg(b)+.15;if(b-a<.6){const c=(a+b)/2;a=c-.3;b=c+.3}
+    const pos=x=>Math.max(0,Math.min(100,(lg(x)-a)/(b-a)*100));
+    const pts=Object.values(rs).sort((x,y)=>x.d.g-y.d.g);
+    $('linea').innerHTML='<div class="eje"></div>'+pts.map((x,i)=>`<div class="p ${i%2?'abajo':''}" style="left:${pos(x.d.g)}%"><i style="background:${x.yo?'#15171C':x.color}"></i><small style="color:${x.yo?'#15171C':x.color}">${x.yo?'Tú':x.name}: ${nf.format(bonito(x.d.g))}</small></div>`).join('')+`<div class="p real" style="left:${pos(q[1])}%"><i></i><small>${nf.format(q[1])}</small></div>`;
+    const veces=mia.g>q[1]?mia.g/q[1]:q[1]/mia.g;
+    $('real').textContent=`${nf.format(q[1])} ${q[2]} · ganaste ${nf.format(mia.pts)} pts`;
+    $('nota').textContent=(veces<1.05?'¡Casi exacto! ':veces<1.5?'Muy cerca. ':`Te fuiste ${nf.format(Math.round(veces*10)/10)} veces ${mia.g>q[1]?'por arriba':'por abajo'}. `)+q[5];
+    const ult=P.ronda>=RONDAS-1,faltan=P.jugadores().filter(j=>!rs[j.id]),s=$('sig');
+    if(faltan.length&&P.enSala){s.disabled=true;s.textContent='Esperando a '+faltan.map(j=>j.name).join(', ')}
+    else if(!P.mando){s.disabled=true;s.textContent='Esperando a '+P.lider().name;if(ult)fin()}
+    else{s.disabled=false;s.textContent=ult?'Ver resultado':'Siguiente pregunta'}
+  }else setTimeout(()=>{if(matchMedia('(pointer:fine)').matches)$('num').focus()},50);
+  tablaPts()}
+function tablaPts(){const tb=$('tabla');if(!P.enSala){tb.hidden=true;return}const t=P.puntos();tb.hidden=false;
+  tb.innerHTML='<strong>Puntos</strong>'+P.jugadores().map(j=>({...j,p:t[j.id]||0,ya:!!P.respuestas()[j.id]})).sort((a,b)=>b.p-a.p).map(j=>`<div><i style="background:${j.color}"></i>${j.name}${j.yo?' (tú)':''} ${j.ya?'':'<em>pensando…</em>'}<b>${nf.format(j.p)}</b></div>`).join('')}
+$('sig').onclick=()=>{if(P.ronda>=RONDAS-1)return fin();P.siguiente()};
+function fin(){const t=P.puntos(),yo=P.jugadores().find(j=>j.yo)||{id:'yo'},tot=t[yo.id]||0;
+  $('juego').hidden=true;$('fin').hidden=false;$('ftot').textContent=nf.format(tot);
+  $('fmsg').textContent=tot>=5600?'Tienes una calculadora en los ojos.':tot>=4200?'Muy buen ojo.':tot>=2800?'Nada mal.':'Los números engañan. Otra vez.';
+  $('frank').innerHTML=P.enSala?P.jugadores().map(j=>({...j,p:t[j.id]||0})).sort((a,b)=>b.p-a.p).map(j=>`<li>${j.name}${j.yo?' (tú)':''}: ${nf.format(j.p)}</li>`).join(''):'';
+  const b=$('otra');b.disabled=!P.mando;b.textContent=P.mando?'Jugar otra vez':'El líder empieza otra'}
+$('otra').onclick=()=>P.otraVez();
+pintar();
+</script>
+<script src="/lib/peerjs.min.js" defer></script>
+<script src="/amigos.js" defer></script>
+</body>
+</html>

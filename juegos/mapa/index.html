@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>¿Dónde queda? — Vaina</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/estilo.css">
+<style>
+html,body{height:100%;overflow:hidden}
+body{background:#fff}
+#map{position:fixed;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;background:#F4F6F8}
+.land{fill:#DADDE2;stroke:#fff;stroke-width:.6;vector-effect:non-scaling-stroke}
+.grat{fill:none;stroke:#E6E9ED;stroke-width:.6;vector-effect:non-scaling-stroke}
+.sphere{fill:#fff;stroke:#D5D9DE;vector-effect:non-scaling-stroke}
+.top{position:fixed;top:62px;left:50%;transform:translateX(-50%);width:min(560px,calc(100% - 24px));background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 16px;text-align:center;box-shadow:0 6px 24px #0000000d;z-index:5}
+.top small{color:var(--mut);font-weight:500}
+.top h1{margin:2px 0 0;font-size:clamp(1.25rem,4.5vw,1.7rem);line-height:1.15;letter-spacing:-.02em}
+.top p{margin:4px 0 0;color:var(--mut);font-size:.92rem}
+.bar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:10px;align-items:center;z-index:5;width:max-content;max-width:calc(100% - 24px);flex-wrap:wrap;justify-content:center}
+.res{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-weight:700;box-shadow:0 6px 24px #0000000d}
+.res span{color:var(--acc)}
+.btn:disabled{opacity:.35;cursor:default}
+#tabla{position:fixed;right:14px;top:14px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:.85rem;min-width:180px;z-index:6}
+#tabla[hidden]{display:none}
+#tabla div{display:flex;gap:8px;align-items:center;padding:2px 0}
+#tabla i{width:10px;height:10px;border-radius:50%;flex:none}
+#tabla b{margin-left:auto}
+#tabla em{font-style:normal;color:var(--mut);font-size:.78rem}
+.zoom{position:fixed;right:14px;bottom:18px;display:flex;flex-direction:column;gap:6px;z-index:5}
+.zoom button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:#fff;font:700 1.1rem inherit;cursor:pointer}
+.fin{position:fixed;inset:0;display:grid;place-items:center;background:#ffffffd9;z-index:20}
+.fin[hidden]{display:none}
+.fin div{background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px 28px;text-align:center;width:min(420px,calc(100% - 28px));box-shadow:0 20px 60px #0000001a}
+.fin h2{margin:0;font-size:2.6rem;letter-spacing:-.04em}
+.fin p{color:var(--mut);margin:6px 0 16px}
+.fin ol{text-align:left;margin:0 0 16px;padding-left:22px}
+@media (max-width:640px){#tabla{top:auto;bottom:74px;right:10px;min-width:150px}.top{top:60px}.zoom{display:none}}
+</style>
+</head>
+<body>
+<a class="volver" href="/">← Vaina</a>
+<svg id="map" aria-label="Mapa del mundo: toca donde crees que queda el lugar"></svg>
+<div class="top"><small id="nr">Ronda 1 de 5</small><h1 id="q">Cargando mapa…</h1><p id="pista">Toca el mapa donde creas que queda. Puedes acercar con dos dedos o la rueda.</p></div>
+<div id="tabla" hidden></div>
+<div class="bar"><div class="res" id="res" hidden></div><button class="btn" id="ok" disabled>Confirmar</button><button class="btn" id="sig" hidden>Siguiente</button></div>
+<div class="zoom"><button id="zin" aria-label="Acercar">+</button><button id="zout" aria-label="Alejar">−</button></div>
+<div class="fin" id="fin" hidden><div><small>Puntaje final</small><h2 id="ftot">0</h2><p id="fmsg"></p><ol id="frank"></ol><button class="btn" id="otra">Jugar otra vez</button></div></div>
+<script src="/lib/d3.min.js"></script>
+<script src="/lib/topojson-client.min.js"></script>
+<script src="/lib/partida.js"></script>
+<script>
+// [nombre, pista, lat, lon]
+const LUGARES=[
+['Machu Picchu','Ruinas incas en los Andes',-13.163,-72.545],['La Torre Eiffel','Torre de hierro de 1889',48.858,2.294],['El Coliseo','Anfiteatro romano',41.890,12.492],
+['La Gran Muralla (Badaling)','El tramo más visitado',40.359,116.020],['El Taj Mahal','Mausoleo de mármol blanco',27.175,78.042],['La Estatua de la Libertad','Regalo de Francia, 1886',40.689,-74.045],
+['El Cristo Redentor','Sobre el cerro Corcovado',-22.952,-43.211],['La Ópera de Sídney','Techos como velas',-33.857,151.215],['Las pirámides de Guiza','La última maravilla antigua en pie',29.979,31.134],
+['Chichén Itzá','Ciudad maya',20.684,-88.568],['Petra','Ciudad tallada en roca rosada',30.328,35.444],['El monte Everest','La montaña más alta: 8.849 m',27.988,86.925],
+['El Kilimanjaro','Volcán con nieve cerca del ecuador',-3.068,37.356],['Angkor Wat','El templo religioso más grande',13.412,103.867],['Stonehenge','Círculo de piedras de hace 5.000 años',51.179,-1.826],
+['La Isla de Pascua','Los moáis',-27.113,-109.350],['Las cataratas del Niágara','Entre dos países',43.083,-79.074],['Las cataratas del Iguazú','275 saltos de agua',-25.695,-54.437],
+['El Gran Cañón','Lo talló el río Colorado',36.107,-112.113],['El monte Fuji','Volcán sagrado',35.361,138.727],['El Burj Khalifa','El edificio más alto: 828 m',25.197,55.274],
+['La Sagrada Familia','Basílica de Gaudí, aún en obra',41.404,2.174],['El Big Ben','La torre del reloj del Parlamento',51.501,-0.125],['La Plaza Roja','Frente al Kremlin',55.754,37.620],
+['La Acrópolis','Donde está el Partenón',37.972,23.726],['La Alhambra','Palacio nazarí',37.176,-3.588],['Uluru','Roca roja gigante en el desierto',-25.344,131.036],
+['Las islas Galápagos','Inspiraron a Darwin',-0.62,-90.40],['El salar de Uyuni','El salar más grande del mundo',-20.134,-67.489],['Las esclusas de Miraflores','Canal de Panamá',8.997,-79.592],
+['El Casco Viejo de Panamá','Ciudad fundada en 1673',8.952,-79.535],['Bocas del Toro','Archipiélago en el Caribe',9.340,-82.240],['El volcán Barú','El punto más alto de Panamá',8.808,-82.543],
+['Guna Yala (San Blas)','365 islas, según dicen',9.55,-78.95],['Santa Sofía','Fue iglesia, mezquita y museo',41.008,28.980],['Times Square','La plaza de las pantallas',40.758,-73.985],
+['El puente Golden Gate','Puente rojo de 1937',37.820,-122.478],['El letrero de Hollywood','En las colinas',34.134,-118.321],['El Camp Nou','Estadio del Barça',41.381,2.123],
+['El Santiago Bernabéu','Estadio del Real Madrid',40.453,-3.688],['El Maracaná','Dos finales de Mundial',-22.912,-43.230],['El Estadio Azteca','Tres Mundiales',19.303,-99.150],
+['Old Trafford','Estadio del Manchester United',53.463,-2.291],['El monte Rushmore','Cuatro presidentes en roca',43.879,-103.459],['La Torre de Pisa','Inclinada casi 4 grados',43.723,10.397],
+['Tokio','La ciudad más poblada',35.68,139.69],['Nueva Delhi','Capital',28.61,77.21],['Lagos','La ciudad más grande de su país',6.52,3.38],
+['Ciudad del Cabo','Bajo la Montaña de la Mesa',-33.92,18.42],['Buenos Aires','A orillas del Río de la Plata',-34.60,-58.38],['Reikiavik','La capital más al norte',64.15,-21.94],
+['Singapur','Ciudad-estado',1.35,103.82],['Honolulu','En la isla de Oahu',21.31,-157.86],['Anchorage','La ciudad más grande de su estado',61.22,-149.90],
+['Nairobi','Tiene un parque nacional dentro',-1.29,36.82],['Lima','Capital frente al Pacífico',-12.05,-77.04],['Bogotá','A 2.600 m de altura',4.71,-74.07],
+['Ciudad de México','Construida sobre un lago',19.43,-99.13],['Madrid','Capital en el centro del país',40.42,-3.70],['Seúl','Capital',37.57,126.98],
+['Bangkok','Capital',13.76,100.50],['Toronto','La ciudad más grande de su país',43.65,-79.38],['Miami','Florida',25.76,-80.19],
+['Yakarta','Capital en la isla de Java',-6.21,106.85],['Bombay (Mumbai)','Donde está Bollywood',19.08,72.88],['Santiago de Chile','Al pie de los Andes',-33.45,-70.67],
+['La Habana','Capital de una isla',23.11,-82.37],['San José','Capital de Costa Rica',9.93,-84.08],['El Polo Sur','Donde se juntan todos los meridianos',-90,0],
+['El Polo Norte','En medio del océano congelado',90,0],['Dubái','Ciudad del desierto',25.20,55.27],['El Cairo','Junto al Nilo',30.04,31.24],
+['Mongolia (Ulán Bator)','La capital más fría',47.92,106.92],['Kamchatka','Península de volcanes',56.0,159.0],['Madagascar (Antananarivo)','Capital de la isla',-18.88,47.51]];
+const RONDAS=5,R=6371;
+const svg=d3.select('#map'),g=svg.append('g'),q=document.getElementById('q'),nr=document.getElementById('nr'),pista=document.getElementById('pista');
+const ok=document.getElementById('ok'),sig=document.getElementById('sig'),res=document.getElementById('res'),tabla=document.getElementById('tabla');
+let proj,path,W,H,mundo,pin=null,k=1,lista=[];
+const nf=new Intl.NumberFormat('es');
+function km(a,b){const t=Math.PI/180,dl=(b[0]-a[0])*t,dn=(b[1]-a[1])*t,x=Math.sin(dl/2)**2+Math.cos(a[0]*t)*Math.cos(b[0]*t)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.min(1,Math.sqrt(x)))}
+const puntos=d=>Math.round(5000*Math.exp(-d/1800));
+const P=Partida({rondas:RONDAS,alCambiar:t=>{if(t==='partida'){armar();pin=null}if(t==='ronda')pin=null;pintar()}});
+function armar(){lista=barajar(LUGARES.map((_,i)=>i),azar(P.seed)).slice(0,RONDAS)}
+function lugar(){return LUGARES[lista[P.ronda]]}
+function size(){W=innerWidth;H=innerHeight;svg.attr('viewBox',[0,0,W,H]);
+  proj=d3.geoNaturalEarth1().fitExtent([[10,150],[W-10,H-80]],{type:'Sphere'});path=d3.geoPath(proj);
+  g.selectAll('*').remove();g.append('path').attr('class','sphere').attr('d',path({type:'Sphere'}));
+  g.append('path').attr('class','grat').attr('d',path(d3.geoGraticule10()));
+  if(mundo)g.append('g').selectAll('path').data(mundo.features).join('path').attr('class','land').attr('d',path);
+  g.append('g').attr('id','marcas');pintar()}
+const zoom=d3.zoom().scaleExtent([1,14]).on('zoom',e=>{g.attr('transform',e.transform);k=e.transform.k;pintar()});
+svg.call(zoom).on('dblclick.zoom',null);
+document.getElementById('zin').onclick=()=>svg.transition().duration(250).call(zoom.scaleBy,1.8);
+document.getElementById('zout').onclick=()=>svg.transition().duration(250).call(zoom.scaleBy,1/1.8);
+let down=null;
+svg.on('pointerdown',e=>{down=[e.clientX,e.clientY]}).on('pointerup',e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>6||P.mia())return;
+  const t=d3.zoomTransform(svg.node()),[x,y]=t.invert([e.clientX,e.clientY]),ll=proj.invert([x,y]);if(!ll||!isFinite(ll[0]))return;
+  const back=proj(ll);if(!back||Math.hypot(back[0]-x,back[1]-y)>2)return;// fuera del mapa
+  pin=[ll[1],ll[0]];pintar()});
+function marca(sel,lat,lon,color,txt,grande){const [x,y]=proj([lon,lat]),s=1/k;
+  const m=sel.append('g').attr('transform',`translate(${x},${y}) scale(${s})`);
+  m.append('circle').attr('r',grande?8:6).attr('fill',color).attr('stroke','#fff').attr('stroke-width',2.5);
+  if(txt)m.append('text').attr('x',11).attr('y',4).attr('font-size',13).attr('font-weight',700).attr('fill',color).attr('stroke','#fff').attr('stroke-width',3.5).attr('paint-order','stroke').text(txt)}
+function pintar(){
+  if(!lista.length)armar();
+  const L=lugar(),m=d3.select('#marcas');if(!m.node())return;m.selectAll('*').remove();
+  nr.textContent=`Ronda ${P.ronda+1} de ${RONDAS}`+(P.enSala?' · con amigos':'');q.textContent='¿Dónde queda '+L[0]+'?';
+  const mia=P.mia(),real=[L[2],L[3]];
+  if(!mia){pista.textContent=L[1]+'. Toca el mapa y confirma.';res.hidden=true;sig.hidden=true;ok.hidden=false;ok.disabled=!pin;
+    if(pin)marca(m,pin[0],pin[1],'#15171C','Tú');}
+  else{ok.hidden=true;pista.textContent=L[1]+'.';
+    const rs=P.respuestas();
+    for(const id in rs){const x=rs[id];m.append('path').attr('d',path({type:'LineString',coordinates:[[x.d.lon,x.d.lat],[L[3],L[2]]]})).attr('fill','none').attr('stroke',x.yo?'#15171C':x.color).attr('stroke-width',1.6).attr('stroke-dasharray','5 5').attr('vector-effect','non-scaling-stroke');}
+    for(const id in rs){const x=rs[id];marca(m,x.d.lat,x.d.lon,x.yo?'#15171C':x.color,x.yo?'Tú':x.name)}
+    marca(m,real[0],real[1],'#E4572E',L[0],true);
+    res.hidden=false;res.innerHTML=`${nf.format(Math.round(mia.km))} km · <span>${nf.format(mia.pts)} pts</span>`;
+    const ult=P.ronda>=RONDAS-1,faltan=P.jugadores().filter(j=>!P.respuestas()[j.id]);
+    sig.hidden=false;
+    if(faltan.length&&P.enSala){sig.disabled=true;sig.textContent='Esperando a '+faltan.map(j=>j.name).join(', ')}
+    else if(!P.mando){sig.disabled=true;sig.textContent=ult?'Fin: mira el resultado':'Esperando a '+P.lider().name}
+    else{sig.disabled=false;sig.textContent=ult?'Ver resultado':'Siguiente lugar'}
+    if(ult&&!faltan.length&&!P.mando)fin();
+  }
+  tablaPts()}
+function tablaPts(){if(!P.enSala){tabla.hidden=true;return}const t=P.puntos();tabla.hidden=false;
+  tabla.innerHTML='<strong>Puntos</strong>'+P.jugadores().map(j=>({...j,p:t[j.id]||0,ya:!!P.respuestas()[j.id]})).sort((a,b)=>b.p-a.p).map(j=>`<div><i style="background:${j.color}"></i>${j.name}${j.yo?' (tú)':''} ${j.ya?'':'<em>pensando…</em>'}<b>${nf.format(j.p)}</b></div>`).join('')}
+ok.onclick=()=>{if(!pin)return;const L=lugar(),d=km(pin,[L[2],L[3]]);P.responder({lat:+pin[0].toFixed(3),lon:+pin[1].toFixed(3),km:Math.round(d),pts:puntos(d)})};
+sig.onclick=()=>{if(P.ronda>=RONDAS-1)return fin();P.siguiente()};
+function fin(){const t=P.puntos(),me=P.jugadores().find(j=>j.yo)||{id:'yo'},tot=t[me.id]||0;
+  document.getElementById('ftot').textContent=nf.format(tot);
+  document.getElementById('fmsg').textContent=tot>=20000?'Tienes un GPS en la cabeza.':tot>=14000?'Muy buena geografía.':tot>=8000?'Nada mal.':'El mundo es grande. Otra vez.';
+  document.getElementById('frank').innerHTML=P.enSala?P.jugadores().map(j=>({...j,p:t[j.id]||0})).sort((a,b)=>b.p-a.p).map(j=>`<li>${j.name}${j.yo?' (tú)':''}: ${nf.format(j.p)}</li>`).join(''):'';
+  const b=document.getElementById('otra');b.disabled=!P.mando;b.textContent=P.mando?'Jugar otra vez':'El líder empieza otra';
+  document.getElementById('fin').hidden=false}
+document.getElementById('otra').onclick=()=>{document.getElementById('fin').hidden=true;P.otraVez()};
+const ofin=()=>{if(P.ronda===0&&!P.mia())document.getElementById('fin').hidden=true};
+setInterval(ofin,500);
+addEventListener('resize',size);
+fetch('/lib/countries-110m.json').then(r=>r.json()).then(t=>{mundo=topojson.feature(t,t.objects.countries);size()}).catch(()=>{q.textContent='No se pudo cargar el mapa. Recarga la página.'});
+size();
+</script>
+<script src="/lib/peerjs.min.js" defer></script>
+<script src="/amigos.js" defer></script>
+</body>
+</html>

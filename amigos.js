@@ -1,4 +1,4 @@
-/* Ratito — "Jugar con amigos": cursores en vivo entre amigos (PeerJS, sin servidor propio).
+/* Vaina — "Jugar con amigos": cursores en vivo entre amigos (PeerJS, sin servidor propio).
    Cualquiera de la sala puede ser el centro: si el que la creó se va o cambia de juego, otro toma su lugar. */
 (()=>{
 'use strict';
@@ -9,7 +9,7 @@ const me={id:rid(10),name:localStorage.getItem('ratitoNombre')||'Amigo '+(10+cry
 let OFF=0; // diferencia con el reloj del anfitrión de la sala: así todos miden la llegada con el mismo reloj
 let SINCE=Date.now(); // cuándo entré a la sala en esta página (reloj propio: todos ordenan igual)
 const PAGE=location.pathname.replace(/index\.html$/,'');
-const PAGES={'/':'la portada','/juegos/vida/':'Tu vida en vivo','/juegos/orbitas/':'Órbitas','/juegos/isla/':'Isla 3D','/juegos/ondas/':'Ondas','/juegos/demolicion/':'Demolición','/juegos/circulo/':'Círculo perfecto','/juegos/arena/':'Arena','/juegos/reflejos/':'Reflejos'};
+const PAGES={'/':'la portada','/juegos/vida/':'Tu vida en vivo','/juegos/orbitas/':'Órbitas','/juegos/circulo/':'Círculo perfecto','/juegos/arena/':'Arena','/juegos/reflejos/':'Reflejos','/juegos/mapa/':'¿Dónde queda?','/juegos/aojo/':'A ojo','/juegos/color/':'Mismo color','/juegos/teclazo/':'Teclazo'};
 function color(id){const ids=[me.id].concat(Object.keys(people)).sort();const k=Math.max(0,ids.indexOf(id));return COLORS[k%COLORS.length]}
 const clean=s=>String(s||'').replace(/[<>&"]/g,'').slice(0,16)||'Amigo';
 
@@ -136,7 +136,7 @@ function connect(c){
 function setCode(c){code=c;sessionStorage.setItem('ratitoSala',c);const u=new URL(location.origin+'/');u.searchParams.set('sala',c);$('am-url').value=u.href;
   $('am-off').hidden=true;$('am-on').hidden=false;if(!running){running=true;requestAnimationFrame(frame)}list();send({t:'hi'})}
 function start(c){
-  if(typeof Peer==='undefined'){status('Cargando…');const s=document.createElement('script');s.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+  if(typeof Peer==='undefined'){status('Cargando…');const s=document.createElement('script');s.src='/lib/peerjs.min.js';
     s.onload=()=>start(c);s.onerror=()=>status('No se pudo cargar la conexión. Recarga la página.');document.head.append(s);return}
   if(code!==c)SINCE=Date.now();code=c;status('Conectando a la sala '+c+'…');$('am-off').hidden=true;$('am-on').hidden=false;
   const u=new URL(location.origin+'/');u.searchParams.set('sala',c);$('am-url').value=u.href;list();connect(c);
