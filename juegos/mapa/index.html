@@ -88,7 +88,8 @@ const puntos=d=>Math.round(5000*Math.exp(-d/1800));
 function actOtra(){const b=document.getElementById('otra');b.disabled=!P.mando;b.textContent=P.mando?'Jugar otra vez':'El líder empieza otra'}
 const P=Partida({rondas:RONDAS,alCambiar:t=>{try{actOtra()}catch(e){}if(t==='partida'){armar();pin=null}if(t==='ronda')pin=null;pintar()}});
 function armar(){let todos=LUGARES.map((_,i)=>i);
-  if(!P.enSala){let vistos=[];try{vistos=JSON.parse(localStorage.getItem('gamehubMapaVistos')||'[]')}catch(e){}
+  let sala=false;try{sala=!!sessionStorage.getItem('ratitoSala')||!!(window.RatitoSala&&RatitoSala.codigo)}catch(e){}
+  if(!P.enSala&&!sala){let vistos=[];try{vistos=JSON.parse(localStorage.getItem('gamehubMapaVistos')||'[]')}catch(e){}if(!Array.isArray(vistos))vistos=[];
     const libres=todos.filter(i=>!vistos.includes(i));if(libres.length>=RONDAS)todos=libres;
     lista=barajar(todos,azar(P.seed)).slice(0,RONDAS);vistos=vistos.concat(lista).slice(-Math.floor(LUGARES.length*.7));try{localStorage.setItem('gamehubMapaVistos',JSON.stringify(vistos))}catch(e){}return}
   lista=barajar(todos,azar(P.seed)).slice(0,RONDAS)}
