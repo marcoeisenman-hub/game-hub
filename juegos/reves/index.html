@@ -98,7 +98,7 @@ small.ayuda{display:block;color:var(--mut);margin-top:22px}
 const $=id=>document.getElementById(id);
 const FRASES=['Anita lava la tina','Tres tristes tigres','Panamá','Hola, ¿qué xopá?','Supercalifragilístico','Mi mamá me mima','Libre'];
 const MAX=5;
-let ctx,orig=null,origRev=null,imit=null,imitRev=null,rec=null,fuente=null;
+let pidiendo=false,vuelta=0,ctx,orig=null,origRev=null,imit=null,imitRev=null,rec=null,fuente=null;
 function ac(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)();if(ctx.state==='suspended')ctx.resume();return ctx}
 function error(t){$('err').textContent=t||''}
 
@@ -131,15 +131,17 @@ addEventListener('resize',redibujar);
 /* grabar */
 async function grabar(btn,barra,alTerminar){
   if(rec){rec.stop();return}
+  if(pidiendo)return;
   parar();error();
   if(!navigator.mediaDevices||!window.MediaRecorder){error('Tu navegador no deja grabar. Prueba con Chrome o Safari actualizados, o sube un audio.');return}
-  let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}})}
-  catch(e){error('No hay permiso para el micrófono. Actívalo en el candado de la barra de direcciones, o sube un audio.');return}
+  let stream;pidiendo=true;try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}})}
+  catch(e){pidiendo=false;error('No hay permiso para el micrófono. Actívalo en el candado de la barra de direcciones, o sube un audio.');return}
+  pidiendo=false;const miVuelta=vuelta;
   ac();const partes=[];rec=new MediaRecorder(stream);rec.ondataavailable=e=>e.data.size&&partes.push(e.data);
   const t0=performance.now(),i=barra.querySelector('i');btn.classList.add('on');btn.querySelector('span').dataset.t=btn.querySelector('span').textContent;btn.querySelector('span').textContent='Parar';
   const tic=setInterval(()=>{const p=(performance.now()-t0)/1000/MAX;i.style.width=Math.min(100,p*100)+'%';if(p>=1&&rec&&rec.state==='recording')rec.stop()},50);
   rec.onstop=async()=>{clearInterval(tic);stream.getTracks().forEach(t=>t.stop());rec=null;btn.classList.remove('on');btn.querySelector('span').textContent=btn.querySelector('span').dataset.t;
-    try{const buf=await ac().decodeAudioData(await new Blob(partes,{type:partes[0]?.type}).arrayBuffer());alTerminar(recortar(buf))}
+    try{const buf=await ac().decodeAudioData(await new Blob(partes,{type:partes[0]?.type}).arrayBuffer());if(miVuelta===vuelta)alTerminar(recortar(buf))}
     catch(e){error('No se pudo leer la grabación. Intenta otra vez.')}};
   rec.start();
 }
@@ -156,7 +158,7 @@ $('g2').onclick=()=>grabar($('g2'),$('t2'),buf=>{imit=buf;imitRev=reves(buf);dib
   $('p2').classList.add('hecho');$('p3').classList.remove('off');mostrarNota(parecido(orig,imitRev));tocar(imitRev,$('c2'),false);
   $('p3').scrollIntoView({behavior:'smooth',block:'center'})});
 $('r2').onclick=()=>imitRev&&tocar(imitRev,$('c2'),false);
-$('otra').onclick=()=>{parar();orig=origRev=imit=imitRev=null;dibujos={};['c1','c2'].forEach(c=>$(c).hidden=true);['t1','t2'].forEach(t=>$(t).firstChild.style.width='0');
+$('otra').onclick=()=>{vuelta++;if(rec&&rec.state==='recording')rec.stop();parar();orig=origRev=imit=imitRev=null;dibujos={};['c1','c2'].forEach(c=>$(c).hidden=true);['t1','t2'].forEach(t=>$(t).firstChild.style.width='0');
   $('n1').disabled=$('r1').disabled=true;['p1','p2','p3'].forEach(p=>$(p).classList.remove('hecho'));$('p2').classList.add('off');$('p3').classList.add('off');scrollTo({top:0,behavior:'smooth'})};
 
 /* parecido: compara la forma del volumen y el "brillo" del sonido, estirando las dos al mismo largo */
