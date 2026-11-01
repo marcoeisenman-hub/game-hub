@@ -7,238 +7,183 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/estilo.css">
 <style>
-html,body{background:#000;color:#fff;overscroll-behavior:none;overflow:hidden;height:100%}
-#cv{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;display:block;touch-action:none}
-.hud{position:fixed;top:14px;right:14px;z-index:20;display:flex;flex-direction:column;align-items:flex-end;gap:6px;font-weight:700;font-size:.85rem;text-shadow:0 1px 3px #000}
-.hud .fila{display:flex;gap:14px}
-.hud span{color:#9AA0AE;font-weight:500;margin-right:4px}
-.pila{width:150px;height:6px;border-radius:3px;background:#ffffff26;overflow:hidden}
-.pila i{display:block;height:100%;width:100%;background:#fff;transition:width .2s linear}
+html,body{background:#0E1016;color:#fff;overscroll-behavior:none}
+main{max-width:620px;margin:0 auto;padding:70px 14px 30px;display:flex;flex-direction:column;align-items:center}
+.hud{width:100%;display:flex;align-items:center;gap:14px;font-weight:800;font-size:.95rem;margin-bottom:10px;flex-wrap:wrap}
+.hud span{color:#9AA0AE;font-weight:600;margin-right:4px}
+.pila{flex:1;min-width:90px;height:10px;border-radius:6px;background:#262B38;overflow:hidden}
+.pila i{display:block;height:100%;width:100%;background:#F5B700;transition:width .2s linear}
 .pila.baja i{background:#E63946}
-.zonas{display:grid;grid-template-columns:repeat(2,12px);gap:3px}
-.zonas i{width:12px;height:12px;border-radius:2px;background:#ffffff1f;border:1px solid #ffffff40}
-.zonas i.on{background:#F3D9A8;border-color:#F3D9A8;box-shadow:0 0 8px #F3D9A8}
-.msg{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);z-index:15;font-weight:900;font-size:clamp(2rem,8vw,3.6rem);letter-spacing:-.04em;pointer-events:none;opacity:0;transition:opacity .25s;text-shadow:0 2px 20px #000}
-.msg.on{opacity:1}
-.capa{position:fixed;inset:0;z-index:30;display:grid;place-items:center;align-content:center;gap:12px;text-align:center;background:radial-gradient(circle at 50% 45%,#0009,#000e);padding:24px}
-.capa h1{margin:0;font-size:clamp(3rem,13vw,5.5rem);letter-spacing:-.06em;line-height:.9}
-.capa p{margin:0;color:#C7CAD1;max-width:400px}
-.capa .btn{background:#fff;color:#000;margin-top:8px;padding:13px 28px;font-size:1.05rem}
-.capa b.n{font-size:3.4rem;letter-spacing:-.04em;line-height:1}
-.capa small{color:#8A8F98}
-.volver{background:#0009;color:#fff;border-color:#ffffff30;backdrop-filter:blur(6px)}
-.rojo{position:fixed;inset:0;z-index:14;pointer-events:none;box-shadow:inset 0 0 160px #E6394600;transition:box-shadow .3s}
-.rojo.on{box-shadow:inset 0 0 160px #E63946cc}
+.marco{position:relative;width:100%;border-radius:18px;overflow:hidden;border:2px solid #262B38}
+canvas{display:block;width:100%;touch-action:none}
+.capa{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:10px;text-align:center;background:#0E1016e6;padding:20px}
+.capa h1{margin:0;font-size:clamp(2.4rem,11vw,3.6rem);letter-spacing:-.05em;line-height:1}
+.capa p{margin:0;color:#C7CAD1;max-width:360px}
+.capa .btn{background:#F5B700;color:#15171C;margin-top:8px}
+.capa b.n{font-size:3rem;letter-spacing:-.04em;line-height:1}
+.ayuda{color:#9AA0AE;font-size:.88rem;margin-top:12px;text-align:center}
+.volver{background:#1B1F2B;color:#fff;border-color:#262B38}
 </style>
-<script type="importmap">{"imports":{"three":"/lib/three/three.module.min.js","three/addons/":"/lib/three/"}}</script>
 </head>
 <body>
 <a class="volver" href="/">← game.hub</a>
-<canvas id="cv"></canvas>
-<div class="rojo" id="rojo"></div>
-<div class="hud">
-  <div class="fila"><div><span>Nivel</span><b id="nivel">1</b></div><div><span>Vidas</span><b id="vidas">3</b></div><div><span>Puntos</span><b id="pts">0</b></div></div>
-  <div class="pila" id="pila" title="Batería de la linterna"><i></i></div>
-  <div class="zonas" id="zonas"><i></i><i></i><i></i><i></i></div>
-</div>
-<div class="msg" id="msg"></div>
-<div class="capa" id="capa">
-  <h1>Apagón</h1>
-  <p>Se fue la luz en el sótano. Encuentra los 3 fusibles de cada zona para prenderla. Las sombras te persiguen en lo oscuro, pero no entran donde hay luz.</p>
-  <button class="btn" id="jugar" type="button">Entrar</button>
-  <small>Flechas o WASD · en el celular, desliza el dedo</small>
-</div>
-<script type="module">
-import * as THREE from 'three';
-import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
-
-const N=14,Z=7,S=3,AL=2.2; // celdas, tamaño de zona, metros por celda, alto de pared
-const DIR=[[0,-1,1],[1,0,2],[0,1,4],[-1,0,8]],OPU=[2,3,0,1];
-const $=id=>document.getElementById(id);
-let walls,lit,fus,player,sombras,nivel,vidas,pts,pila,estado='menu',mapa=null,cuentaMapa=0;
+<main>
+  <div class="hud"><div><span>Nivel</span><b id="nivel">1</b></div><div><span>Vidas</span><b id="vidas">3</b></div><div><span>Puntos</span><b id="pts">0</b></div><div class="pila" id="pila" title="Linterna"><i></i></div></div>
+  <div class="marco" id="marco">
+    <canvas id="cv"></canvas>
+    <div class="capa" id="capa">
+      <h1>Apagón</h1>
+      <p>Se fue la luz. Busca los 3 fusibles de cada zona para prenderla. Las sombras te persiguen en lo oscuro, pero no pueden entrar donde hay luz.</p>
+      <button class="btn" id="jugar" type="button">Jugar</button>
+    </div>
+  </div>
+  <p class="ayuda">Flechas o WASD en compu. Desliza el dedo en el celular. Tu linterna se gasta: cada fusible la recarga.</p>
+</main>
+<script>
+const cv=document.getElementById('cv'),g=cv.getContext('2d'),capa=document.getElementById('capa');
+const N=14,Z=7; // laberinto de 14x14, 4 zonas de 7x7
+const DIR=[[0,-1,1],[1,0,2],[0,1,4],[-1,0,8]]; // dx,dy,bit de pared (N,E,S,O)
+const OPU=[2,3,0,1];
+let walls,lit,fus,player,sombras,nivel,vidas,pts,pila,estado='menu',t0=0,tocado=0,mensaje=null;
 let record=0;try{record=+localStorage.getItem('gamehubApagon')||0}catch(e){}
-const rnd=n=>Math.floor(Math.random()*n);
 
-/* ---------- motor 3D ---------- */
-const cv=$('cv');
-const ren=new THREE.WebGLRenderer({canvas:cv,antialias:true,powerPreference:'high-performance'});
-ren.setPixelRatio(Math.min(devicePixelRatio,1.75));ren.outputColorSpace=THREE.SRGBColorSpace;
-ren.toneMapping=THREE.ACESFilmicToneMapping;ren.toneMappingExposure=1.05;ren.shadowMap.enabled=true;ren.shadowMap.type=THREE.PCFSoftShadowMap;
-const escena=new THREE.Scene();escena.background=new THREE.Color(0x020203);escena.fog=new THREE.FogExp2(0x020203,0.035);
-const pm=new THREE.PMREMGenerator(ren);escena.environment=pm.fromScene(new RoomEnvironment(),0.04).texture;escena.environmentIntensity=0.015;
-const cam=new THREE.PerspectiveCamera(55,1,0.1,120);
-function tamano(){const w=innerWidth,h=innerHeight;ren.setSize(w,h,false);cam.aspect=w/h;cam.fov=w<h?68:55;cam.updateProjectionMatrix()}
-addEventListener('resize',tamano);tamano();
-
-const tl=new THREE.TextureLoader();
-function tex(n,rep,srgb){const t=tl.load('/lib/tex/'+n);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rep[0],rep[1]);t.anisotropy=8;if(srgb)t.colorSpace=THREE.SRGBColorSpace;return t}
-const matPared=new THREE.MeshStandardMaterial({map:tex('concrete.jpg',[1.5,1.4],1),normalMap:tex('concrete_n.jpg',[1.5,1.4]),roughness:.95,metalness:0,color:0x8f8a82});
-const matPiso=new THREE.MeshStandardMaterial({map:tex('asphalt.jpg',[N*1.2,N*1.2],1),normalMap:tex('asphalt_n.jpg',[N*1.2,N*1.2]),roughness:.85,color:0x8a8780});
-matPiso.normalScale.set(.8,.8);
-
-const piso=new THREE.Mesh(new THREE.PlaneGeometry(N*S+6,N*S+6),matPiso);piso.rotation.x=-Math.PI/2;piso.position.set(N*S/2,0,N*S/2);piso.receiveShadow=true;escena.add(piso);
-const techoLuz=new THREE.HemisphereLight(0x8090a0,0x101010,0.006);escena.add(techoLuz);
-
-// jugador: persona con linterna (cuerpo de tela, casco)
-const jug=new THREE.Group();
-const ropa=new THREE.MeshStandardMaterial({color:0x2a3a52,roughness:.85});
-const piel=new THREE.MeshStandardMaterial({color:0xc69c7a,roughness:.7});
-const casco=new THREE.MeshStandardMaterial({color:0xd9a400,roughness:.35,metalness:.1});
-const cuerpo=new THREE.Mesh(new THREE.CapsuleGeometry(.32,.75,6,14),ropa);cuerpo.position.y=.95;cuerpo.castShadow=true;jug.add(cuerpo);
-const cabeza=new THREE.Mesh(new THREE.SphereGeometry(.22,20,16),piel);cabeza.position.y=1.68;cabeza.castShadow=true;jug.add(cabeza);
-const casq=new THREE.Mesh(new THREE.SphereGeometry(.245,20,12,0,Math.PI*2,0,Math.PI/2),casco);casq.position.y=1.7;jug.add(casq);
-const linternaCuerpo=new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,.3,12),new THREE.MeshStandardMaterial({color:0x222222,metalness:.8,roughness:.3}));
-linternaCuerpo.rotation.x=Math.PI/2;linternaCuerpo.position.set(.28,1.15,.3);jug.add(linternaCuerpo);
-const vidrio=new THREE.Mesh(new THREE.CircleGeometry(.05,12),new THREE.MeshBasicMaterial({color:0xfff6d8}));vidrio.position.set(.28,1.15,.46);jug.add(vidrio);
-const foco=new THREE.SpotLight(0xfff1d0,60,22,Math.PI/5.2,.45,1.6);foco.position.set(.28,1.2,.4);foco.castShadow=true;foco.shadow.mapSize.set(1024,1024);foco.shadow.bias=-0.0008;foco.shadow.camera.near=.2;
-const blanco=new THREE.Object3D();blanco.position.set(.28,.2,6);jug.add(foco,blanco);foco.target=blanco;
-const aura=new THREE.PointLight(0xffe2b0,2.2,5,2);aura.position.set(0,1.6,.4);jug.add(aura);
-escena.add(jug);
-
-// materiales de las sombras y de los fusibles
-const matSombra=new THREE.MeshStandardMaterial({color:0x050507,roughness:1,transparent:true,opacity:.92});
-const matOjo=new THREE.MeshBasicMaterial({color:0xffffff});
-const matFus=new THREE.MeshStandardMaterial({color:0x553300,emissive:0xffaa22,emissiveIntensity:2.4,roughness:.4});
-const matFusCaja=new THREE.MeshStandardMaterial({color:0x6b6f75,metalness:.85,roughness:.35});
-
-let nivelObj=null,zonaLuces=[],fusMesh=[],sombraMesh=[];
-function construir(){
-  if(nivelObj){escena.remove(nivelObj);nivelObj.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
-  nivelObj=new THREE.Group();escena.add(nivelObj);
-  // paredes (una sola malla instanciada)
-  const seg=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++){const w=walls[y*N+x];
-    if(w&1)seg.push([x*S+S/2,y*S,0]);if(w&8)seg.push([x*S,y*S+S/2,1]);if(x===N-1&&w&2)seg.push([(x+1)*S,y*S+S/2,1]);if(y===N-1&&w&4)seg.push([x*S+S/2,(y+1)*S,0])}
-  const geo=new THREE.BoxGeometry(S+.3,AL,.3);const im=new THREE.InstancedMesh(geo,matPared,seg.length);const m=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler();
-  seg.forEach((s,i)=>{e.set(0,s[2]?Math.PI/2:0,0);q.setFromEuler(e);m.compose(new THREE.Vector3(s[0],AL/2,s[1]),q,new THREE.Vector3(1,1,1));im.setMatrixAt(i,m)});
-  im.castShadow=im.receiveShadow=true;nivelObj.add(im);
-  // luces de cada zona (apagadas al principio): lámparas de techo
-  zonaLuces=[];for(let z=0;z<4;z++){const g=new THREE.Group();const cx=((z%2)*Z+Z/2)*S,cz=((z>>1)*Z+Z/2)*S;
-    for(const [dx,dz] of [[-1,-1],[1,-1],[-1,1],[1,1]]){const l=new THREE.PointLight(0xffd9a0,0,S*6,1.6);l.position.set(cx+dx*S*1.7,AL+1.2,cz+dz*S*1.7);g.add(l)}
-    nivelObj.add(g);zonaLuces.push({g,v:0})}
-  // fusibles: caja metálica con un fusible que brilla
-  fusMesh=fus.map(f=>{const g=new THREE.Group();const caja=new THREE.Mesh(new THREE.BoxGeometry(.5,.32,.32),matFusCaja);caja.castShadow=true;g.add(caja);
-    const v=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.36,10),matFus);v.rotation.z=Math.PI/2;v.position.y=.2;g.add(v);
-    const l=new THREE.PointLight(0xffaa33,1.6,3.2,2);l.position.y=.5;g.add(l);
-    g.position.set(f.x*S+S/2,.6,f.y*S+S/2);nivelObj.add(g);return g});
-  hacerSombras();
-}
-function hacerSombras(){sombraMesh.forEach(m=>m&&m.parent&&m.parent.remove(m));
-  sombraMesh=sombras.map(s=>{if(!s)return null;const g=new THREE.Group();
-    const c=new THREE.Mesh(new THREE.CapsuleGeometry(.36,1.0,6,14),matSombra);c.position.y=1.05;g.add(c);
-    const h=new THREE.Mesh(new THREE.SphereGeometry(.26,16,12),matSombra);h.position.y=1.85;g.add(h);
-    for(const dx of [-.09,.09]){const o=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),matOjo);o.position.set(dx,1.88,.22);g.add(o)}
-    nivelObj.add(g);return g})}
-
-/* ---------- laberinto y reglas ---------- */
+/* ---------- laberinto ---------- */
+function rnd(n){return Math.floor(Math.random()*n)}
 function laberinto(){
-  const w=new Array(N*N).fill(15),vis=new Array(N*N).fill(false),st=[[0,0]];vis[0]=true;
-  while(st.length){const [x,y]=st[st.length-1];const op=[];
+  const w=new Array(N*N).fill(15),vis=new Array(N*N).fill(false),pila=[[0,0]];vis[0]=true;
+  while(pila.length){const [x,y]=pila[pila.length-1];const op=[];
     DIR.forEach((d,i)=>{const nx=x+d[0],ny=y+d[1];if(nx>=0&&ny>=0&&nx<N&&ny<N&&!vis[ny*N+nx])op.push(i)});
-    if(!op.length){st.pop();continue}const i=op[rnd(op.length)],d=DIR[i],nx=x+d[0],ny=y+d[1];
-    w[y*N+x]&=~d[2];w[ny*N+nx]&=~DIR[OPU[i]][2];vis[ny*N+nx]=true;st.push([nx,ny])}
-  for(let k=0;k<N*N*0.18;k++){const x=rnd(N),y=rnd(N),i=rnd(4),d=DIR[i],nx=x+d[0],ny=y+d[1];
+    if(!op.length){pila.pop();continue}const i=op[rnd(op.length)],d=DIR[i],nx=x+d[0],ny=y+d[1];
+    w[y*N+x]&=~d[2];w[ny*N+nx]&=~DIR[OPU[i]][2];vis[ny*N+nx]=true;pila.push([nx,ny])}
+  // abrir paredes extra para que haya vueltas y se pueda escapar
+  for(let k=0;k<N*N*0.16;k++){const x=rnd(N),y=rnd(N),i=rnd(4),d=DIR[i],nx=x+d[0],ny=y+d[1];
     if(nx<0||ny<0||nx>=N||ny>=N)continue;w[y*N+x]&=~d[2];w[ny*N+nx]&=~DIR[OPU[i]][2]}
   return w}
 const zona=(x,y)=>(x<Z?0:1)+(y<Z?0:2);
-const abierto=(x,y,i)=>!(walls[y*N+x]&DIR[i][2]);
+function abierto(x,y,i){return !(walls[y*N+x]&DIR[i][2])}
+
+/* ---------- nivel ---------- */
 function nuevoNivel(){
   walls=laberinto();lit=[false,false,false,false];fus=[];
   for(let z=0;z<4;z++){let k=0;while(k<3){const x=(z%2)*Z+rnd(Z),y=(z>>1)*Z+rnd(Z);
     if((x<2&&y<2)||fus.some(f=>f.x===x&&f.y===y))continue;fus.push({x,y,z,ok:false});k++}}
-  player={x:0,y:0,tx:0,ty:0,dir:2,quiere:-1,v:3.4,giro:0};
+  player={x:0,y:0,tx:0,ty:0,dir:-1,quiere:-1,v:5};
   sombras=[];const n=Math.min(5,1+nivel);for(let i=0;i<n;i++)sombras.push(nuevaSombra(i));
-  pila=1;construir();aviso('Nivel '+nivel);hud()}
-function nuevaSombra(i){const lejos=[[N-1,N-1],[N-1,0],[0,N-1],[N-1,7],[7,N-1]];
+  pila=1;mensaje={t:'Nivel '+nivel,h:performance.now()};
+}
+function nuevaSombra(i){const lejos=[[N-1,N-1],[N-1,0],[0,N-1],[N-1,Math.floor(N/2)],[Math.floor(N/2),N-1]];
   let [x,y]=lejos[i%lejos.length];if(lit[zona(x,y)]){const c=celdaOscura();if(!c)return null;[x,y]=c}
-  return {x,y,tx:x,ty:y,dir:-1,v:1.9+nivel*.25,espera:0}}
+  return {x,y,tx:x,ty:y,dir:-1,v:2.6+nivel*0.35,espera:0}}
 function celdaOscura(){const l=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(!lit[zona(x,y)]&&Math.hypot(x-player.x,y-player.y)>5)l.push([x,y]);return l.length?l[rnd(l.length)]:null}
-function puede(x,y,i,esSombra){if(!abierto(x,y,i))return false;return !(esSombra&&lit[zona(x+DIR[i][0],y+DIR[i][1])])}
-function mover(e,dt,elegir,esSombra){let paso=e.v*dt;
-  while(paso>0){const dx=e.tx-e.x,dy=e.ty-e.y,d=Math.abs(dx)+Math.abs(dy);
+
+/* ---------- movimiento por la cuadrícula ---------- */
+function puede(e,x,y,i,esSombra){if(!abierto(x,y,i))return false;const nx=x+DIR[i][0],ny=y+DIR[i][1];return !(esSombra&&lit[zona(nx,ny)])}
+function mover(e,dt,elegir,esSombra){
+  let paso=e.v*dt;
+  while(paso>0){
+    const dx=e.tx-e.x,dy=e.ty-e.y,d=Math.abs(dx)+Math.abs(dy);
     if(d>1e-6){const m=Math.min(paso,d);e.x+=Math.sign(dx)*m;e.y+=Math.sign(dy)*m;paso-=m;continue}
-    e.x=e.tx;e.y=e.ty;const i=elegir(e);if(i<0||!puede(e.x,e.y,i,esSombra)){e.parado=true;break}
-    e.parado=false;e.dir=i;e.tx=e.x+DIR[i][0];e.ty=e.y+DIR[i][1]}}
-function elegirJugador(e){if(e.quiere>=0&&puede(e.x,e.y,e.quiere))return e.quiere;if(e.dir>=0&&puede(e.x,e.y,e.dir)&&!e.parado)return e.dir;return -1}
+    e.x=e.tx;e.y=e.ty;const i=elegir(e);if(i<0||!puede(e,e.x,e.y,i,esSombra)){e.dir=-1;break}
+    e.dir=i;e.tx=e.x+DIR[i][0];e.ty=e.y+DIR[i][1]}
+}
+function elegirJugador(e){if(e.quiere>=0&&puede(e,e.x,e.y,e.quiere))return e.quiere;if(e.dir>=0&&puede(e,e.x,e.y,e.dir))return e.dir;return -1}
 function bfs(sx,sy){const dist=new Array(N*N).fill(-1),q=[sy*N+sx];dist[q[0]]=0;
-  for(let h=0;h<q.length;h++){const c=q[h],x=c%N,y=(c/N)|0;for(let i=0;i<4;i++){if(!abierto(x,y,i))continue;const nx=x+DIR[i][0],ny=y+DIR[i][1],n=ny*N+nx;
-    if(dist[n]<0&&!lit[zona(nx,ny)]){dist[n]=dist[c]+1;q.push(n)}}}return dist}
-function elegirSombra(e){const op=[];for(let i=0;i<4;i++)if(puede(e.x,e.y,i,true))op.push(i);if(!op.length)return -1;
+  for(let h=0;h<q.length;h++){const c=q[h],x=c%N,y=(c/N)|0;for(let i=0;i<4;i++){if(!abierto(x,y,i))continue;const n=(y+DIR[i][1])*N+x+DIR[i][0];
+    if(dist[n]<0&&!lit[zona(x+DIR[i][0],y+DIR[i][1])]){dist[n]=dist[c]+1;q.push(n)}}}return dist}
+let mapa=null;
+function elegirSombra(e){
+  const op=[];for(let i=0;i<4;i++)if(puede(e,e.x,e.y,i,true))op.push(i);if(!op.length)return -1;
   const enLuz=lit[zona(Math.round(player.x),Math.round(player.y))];
-  if(mapa&&!enLuz){const aqui=mapa[e.y*N+e.x];if(aqui>=0&&aqui<=7+nivel&&Math.random()<.72+nivel*.05){let mejor=-1,md=1e9;
-    for(const i of op){const v=mapa[(e.y+DIR[i][1])*N+e.x+DIR[i][0]];if(v>=0&&v<md){md=v;mejor=i}}if(mejor>=0)return mejor}}
+  if(mapa&&!enLuz){const aqui=mapa[e.y*N+e.x];
+    if(aqui>=0&&aqui<=7+nivel&&Math.random()<0.7+nivel*0.05){let mejor=-1,md=1e9;for(const i of op){const v=mapa[(e.y+DIR[i][1])*N+e.x+DIR[i][0]];if(v>=0&&v<md){md=v;mejor=i}}if(mejor>=0)return mejor}}
   const sin=op.filter(i=>i!==OPU[e.dir]);const l=sin.length?sin:op;return l[rnd(l.length)]}
 
-/* ---------- partida ---------- */
-let msgT=0;function aviso(t){$('msg').textContent=t;$('msg').classList.add('on');clearTimeout(msgT);msgT=setTimeout(()=>$('msg').classList.remove('on'),1100)}
-function hud(){$('nivel').textContent=nivel;$('vidas').textContent=vidas;$('pts').textContent=pts;$('pila').firstElementChild.style.width=(pila*100)+'%';$('pila').classList.toggle('baja',pila<.25);
-  [...$('zonas').children].forEach((z,i)=>z.classList.toggle('on',!!(lit&&lit[i])))}
-function empezar(){nivel=1;vidas=3;pts=0;nuevoNivel();estado='juego';$('capa').hidden=true;sonido.iniciar()}
-function prender(z){lit[z]=true;pts+=100;pila=1;aviso('Zona con luz');sonido.prender();
-  sombras=sombras.map((s,i)=>{if(s&&lit[zona(Math.round(s.x),Math.round(s.y))]){const n=nuevaSombra(i);if(n)n.espera=1.5;return n}return s});hacerSombras();
-  if(lit.every(Boolean)){pts+=250*nivel;nivel++;estado='pausa';setTimeout(()=>{nuevoNivel();estado='juego'},1600)}}
-function atrapado(){vidas--;sonido.golpe();$('rojo').classList.add('on');setTimeout(()=>$('rojo').classList.remove('on'),450);hud();if(vidas<=0){fin();return}
-  estado='pausa';aviso('Te agarró');
-  setTimeout(()=>{player={x:0,y:0,tx:0,ty:0,dir:2,quiere:-1,v:3.4,giro:player.giro};sombras=sombras.map((s,i)=>{const n=nuevaSombra(i);if(n)n.espera=1;return n});hacerSombras();pila=Math.max(pila,.5);estado='juego'},1100)}
+/* ---------- juego ---------- */
+function empezar(){nivel=1;vidas=3;pts=0;nuevoNivel();estado='juego';capa.hidden=true;hud()}
+function hud(){document.getElementById('nivel').textContent=nivel;document.getElementById('vidas').textContent=vidas;document.getElementById('pts').textContent=pts;
+  document.getElementById('pila').firstElementChild.style.width=(pila*100)+'%';document.getElementById('pila').classList.toggle('baja',pila<.25)}
+function prender(z){lit[z]=true;pts+=100;pila=1;mensaje={t:'¡Luz!',h:performance.now()};
+  sombras=sombras.map((s,i)=>s&&lit[zona(Math.round(s.x),Math.round(s.y))]?(()=>{const n=nuevaSombra(i);if(n)n.espera=1.5;return n})():s);
+  if(lit.every(Boolean)){pts+=250*nivel;nivel++;estado='pausa';setTimeout(()=>{nuevoNivel();estado='juego'},1100)}}
+function atrapado(){vidas--;hud();if(vidas<=0){fin();return}
+  estado='pausa';mensaje={t:'¡Te agarró!',h:performance.now()};
+  setTimeout(()=>{player={x:0,y:0,tx:0,ty:0,dir:-1,quiere:-1,v:5};
+    sombras=sombras.map((s,i)=>{const n=nuevaSombra(i);if(n)n.espera=1;return n});pila=Math.max(pila,.5);estado='juego'},900)}
 function fin(){estado='fin';const nuevo=pts>record;if(nuevo){record=pts;try{localStorage.setItem('gamehubApagon',pts)}catch(e){}}
-  $('capa').innerHTML='<h1>Apagón</h1><b class="n">'+pts+'</b><p>'+(nuevo?'¡Récord nuevo!':'Tu récord: '+record)+' · llegaste al nivel '+nivel+'</p><button class="btn" id="jugar" type="button">Otra vez</button>';
-  $('capa').hidden=false;$('jugar').onclick=empezar}
+  capa.innerHTML='<h1>Apagón</h1><b class="n">'+pts+'</b><p>'+(nuevo?'¡Récord nuevo!':'Tu récord: '+record)+' · llegaste al nivel '+nivel+'</p><button class="btn" id="jugar" type="button">Otra vez</button>';
+  capa.hidden=false;document.getElementById('jugar').onclick=empezar}
 
-/* ---------- sonido (zumbido, pasos, golpe) ---------- */
-const sonido={ctx:null,
-  iniciar(){if(this.ctx)return;try{const c=this.ctx=new (window.AudioContext||window.webkitAudioContext)();const o=c.createOscillator(),g=c.createGain(),f=c.createBiquadFilter();
-    o.type='sawtooth';o.frequency.value=55;f.type='lowpass';f.frequency.value=140;g.gain.value=.025;o.connect(f).connect(g).connect(c.destination);o.start();this.hum=g}catch(e){}},
-  tono(fr,d,tipo='sine',v=.2){const c=this.ctx;if(!c)return;const o=c.createOscillator(),g=c.createGain();o.type=tipo;o.frequency.value=fr;g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+d)},
-  fusible(){this.tono(880,.12,'square',.06);setTimeout(()=>this.tono(1320,.18,'square',.05),70)},
-  prender(){const c=this.ctx;if(!c)return;const b=c.createBuffer(1,c.sampleRate*.3,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3);const s=c.createBufferSource(),g=c.createGain();g.gain.value=.35;s.buffer=b;s.connect(g).connect(c.destination);s.start();this.tono(110,.8,'sawtooth',.08)},
-  golpe(){this.tono(70,.5,'sawtooth',.25)},
-  paso(){const c=this.ctx;if(!c)return;const b=c.createBuffer(1,c.sampleRate*.05,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,4);const s=c.createBufferSource(),g=c.createGain(),f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=600;g.gain.value=.12;s.buffer=b;s.connect(f).connect(g).connect(c.destination);s.start()}};
-
-/* ---------- bucle ---------- */
-const ANG=[Math.PI,Math.PI/2,0,-Math.PI/2]; // hacia dónde mira según la dirección
-let ultimo=performance.now(),pasoT=0,camPos=new THREE.Vector3(S/2,10,S/2+7);
-function bucle(t){const dt=Math.min(.05,(t-ultimo)/1000);ultimo=t;
+let ultimo=performance.now(),cuentaMapa=0;
+function loop(t){const dt=Math.min(.05,(t-ultimo)/1000);ultimo=t;
   if(estado==='juego'){
     mover(player,dt,elegirJugador,false);
     const px=Math.round(player.x),py=Math.round(player.y);
-    for(const f of fus)if(!f.ok&&f.x===px&&f.y===py&&Math.abs(player.x-px)+Math.abs(player.y-py)<.35){f.ok=true;pts+=10;pila=Math.min(1,pila+.35);sonido.fusible();
-      const m=fusMesh[fus.indexOf(f)];m.visible=false;if(fus.filter(o=>o.z===f.z).every(o=>o.ok))prender(f.z);else aviso(fus.filter(o=>o.z===f.z&&o.ok).length+' de 3')}
-    if(estado==='juego'){pila=Math.max(0,pila-dt*(.03+nivel*.004));
+    for(const f of fus)if(!f.ok&&f.x===px&&f.y===py&&Math.abs(player.x-px)+Math.abs(player.y-py)<.35){f.ok=true;pts+=10;pila=Math.min(1,pila+.35);
+      if(fus.filter(o=>o.z===f.z).every(o=>o.ok))prender(f.z)}
+    if(estado==='juego'){
+      pila=Math.max(0,pila-dt*(0.035+nivel*0.004));
       if((cuentaMapa-=dt)<=0){mapa=bfs(px,py);cuentaMapa=.15}
       for(const s of sombras){if(!s)continue;if(s.espera>0){s.espera-=dt;continue}mover(s,dt,elegirSombra,true);
-        if(Math.hypot(s.x-player.x,s.y-player.y)<.55&&!lit[zona(px,py)]){atrapado();break}}}
-    if(!player.parado&&(pasoT-=dt)<=0){sonido.paso();pasoT=.32}
+        if(Math.hypot(s.x-player.x,s.y-player.y)<.6&&!lit[zona(px,py)]){atrapado();break}}
+    }
     hud();
   }
-  // posiciones 3D
-  if(player){const X=player.x*S+S/2,Zp=player.y*S+S/2;jug.position.set(X,0,Zp);
-    const objetivo=ANG[player.dir>=0?player.dir:2];let d=objetivo-player.giro;d=Math.atan2(Math.sin(d),Math.cos(d));player.giro+=d*Math.min(1,dt*12);jug.rotation.y=player.giro;
-    const anda=!player.parado&&estado==='juego';cuerpo.position.y=.95+(anda?Math.abs(Math.sin(t/120))*.05:0);
-    foco.intensity=(18+60*pila)*(1+Math.sin(t/70)*.02*(pila<.2?4:1));foco.angle=Math.PI/(7.5-2.3*pila);foco.distance=8+16*pila;aura.intensity=.8+1.6*pila;
-    // cámara: arriba y atrás, siempre con el norte hacia arriba
-    camPos.lerp(new THREE.Vector3(X,13,Zp+5.5),Math.min(1,dt*4));cam.position.copy(camPos);cam.lookAt(X,0,Zp-1);
-    sombras&&sombras.forEach((s,i)=>{const m=sombraMesh[i];if(!s||!m)return;m.position.set(s.x*S+S/2,Math.sin(t/300+i)*.08,s.y*S+S/2);m.lookAt(X,m.position.y,Zp);
-      m.visible=!(s.espera>0&&Math.sin(t/60)>0)});
-    fusMesh.forEach((m,i)=>{if(m.visible)m.children[1].material.emissiveIntensity=2+Math.sin(t/200+i)*.6});
-    zonaLuces.forEach((zl,z)=>{const meta=lit&&lit[z]?1:0;zl.v+=(meta-zl.v)*Math.min(1,dt*3);const parpadeo=zl.v<.98&&meta?(Math.random()<.3?.2:1):1;
-      zl.g.children.forEach(l=>l.intensity=zl.v*45*parpadeo)});
-  }
-  ren.render(escena,cam);requestAnimationFrame(bucle)}
+  dibujar(t);requestAnimationFrame(loop)}
+
+/* ---------- dibujo ---------- */
+let C=30,dpr=1,niebla=document.createElement('canvas'),ng=niebla.getContext('2d');
+function medir(){const w=document.querySelector('main').clientWidth-28,h=Math.max(260,innerHeight-190);const s=Math.min(w,h);
+  C=s/N;dpr=Math.min(2,devicePixelRatio||1);cv.style.height=s+'px';cv.style.width=s+'px';cv.width=niebla.width=s*dpr;cv.height=niebla.height=s*dpr;
+  document.getElementById('marco').style.width=s+4+'px'}
+addEventListener('resize',medir);
+function dibujar(t){
+  const s=N*C;g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle='#1B1F2B';g.fillRect(0,0,s,s);
+  if(!walls){g.fillStyle='#0E1016';g.fillRect(0,0,s,s);return}
+  // zonas con luz
+  for(let z=0;z<4;z++)if(lit[z]){g.fillStyle='#2A3042';g.fillRect((z%2)*Z*C,(z>>1)*Z*C,Z*C,Z*C)}
+  // fusibles
+  for(const f of fus){if(f.ok)continue;const cx=(f.x+.5)*C,cy=(f.y+.5)*C,p=1+Math.sin(t/220+f.x)*.12;
+    g.fillStyle='#F5B700';g.beginPath();const r=C*.2*p;g.moveTo(cx+r*.2,cy-r*1.3);g.lineTo(cx-r*.7,cy+r*.15);g.lineTo(cx,cy+r*.15);g.lineTo(cx-r*.2,cy+r*1.3);g.lineTo(cx+r*.7,cy-r*.15);g.lineTo(cx,cy-r*.15);g.closePath();g.fill()}
+  // paredes
+  g.strokeStyle='#8D95A8';g.lineWidth=Math.max(2,C*.1);g.lineCap='round';g.beginPath();
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const w=walls[y*N+x],X=x*C,Y=y*C;
+    if(w&1){g.moveTo(X,Y);g.lineTo(X+C,Y)}if(w&8){g.moveTo(X,Y);g.lineTo(X,Y+C)}
+    if(x===N-1&&w&2){g.moveTo(X+C,Y);g.lineTo(X+C,Y+C)}if(y===N-1&&w&4){g.moveTo(X,Y+C);g.lineTo(X+C,Y+C)}}
+  g.stroke();
+  // sombras (cuerpo)
+  for(const s2 of sombras){if(!s2)continue;const cx=(s2.x+.5)*C,cy=(s2.y+.5)*C,r=C*.36;g.globalAlpha=s2.espera>0?.35:1;
+    g.fillStyle='#4B2A6B';g.beginPath();g.arc(cx,cy,r,Math.PI,0);g.lineTo(cx+r,cy+r);
+    for(let k=0;k<3;k++){const a=cx+r-(k+.5)*(2*r/3),o=Math.sin(t/120+k)*r*.15;g.quadraticCurveTo(a+r/3*.5,cy+r*.6+o,a-r/3*.5+0,cy+r)}
+    g.lineTo(cx-r,cy+r);g.closePath();g.fill();g.globalAlpha=1}
+  // jugador
+  const px=(player.x+.5)*C,py=(player.y+.5)*C;g.fillStyle='#fff';g.beginPath();g.arc(px,py,C*.3,0,7);g.fill();
+  g.fillStyle='#F5B700';g.beginPath();g.arc(px,py,C*.13,0,7);g.fill();
+  // oscuridad
+  ng.setTransform(dpr,0,0,dpr,0,0);ng.globalCompositeOperation='source-over';ng.clearRect(0,0,s,s);ng.fillStyle='rgba(6,7,11,.965)';ng.fillRect(0,0,s,s);
+  ng.globalCompositeOperation='destination-out';
+  for(let z=0;z<4;z++)if(lit[z])ng.fillRect((z%2)*Z*C,(z>>1)*Z*C,Z*C,Z*C);
+  const R=C*(1.3+2.4*pila)*(1+Math.sin(t/90)*.015);const gr=ng.createRadialGradient(px,py,R*.35,px,py,R);gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(1,'rgba(0,0,0,0)');
+  ng.fillStyle=gr;ng.beginPath();ng.arc(px,py,R,0,7);ng.fill();
+  g.setTransform(1,0,0,1,0,0);g.drawImage(niebla,0,0);g.setTransform(dpr,0,0,dpr,0,0);
+  // ojos de las sombras: se ven un poco en lo oscuro
+  for(const s2 of sombras){if(!s2||s2.espera>0)continue;const cx=(s2.x+.5)*C,cy=(s2.y+.5)*C;g.fillStyle='rgba(255,255,255,.75)';
+    g.beginPath();g.arc(cx-C*.12,cy-C*.04,C*.06,0,7);g.arc(cx+C*.12,cy-C*.04,C*.06,0,7);g.fill()}
+  // fusibles: un brillito en lo oscuro para saber dónde buscar
+  for(const f of fus){if(f.ok||lit[f.z])continue;g.fillStyle='rgba(245,183,0,'+(.18+.12*Math.sin(t/300+f.y))+')';g.beginPath();g.arc((f.x+.5)*C,(f.y+.5)*C,C*.07,0,7);g.fill()}
+  if(mensaje&&t-mensaje.h<1000){const a=1-(t-mensaje.h)/1000;g.globalAlpha=a;g.fillStyle='#fff';g.font='900 '+Math.round(C*1.3)+'px "Schibsted Grotesk",sans-serif';g.textAlign='center';g.fillText(mensaje.t,s/2,s/2);g.globalAlpha=1}
+}
 
 /* ---------- controles ---------- */
 const TECLAS={ArrowUp:0,KeyW:0,ArrowRight:1,KeyD:1,ArrowDown:2,KeyS:2,ArrowLeft:3,KeyA:3};
-addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;
-  if(e.code in TECLAS){e.preventDefault();if(player)player.quiere=TECLAS[e.code]}
-  else if((e.code==='Space'||e.code==='Enter')&&!$('capa').hidden){e.preventDefault();empezar()}});
+addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(e.code in TECLAS){e.preventDefault();if(player)player.quiere=TECLAS[e.code]}
+  else if((e.code==='Space'||e.code==='Enter')&&estado!=='juego'&&estado!=='pausa'&&!capa.hidden){e.preventDefault();empezar()}});
 let ini=null;
 cv.addEventListener('pointerdown',e=>{ini={x:e.clientX,y:e.clientY}});
 cv.addEventListener('pointermove',e=>{if(!ini||!player)return;const dx=e.clientX-ini.x,dy=e.clientY-ini.y;if(Math.hypot(dx,dy)<18)return;
   player.quiere=Math.abs(dx)>Math.abs(dy)?(dx>0?1:3):(dy>0?2:0);ini={x:e.clientX,y:e.clientY}});
 addEventListener('pointerup',()=>ini=null);
-$('jugar').onclick=empezar;
-// escena de fondo en el menú
-nivel=1;vidas=3;pts=0;walls=laberinto();lit=[false,false,false,false];fus=[];player={x:3,y:3,tx:3,ty:3,dir:2,quiere:-1,v:0,giro:0,parado:true};sombras=[];construir();
-window.__apagon={get estado(){return estado},empezar,prender:z=>{fus.filter(f=>f.z===z).forEach(f=>f.ok=true);fusMesh.forEach((m,i)=>{if(fus[i].z===z)m.visible=false});prender(z)},get player(){return player},atrapar:()=>{vidas=1;atrapado()}};
-requestAnimationFrame(bucle);
+document.getElementById('jugar').onclick=empezar;
+medir();requestAnimationFrame(loop);
 </script>
 <script src="/lib/peerjs.min.js" defer></script>
 <script src="/amigos.js" defer></script>
