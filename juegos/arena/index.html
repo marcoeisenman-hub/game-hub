@@ -38,8 +38,8 @@ html,body{height:100%;overflow:hidden;background:#121315}
 <script>
 'use strict';
 /* tipos */
-const E=0,SAND=1,WATER=2,STONE=3,WOOD=4,FIRE=5,SMOKE=6,STEAM=7,OIL=8,LAVA=9,ASH=10,EMBER=11;
-const MENU=[[SAND,'Arena','#D2B98A'],[WATER,'Agua','#2F6F98'],[STONE,'Piedra','#7D7F80'],[WOOD,'Madera','#7A5634'],[OIL,'Aceite','#4A3816'],[FIRE,'Fuego','#F08A24'],[LAVA,'Lava','#E8501C'],[E,'Borrador','#3A3C40']];
+const E=0,SAND=1,WATER=2,STONE=3,WOOD=4,FIRE=5,SMOKE=6,STEAM=7,OIL=8,LAVA=9,ASH=10,EMBER=11,SPONGE=12,SPMAX=5;
+const MENU=[[SAND,'Arena','#D2B98A'],[WATER,'Agua','#2F6F98'],[STONE,'Piedra','#7D7F80'],[WOOD,'Madera','#7A5634'],[SPONGE,'Esponja','#E3C54F'],[OIL,'Aceite','#4A3816'],[FIRE,'Fuego','#F08A24'],[LAVA,'Lava','#E8501C'],[E,'Borrador','#3A3C40']];
 const view=document.getElementById('view'),vctx=view.getContext('2d'),tools=document.querySelector('.tools');
 const sim=document.createElement('canvas'),sctx=sim.getContext('2d');
 const glow=document.createElement('canvas'),gctx=glow.getContext('2d');
@@ -97,6 +97,16 @@ function near(i,x,y,t){ // ¿hay t alrededor?
   if(x>0&&type[i-1]===t)return i-1;if(x<W-1&&type[i+1]===t)return i+1;
   if(y>0&&type[i-W]===t)return i-W;if(y<H-1&&type[i+W]===t)return i+W;return -1}
 
+/* esponja: chupa agua y aceite, la pasa a la esponja de al lado y gotea cuando está llena */
+function esponja(i,x,y){
+  const vec=[];if(x>0)vec.push(i-1);if(x<W-1)vec.push(i+1);if(y>0)vec.push(i-W);if(y<H-1)vec.push(i+W);
+  for(const j of vec){const q=type[j];
+    if((q===WATER||q===OIL)&&life[i]<SPMAX&&R()<.6){type[j]=E;life[i]++;stamp[j]=tick}
+    else if(q===SPONGE&&life[i]>life[j]+1&&R()<.5){life[i]--;life[j]++}
+    else if((q===FIRE||q===LAVA||q===EMBER)&&life[i]>0&&R()<.2){life[i]--;if(y>0&&type[i-W]===E)set(i-W,STEAM)}}
+  // llena: gotea por debajo
+  if(life[i]>=SPMAX&&y<H-1&&type[i+W]===E&&R()<.02){set(i+W,WATER);life[i]--}
+}
 /* física */
 function fall(i,x,y,t,maxV,spread){
   // caída con aceleración
@@ -122,7 +132,7 @@ function rise(i,x,y,t,jitter){
   for(const j of opts){const xx=j%W;if(Math.abs(xx-x)>1)continue;const q=type[j];if(q===E||(liquid(q)&&t!==FIRE&&R()<.3)){if(R()<jitter){swap(i,j);return}}}
   const s=i+d;if(x+d>=0&&x+d<W&&type[s]===E&&R()<.5)swap(i,s);
 }
-function ignite(j){const q=type[j];if(q===WOOD&&R()<.035)set(j,EMBER);else if(q===OIL&&R()<.25){set(j,FIRE);life[j]=60+R()*60}}
+function ignite(j){const q=type[j];if(q===SPONGE){if(life[j]===0&&R()<.02){set(j,FIRE);life[j]=40+R()*40}return}if(q===WOOD&&R()<.035)set(j,EMBER);else if(q===OIL&&R()<.25){set(j,FIRE);life[j]=60+R()*60}}
 function igniteAround(i,x,y){if(x>0)ignite(i-1);if(x<W-1)ignite(i+1);if(y>0)ignite(i-W);if(y<H-1)ignite(i+W)}
 function step(){
   tick=(tick+1)&255;
@@ -132,6 +142,7 @@ function step(){
     for(let k=0;k<W;k++){
       const x=lr?k:W-1-k,i=y*W+x,t=type[i];
       if(t===E||t===STONE||t===WOOD||stamp[i]===tick)continue;
+      if(t===SPONGE){esponja(i,x,y);continue}
       switch(t){
         case SAND:fall(i,x,y,t,10,0);break;
         case ASH:if(R()<.6)fall(i,x,y,t,3,0);break;
@@ -166,7 +177,7 @@ function paint(cx,cy,mat=sel,br=brush,remoto=false){const r=br;if(!remoto)queueP
   for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
     if(dx*dx+dy*dy>r*r)continue;const x=cx+dx,y=cy+dy;if(x<0||x>=W||y<0||y>=H)continue;const i=y*W+x;
     if(mat===E){type[i]=E;continue}
-    if(mat===STONE||mat===WOOD){if(type[i]===E||gas(type[i]))set(i,mat);continue}
+    if(mat===STONE||mat===WOOD||mat===SPONGE){if(type[i]===E||gas(type[i]))set(i,mat);continue}
     if(type[i]===E&&R()<(mat===FIRE?.35:.5))set(i,mat)}}
 function pos(e){const r=view.getBoundingClientRect();return{x:Math.floor((e.clientX-r.left-OX)/SC),y:Math.floor((e.clientY-r.top-OY)/SC)}}
 view.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();view.setPointerCapture(e.pointerId);const p=pos(e);ptr.set(e.pointerId,p);paint(p.x,p.y)});
@@ -192,6 +203,7 @@ function render(){
           if(depth===1){r+=55;gg+=60;b+=55;al=220}else if((s+tick)%61===0){r+=18;gg+=22;b+=24}break}
         case OIL:{oilD++;r=70-oilD*.6;gg=52-oilD*.5;b=20;al=225;if(oilD===1){r+=50;gg+=42;b+=20}break}
         case STONE:{const v=(s%40)-20,sp=s>246?-35:0;r=118+v+sp+lit*.6;gg=120+v+sp+lit*.6;b=121+v+sp+lit*.6;break}
+        case SPONGE:{const w=life[i]/SPMAX,po=(s%7===0||(s+x*3+y*5)%11===0)?.72:1;r=(227-90*w)*po+lit*.5;gg=(197-85*w)*po+lit*.5;b=(79-25*w+30*w)*po;break}
         case WOOD:{const ring=Math.sin(y*.9+(s%9)*.15+x*.05)*14;r=120+ring+(s%12)-6;gg=84+ring*.7+(s%10)-5;b=52+ring*.4;break}
         case ASH:{const v=(s%30)-15;r=112+v;gg=108+v;b=103+v;break}
         case FIRE:{const k=Math.min(1,life[i]/45),f=R()*.25;r=255;gg=90+150*k*(1-f);b=20+120*Math.max(0,k-.6)*(1-f);al=210+45*k;em=220*k+60;break}
@@ -227,7 +239,7 @@ function rle(a){const out=[];let v=a[0],n=0;for(let i=0;i<a.length;i++){if(a[i]=
 function unrle(u,len){const a=new Uint8Array(len);let k=0;for(let i=0;i+1<u.length&&k<len;i+=2){a.fill(u[i],k,Math.min(len,k+u[i+1]));k+=u[i+1]}return k===len?a:null}
 setInterval(()=>{if(!enSala()||!sala.lider()||sala.jugadores().length<2)return;const u=rle(type);if(u.length<60000)tx({snap:u,w:W,h:H,pause:paused})},1500);
 function aplicarSnap(d){const u=d.snap instanceof Uint8Array?d.snap:new Uint8Array(d.snap||[]);if(d.w!==W||d.h!==H)return;const a=unrle(u,N);if(!a)return;
-  for(let i=0;i<N;i++)if(a[i]!==type[i]){if(a[i]>11)continue;if(a[i]===E)type[i]=E;else set(i,a[i])}
+  for(let i=0;i<N;i++)if(a[i]!==type[i]){if(a[i]>12)continue;if(a[i]===E)type[i]=E;else set(i,a[i])}
   if(typeof d.pause==='boolean'&&d.pause!==paused)setPause(d.pause)}
 const badge=document.createElement('div');badge.style.cssText='position:fixed;right:18px;top:64px;color:#d4d1cb;font-size:.8rem;text-shadow:0 1px 4px #000;pointer-events:none';badge.hidden=true;document.body.append(badge);
 function conSala(fn){window.RatitoSala?fn(RatitoSala):addEventListener('ratitosala',()=>fn(RatitoSala),{once:true})}
