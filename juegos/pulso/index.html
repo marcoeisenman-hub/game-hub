@@ -14,7 +14,7 @@ body{background:#0c0e10;color:#eee;--mut:#a3a5a7;--soft:#303438;--line:#555;--ac
 <a class="volver" href="/">← game.hub</a>
 <main>
 <h1>Pulso</h1><p class="sub">La línea lleva el ritmo. Tú decides cuándo despegar.</p>
-<div class="marco">
+<div class="marco"><div id="flash" aria-hidden="true" style="position:absolute;left:50%;top:22%;transform:translateX(-50%);z-index:3;color:#fff;font-weight:900;font-size:clamp(1.3rem,5vw,2.2rem);letter-spacing:-.03em;text-shadow:0 2px 12px #000;pointer-events:none;white-space:nowrap"></div><div id="bandera" aria-hidden="true" style="position:absolute;right:14px;bottom:14px;z-index:3;color:#fff;font-weight:700;font-size:.85rem;text-shadow:0 1px 6px #000;pointer-events:none"></div>
 <canvas id="juego" tabindex="0" aria-label="Pulso. Toca, haz clic o pulsa espacio para saltar al ritmo."></canvas>
 <div class="capa" id="capa"><h2 id="titulo">Encuentra el pulso</h2><p id="resumen">Salta cuando la marca blanca llegue al cuadrado. Un beat después llega el obstáculo.</p><button id="accion" type="button">Empezar</button></div>
 </div>
@@ -58,7 +58,8 @@ function update(dt){const oldBottom=y+S;vy+=G*dt;y+=vy*dt;grounded=false;let sur
 if(vy>=0&&y+S>=surface&&oldBottom<=surface+12){y=surface-S;vy=0;grounded=true;}if(y>H+40){finish();return;}if(practice){const cp=Math.floor(t/(32*BEAT))*32*BEAT;if(cp>checkpoint){checkpoint=cp;$('estado').textContent='Bandera guardada: '+Math.round(cp/TOTAL*100)+' %';}}if(t>=TOTAL){t=TOTAL;finish(true);}}
 function draw(){render3d();}
 function frame(){try{frame2()}catch(e){console.error(e)}requestAnimationFrame(frame)}
-function frame2(){if(mode==='playing'&&!paused){const target=Math.min(TOTAL,clock());if(target-t>.25){pause();}else{while(t<target&&mode==='playing'){const step=Math.min(1/240,target-t);t+=step;update(step);}schedule();hud();}}draw();void 0;}
+function frame2(){{const fl=document.getElementById('flash');const on=t<flashUntil;fl.textContent=on?flash+(flash==='Perfecto'&&combo>1?' x'+combo:''):'';fl.style.color=flash==='Perfecto'?'#F5B700':'#fff';
+ const bd=document.getElementById('bandera');bd.textContent=practice&&checkpoint?'Bandera en '+Math.round(checkpoint/TOTAL*100)+' %':'';}if(mode==='playing'&&!paused){const target=Math.min(TOTAL,clock());if(target-t>.25){pause();}else{while(t<target&&mode==='playing'){const step=Math.min(1/240,target-t);t+=step;update(step);}schedule();hud();}}draw();void 0;}
 function pause(){if(mode!=='playing'||paused)return;paused=true;offset=t;if(audio)audio.suspend().catch(()=>{});$('titulo').textContent='Pulso en pausa';$('resumen').textContent='Continúa desde el mismo instante.';$('accion').textContent='Continuar';$('capa').hidden=false;}
 async function resume(){if(starting)return;starting=true;try{if(audio)await audio.resume();const queued=nextBeat;setClock(t);nextBeat=Math.max(queued,nextBeat);paused=false;$('capa').hidden=true;}catch(_){$('estado').textContent='No se pudo reanudar el audio. Inténtalo otra vez.';}finally{starting=false;}}
 function volume(){if(audio)master.gain.setValueAtTime(muted||mode!=='playing'?0:.55,audio.currentTime);}

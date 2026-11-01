@@ -143,9 +143,10 @@ for(let m=50;m<=3000;m+=m<300?50:100)cartel(m);
 
 // pelícanos (pájaro gris con alas que aletean)
 const matPel=new THREE.MeshStandardMaterial({color:0x8a8478,roughness:.9,side:THREE.DoubleSide}),matPico=new THREE.MeshStandardMaterial({color:0xd9902f,roughness:.6});
-function pelicano(){const g=new THREE.Group();const cu=new THREE.Mesh(new THREE.SphereGeometry(.35,12,8),matPel);cu.scale.set(1.8,.8,.8);g.add(cu);
-  const ca=new THREE.Mesh(new THREE.SphereGeometry(.18,10,8),matPel);ca.position.set(.62,.18,0);g.add(ca);const pi=new THREE.Mesh(new THREE.ConeGeometry(.07,.7,6),matPico);pi.rotation.z=-Math.PI/2;pi.position.set(1.05,.12,0);g.add(pi);
-  const ala=new THREE.Shape();ala.moveTo(0,0);ala.lineTo(.5,1.8);ala.lineTo(-.4,1.9);ala.lineTo(-.5,0);const ga=new THREE.ShapeGeometry(ala);
+const gCu=new THREE.SphereGeometry(.35,12,8),gCa=new THREE.SphereGeometry(.18,10,8),gPi=new THREE.ConeGeometry(.07,.7,6);let gAla=null;
+function pelicano(){const g=new THREE.Group();const cu=new THREE.Mesh(gCu,matPel);cu.scale.set(1.8,.8,.8);g.add(cu);
+  const ca=new THREE.Mesh(gCa,matPel);ca.position.set(.62,.18,0);g.add(ca);const pi=new THREE.Mesh(gPi,matPico);pi.rotation.z=-Math.PI/2;pi.position.set(1.05,.12,0);g.add(pi);
+  if(!gAla){const ala=new THREE.Shape();ala.moveTo(0,0);ala.lineTo(.5,1.8);ala.lineTo(-.4,1.9);ala.lineTo(-.5,0);gAla=new THREE.ShapeGeometry(ala)}const ga=gAla;
   const a1=new THREE.Mesh(ga,matPel),a2=new THREE.Mesh(ga,matPel);a1.rotation.x=-Math.PI/2;a2.rotation.x=Math.PI/2;g.add(a1,a2);g.userData.alas=[a1,a2];g.traverse(o=>o.castShadow=true);esc.add(g);return g}
 
 /* ---------- partida ---------- */
