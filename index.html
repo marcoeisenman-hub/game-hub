@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Game Hub — juegos originales, solo o con amigos</title>
+<title>game.hub — juegos originales, solo o con amigos</title>
 <meta name="description" content="Juegos originales en el navegador: laberinto a oscuras, gravedad invertida, habla al revés, adivina dónde queda un lugar, calcula a ojo, rehaz un color, carrera de tecleo, reflejos, el círculo perfecto, órbitas, arena y tu vida en vivo. Solo o con amigos.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/estilo.css">
@@ -19,7 +19,7 @@ body{background:#fff}
 
 /* título: cada letra con el color de un juego */
 .cabeza{display:flex;align-items:flex-end;justify-content:space-between;gap:20px 30px;flex-wrap:wrap;margin:38px 0 30px}
-h1{margin:0;font-size:clamp(3.4rem,13vw,8.4rem);line-height:.86;font-weight:900;letter-spacing:-.055em;display:flex;flex-wrap:wrap;gap:0 .22em}
+h1{margin:0;padding-bottom:.14em;font-size:clamp(3.4rem,13vw,8.4rem);line-height:.86;font-weight:900;letter-spacing:-.055em;display:flex;flex-wrap:wrap;gap:0 .22em}
 h1 span{display:inline-flex}
 h1 i{font-style:normal;display:inline-block;color:var(--c);transition:transform .25s cubic-bezier(.3,1.8,.5,1)}
 h1 i:hover{transform:translateY(-.12em) rotate(-6deg)}
@@ -58,6 +58,7 @@ h1 i:hover{transform:translateY(-.12em) rotate(-6deg)}
 .card:active{transform:translate(0,0);box-shadow:0 0 0 var(--ink)}
 .thumb{position:relative;aspect-ratio:16/11;background:var(--c);display:grid;place-items:center;overflow:hidden;border-bottom:2px solid var(--ink)}
 .thumb svg{width:100%;height:100%}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .meta{flex:1;padding:13px 16px 16px}
 .meta h3{margin:0;font-size:1.18rem;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
 .meta p{margin:3px 0 0;color:var(--mut);font-size:.93rem}
@@ -120,14 +121,14 @@ footer{margin-top:54px;color:var(--mut);font-size:.9rem}
 <body>
 <div class="wrap" id="todo">
   <div class="top">
-    <a class="marca" href="/" aria-label="Game Hub, inicio">
+    <a class="marca" href="/" aria-label="game.hub, inicio">
       <svg viewBox="0 0 64 64" aria-hidden="true"><rect x="23" y="3" width="18" height="24" rx="6" fill="#2D6CDF"/><rect x="37" y="23" width="24" height="18" rx="6" fill="#F5B700"/><rect x="23" y="37" width="18" height="24" rx="6" fill="#E63946"/><rect x="3" y="23" width="24" height="18" rx="6" fill="#1E9E6A"/><rect x="21" y="21" width="22" height="22" rx="5" fill="#15171C"/><circle cx="32" cy="32" r="4.5" fill="#fff"/></svg>
-      <span>Game Hub</span>
+      <span>game.hub</span>
     </a>
   </div>
 
   <header class="cabeza">
-    <h1 aria-label="Game Hub"><span><i style="--c:#2D6CDF">G</i><i style="--c:#F5B700">a</i><i style="--c:#E63946">m</i><i style="--c:#1E9E6A">e</i></span><span><i style="--c:#6C4BD8">H</i><i style="--c:#F28C28">u</i><i style="--c:#0FA3B1">b</i></span></h1>
+    <h1 aria-label="game.hub"><span><i style="--c:#2D6CDF">g</i><i style="--c:#F5B700">a</i><i style="--c:#E63946">m</i><i style="--c:#1E9E6A">e</i><i style="--c:#15171C">.</i><i style="--c:#6C4BD8">h</i><i style="--c:#F28C28">u</i><i style="--c:#0FA3B1">b</i></span></h1>
     <aside>
       <p>Quince juegos hechos desde cero en Panamá. Juega solo, o crea una sala y compite con tus amigos.</p>
       <a class="btn" id="azar" href="/juegos/reves/"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1.5" width="13" height="13" rx="3"/><circle cx="5.3" cy="5.3" r=".6" fill="currentColor"/><circle cx="10.7" cy="10.7" r=".6" fill="currentColor"/><circle cx="8" cy="8" r=".6" fill="currentColor"/></svg>Juego al azar</a>
@@ -149,23 +150,23 @@ footer{margin-top:54px;color:var(--mut);font-size:.9rem}
 
   <main class="grid" id="grid">
     <a class="card" href="/juegos/pelotazo/" style="--c:#6EC6F2">
-      <div class="thumb"><svg viewBox="0 0 320 220"><rect y="170" width="320" height="50" fill="#3FA34D"/><path d="M40 170 Q160 20 300 150" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round"/><g class="a gira r" style="transform-origin:236px 64px"><circle cx="236" cy="64" r="17" fill="#fff" stroke="#15171C" stroke-width="3"/><path d="M236 57l7 5-3 8h-8l-3-8z" fill="#15171C"/></g><path d="M196 92q8-8 16 0q8-8 16 0" fill="none" stroke="#15171C" stroke-width="3" stroke-linecap="round"/><rect x="34" y="128" width="12" height="38" fill="#15171C"/><rect x="30" y="162" width="26" height="10" rx="3" fill="#E63946"/></svg></div>
+      <div class="thumb"><img src="/img/pelotazo.webp" alt="" loading="lazy" width="560" height="385"></div>
       <div class="meta"><h3>Pelotazo</h3><p>Patea el balón hasta el otro lado de Panamá. Gana monedas y mejora tu patada.</p></div>
     </a>
     <a class="card" href="/juegos/encaje/" style="--c:#3D3D9E">
-      <div class="thumb"><svg viewBox="0 0 320 220"><rect x="90" y="30" width="140" height="140" rx="12" fill="#15171C"/><g fill="#262B38"><rect x="98" y="38" width="28" height="28" rx="5"/><rect x="130" y="38" width="28" height="28" rx="5"/><rect x="162" y="38" width="28" height="28" rx="5"/><rect x="194" y="38" width="28" height="28" rx="5"/><rect x="98" y="70" width="28" height="28" rx="5"/><rect x="194" y="70" width="28" height="28" rx="5"/><rect x="98" y="102" width="28" height="28" rx="5"/><rect x="130" y="102" width="28" height="28" rx="5"/><rect x="98" y="134" width="28" height="28" rx="5"/><rect x="130" y="134" width="28" height="28" rx="5"/><rect x="162" y="134" width="28" height="28" rx="5"/><rect x="194" y="134" width="28" height="28" rx="5"/></g><rect x="130" y="70" width="28" height="28" rx="5" fill="#F5B700"/><rect x="162" y="70" width="28" height="28" rx="5" fill="#F5B700"/><rect x="162" y="102" width="28" height="28" rx="5" fill="#E63946"/><rect x="194" y="102" width="28" height="28" rx="5" fill="#E63946"/><g class="a pin"><rect x="98" y="134" width="28" height="28" rx="5" fill="#1E9E6A"/><rect x="130" y="134" width="28" height="28" rx="5" fill="#1E9E6A"/><rect x="162" y="134" width="28" height="28" rx="5" fill="#1E9E6A"/></g></svg></div>
+      <div class="thumb"><img src="/img/encaje.webp" alt="" loading="lazy" width="560" height="385"></div>
       <div class="meta"><h3>Encaje</h3><p>Acomoda las piezas en el tablero y borra filas y columnas. ¿Hasta dónde llegas?</p></div>
     </a>
     <a class="card" href="/juegos/pulso/" style="--c:#C2185B">
-      <div class="thumb"><svg viewBox="0 0 320 220"><rect y="160" width="320" height="4" fill="#fff"/><path d="M180 160l14-26 14 26zM250 160l14-26 14 26z" fill="#15171C" stroke="#fff" stroke-width="2.5"/><g fill="#fff" opacity=".5"><rect x="60" y="176" width="6" height="16" rx="3"/><rect x="100" y="172" width="6" height="24" rx="3"/><rect x="140" y="176" width="6" height="16" rx="3"/><rect x="180" y="172" width="6" height="24" rx="3"/><rect x="220" y="176" width="6" height="16" rx="3"/><rect x="260" y="172" width="6" height="24" rx="3"/></g><g class="a pin"><rect x="110" y="96" width="26" height="26" fill="#fff" transform="rotate(20 123 109)"/></g><text x="160" y="62" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="26" fill="#fff">Perfecto x12</text></svg></div>
+      <div class="thumb"><img src="/img/pulso.webp" alt="" loading="lazy" width="560" height="385"></div>
       <div class="meta"><h3>Pulso</h3><p>Corre y salta al ritmo de la música. Cae justo en el beat para hacer combos.</p></div>
     </a>
     <a class="card" href="/juegos/apagon/" style="--c:#0E1016">
-      <div class="thumb"><svg viewBox="0 0 320 220"><defs><radialGradient id="luzA"><stop offset=".35" stop-color="#2A3042"/><stop offset="1" stop-color="#2A3042" stop-opacity="0"/></radialGradient></defs><circle cx="130" cy="120" r="70" fill="url(#luzA)"/><g fill="none" stroke="#8D95A8" stroke-width="4" stroke-linecap="round"><path d="M60 40h80v40M180 40h80v60M60 80v100h60M100 120h60v60M200 140v40h60M220 60v40h-40"/></g><circle cx="130" cy="120" r="11" fill="#fff"/><circle cx="130" cy="120" r="5" fill="#F5B700"/><path class="a pin" d="M244 146l-9 14h7l-3 12 10-15h-7z" fill="#F5B700"/><g fill="#fff" opacity=".8"><circle cx="232" cy="78" r="2.5"/><circle cx="241" cy="78" r="2.5"/></g></svg></div>
+      <div class="thumb"><img src="/img/apagon.webp" alt="" loading="lazy" width="560" height="385"></div>
       <div class="meta"><h3>Apagón</h3><p>Laberinto a oscuras: busca los fusibles con tu linterna y escapa de las sombras.</p></div>
     </a>
     <a class="card" href="/juegos/gravedad/" style="--c:#6C4BD8">
-      <div class="thumb"><svg viewBox="0 0 320 220"><rect x="0" y="0" width="320" height="44" fill="#15171C"/><rect x="0" y="176" width="320" height="44" fill="#15171C"/><path d="M190 176l20-40 20 40z" fill="#15171C" stroke="#fff" stroke-width="2.5"/><rect x="250" y="44" width="34" height="58" fill="#15171C" stroke="#fff" stroke-width="2.5"/><g class="a desliza"><rect x="128" y="44" width="24" height="24" fill="#fff"/><rect x="104" y="44" width="24" height="24" fill="#fff" opacity=".3"/></g></svg></div>
+      <div class="thumb"><img src="/img/gravedad.webp" alt="" loading="lazy" width="560" height="385"></div>
       <div class="meta"><h3>Gravedad</h3><p>Un toque y el piso se vuelve techo. Esquiva picos el mayor tiempo posible.</p></div>
     </a>
     <a class="card" href="/juegos/reves/" style="--c:#0FA3B1">
@@ -210,7 +211,7 @@ footer{margin-top:54px;color:var(--mut);font-size:.9rem}
     </a>
   </main>
 
-  <footer>Game Hub, hecho en Panamá. Todos los juegos son originales y funcionan en tu navegador.</footer>
+  <footer>game.hub, hecho en Panamá. Todos los juegos son originales y funcionan en tu navegador.</footer>
 </div>
 <script>
 const todo=document.getElementById('todo'),cards=[...document.querySelectorAll('.card')],tabs=[...document.querySelectorAll('.tabs button')];

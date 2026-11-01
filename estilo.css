@@ -1,4 +1,4 @@
-/* Game Hub — estilo compartido de todos los juegos */
+/* game.hub — estilo compartido de todos los juegos */
 @import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;900&display=swap');
 :root{--ink:#15171C;--mut:#6B7079;--bg:#FFFFFF;--soft:#F2F3F5;--line:#E2E4E8;--acc:#E4572E;--paper:#FAF9F7;--tint:#FCEAE4}
 *{box-sizing:border-box}

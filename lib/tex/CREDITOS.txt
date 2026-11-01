@@ -1,0 +1,4 @@
+Texturas y cielo: Poly Haven (polyhaven.com) y ambientCG (ambientcg.com), licencia CC0.
+asfalto: asphalt_track | grava: gravel_floor_02 | arena: sand_01 | tierra roja: red_sand | roca: cliff_side | concreto: concrete_wall_008
+pasto: ambientCG Grass004 y Grass001 | cielo: kloofendal_48d_partly_cloudy_puresky
+hojas: jacaranda_tree, island_tree_02 | pasto alto: grass_medium_01 | corteza: jacaranda_tree
