@@ -132,7 +132,7 @@ function loop(t){const dt=Math.min(.05,(t-ultimo)/1000);ultimo=t;
 
 /* ---------- dibujo ---------- */
 let C=30,dpr=1,niebla=document.createElement('canvas'),ng=niebla.getContext('2d');
-function medir(){const w=document.getElementById('marco').clientWidth,h=Math.max(260,innerHeight-190);const s=Math.min(w,h);
+function medir(){const w=document.querySelector('main').clientWidth-28,h=Math.max(260,innerHeight-190);const s=Math.min(w,h);
   C=s/N;dpr=Math.min(2,devicePixelRatio||1);cv.style.height=s+'px';cv.style.width=s+'px';cv.width=niebla.width=s*dpr;cv.height=niebla.height=s*dpr;
   document.getElementById('marco').style.width=s+4+'px'}
 addEventListener('resize',medir);
@@ -175,7 +175,7 @@ function dibujar(t){
 
 /* ---------- controles ---------- */
 const TECLAS={ArrowUp:0,KeyW:0,ArrowRight:1,KeyD:1,ArrowDown:2,KeyS:2,ArrowLeft:3,KeyA:3};
-addEventListener('keydown',e=>{if(e.code in TECLAS){e.preventDefault();if(player)player.quiere=TECLAS[e.code]}
+addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(e.code in TECLAS){e.preventDefault();if(player)player.quiere=TECLAS[e.code]}
   else if((e.code==='Space'||e.code==='Enter')&&estado!=='juego'&&estado!=='pausa'&&!capa.hidden){e.preventDefault();empezar()}});
 let ini=null;
 cv.addEventListener('pointerdown',e=>{ini={x:e.clientX,y:e.clientY}});

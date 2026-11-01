@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pulso — Game Hub</title>
+<link rel="stylesheet" href="/estilo.css">
+<link rel="icon" href="/favicon.svg">
+<style>
+main{max-width:960px;margin:auto;padding:84px 16px 40px}h1{font-size:clamp(2.4rem,8vw,4rem);line-height:1;letter-spacing:-.05em;margin:0 0 12px}.sub,.ayuda{color:var(--mut)}.sub{margin:0 0 22px}.marco{position:relative;border-radius:16px;overflow:hidden;background:#E63946}canvas{display:block;width:100%;height:clamp(300px,50vw,450px);touch-action:none;cursor:pointer}.capa{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;color:white;background:#15171cd9;padding:20px}.capa h2{font-size:clamp(1.8rem,6vw,3rem);line-height:1.1;margin:8px 0}.capa p{max-width:390px;margin:8px 0 20px}button{font:inherit;font-weight:700;cursor:pointer;border:1px solid var(--line);border-radius:8px;background:white;color:#15171C;padding:10px 16px}.datos,.controles{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin:14px 0;font-size:.85rem;font-weight:700}.controles label{display:flex;align-items:center;gap:8px}.barra{height:5px;background:var(--soft);border-radius:6px;overflow:hidden;margin-top:14px}.barra span{display:block;height:100%;width:0;background:#E63946}.ayuda{font-size:.9rem}.estado{min-height:1.5em}input{accent-color:#E63946}button:disabled{opacity:.5;cursor:default}
+</style>
+</head>
+<body>
+<a class="volver" href="/">← Game Hub</a>
+<main>
+<h1>Pulso</h1><p class="sub">La línea lleva el ritmo. Tú decides cuándo despegar.</p>
+<div class="marco">
+<canvas id="juego" tabindex="0" aria-label="Pulso. Toca, haz clic o pulsa espacio para saltar al ritmo."></canvas>
+<div class="capa" id="capa"><h2 id="titulo">Encuentra el pulso</h2><p id="resumen">Salta cuando la marca blanca llegue al cuadrado. Un beat después llega el obstáculo.</p><button id="accion" type="button">Empezar</button></div>
+</div>
+<div class="barra" role="progressbar" aria-label="Recorrido" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="barra"><span id="avance"></span></div>
+<div class="datos"><span id="progreso">0 %</span><span id="combo">Combo 0</span><span id="record"></span></div>
+<div class="controles"><label><input type="checkbox" id="practica"> Modo práctica</label><button id="silencio" type="button" aria-pressed="false">Silenciar</button><button id="reiniciar" type="button">Desde el inicio</button></div>
+<p class="ayuda">Toque, clic o espacio: salto. Perfecto: ±60 ms del beat. Cada 4 perfectos cambia el color y entra otra capa musical. 68 segundos, 36 compases. Las banderas guardan tu posición solo en práctica.</p>
+<p id="estado" class="ayuda estado" role="status" aria-live="polite"></p>
+</main>
+<script>
+(() => {
+'use strict';
+const $=id=>document.getElementById(id),canvas=$('juego'),ctx=canvas.getContext('2d');
+let W=800;
+const H=420,FLOOR=318,X=100,S=22,BPM=128,BEAT=60/BPM,TOTAL=144*BEAT,SPEED=245,G=1280,V=600,KEY='gamehub-pulso-v1';
+const colors=['#E63946','#C83A66','#9145A5','#604BBC','#236E88'];
+let record={percent:0,combo:0};
+try{const r=JSON.parse(localStorage.getItem(KEY));if(r){record.percent=Math.max(0,Math.min(100,Number(r.percent)||0));record.combo=Math.max(0,Math.min(10000,Number(r.combo)||0));}}catch(_){}
+let mode='ready',t=0,y=FLOOR-S,vy=0,grounded=true,combo=0,maxCombo=0,checkpoint=0,practice=false,muted=false,paused=false,starting=false;
+let audio=null,master=null,noise=null,epoch=0,offset=0,nextBeat=0,flash='',flashUntil=0,lastPerfect=-1;
+const hazards=[];
+for(let b=8;b<142;b+=4){if(b%32===0)continue;const type=['spike','gap','platform'][Math.floor(b/12)%3];hazards.push({beat:b,type,width:type==='gap'?92:type==='platform'?72:36,height:type==='platform'?34:34});}
+function save(){if(practice)return;record.percent=Math.max(record.percent,Math.floor(t/TOTAL*100));record.combo=Math.max(record.combo,maxCombo);try{localStorage.setItem(KEY,JSON.stringify(record));}catch(_){} }
+function hud(){const p=Math.min(100,Math.floor(t/TOTAL*100));$('progreso').textContent=p+' %';$('combo').textContent='Combo '+combo;$('record').textContent='Récord '+record.percent+' % · combo '+record.combo;$('avance').style.width=p+'%';$('barra').setAttribute('aria-valuenow',String(p));}
+function initAudio(){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;audio=new AC();master=audio.createGain();master.gain.value=muted?0:.55;master.connect(audio.destination);noise=audio.createBuffer(1,audio.sampleRate*.16,audio.sampleRate);const data=noise.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;}
+function tone(at,freq,duration,volume,type='sine',endFreq=0){const o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.setValueAtTime(freq,at);if(endFreq)o.frequency.exponentialRampToValueAtTime(endFreq,at+duration);g.gain.setValueAtTime(volume,at);g.gain.exponentialRampToValueAtTime(.0001,at+duration);o.connect(g);g.connect(master);o.start(at);o.stop(at+duration+.01);}
+function hiss(at,duration,volume,cutoff){const s=audio.createBufferSource(),f=audio.createBiquadFilter(),g=audio.createGain();s.buffer=noise;f.type='highpass';f.frequency.value=cutoff;g.gain.setValueAtTime(volume,at);g.gain.exponentialRampToValueAtTime(.0001,at+duration);s.connect(f);f.connect(g);g.connect(master);s.start(at);s.stop(at+duration);}
+function latency(){return audio?Math.max(0,Math.min(.5,audio.outputLatency||audio.baseLatency||0)):0;}
+function schedule(){if(!audio||mode!=='playing'||paused)return;const now=audio.currentTime;while(epoch+nextBeat*BEAT-offset-latency()<now+.12){const at=epoch+nextBeat*BEAT-offset-latency(),b=nextBeat++;if(at<now-.02)continue;tone(at,130,.18,.7,'sine',40);if(b%4===1||b%4===3){hiss(at,.13,.28,1100);tone(at,175,.09,.12,'triangle');}tone(at,[65.41,65.41,77.78,58.27][Math.floor(b/4)%4],.24,.15,'triangle');if(combo>=4)hiss(at+BEAT/2,.045,.11,6500);if(combo>=8)tone(at+BEAT/2,[261.63,311.13,349.23,233.08][b%4],.15,.055,'triangle');if(combo>=12)tone(at,[130.81,155.56,174.61,116.54][Math.floor(b/4)%4],.38,.055);}}
+function clock(){return offset+(audio?audio.currentTime-epoch:performance.now()/1000-epoch);}
+function setClock(value){offset=value;epoch=audio?audio.currentTime:performance.now()/1000;nextBeat=Math.ceil(value/BEAT);}
+async function start(from=0){if(starting)return;starting=true;try{if(!audio)initAudio();if(audio)await audio.resume();}catch(_){if(audio)audio.close().catch(()=>{});audio=null;$('estado').textContent='Audio no disponible. Sigue las marcas visuales.';}finally{starting=false;}if(audio)$('estado').textContent='';practice=$('practica').checked;checkpoint=from;t=from;combo=0;maxCombo=0;lastPerfect=-1;y=FLOOR-S;vy=0;grounded=true;paused=false;setClock(from);mode='playing';volume();$('capa').hidden=true;$('practica').disabled=true;canvas.focus({preventScroll:true});hud();}
+function finish(win=false){save();mode=win?'won':'over';if(audio)master.gain.setValueAtTime(0,audio.currentTime);$('titulo').textContent=win?'Línea completa':'Vuelve al pulso';$('resumen').textContent=Math.floor(t/TOTAL*100)+' % · mejor combo '+maxCombo+(practice&&checkpoint?' · bandera '+Math.round(checkpoint/TOTAL*100)+' %':'');$('accion').textContent=practice&&checkpoint&&!win?'Desde la bandera':'Otra vez';$('capa').hidden=false;$('practica').disabled=false;hud();}
+function jump(){if(starting)return;if(paused){resume();return;}if(mode!=='playing'){start(mode==='over'&&$('practica').checked?checkpoint:0);return;}if(!grounded)return;const beat=Math.round(clock()/BEAT),error=Math.abs(clock()-beat*BEAT);grounded=false;vy=-V;if(error<=.06&&beat!==lastPerfect){lastPerfect=beat;combo++;maxCombo=Math.max(maxCombo,combo);flash='Perfecto';}else{combo=0;flash='Busca el beat';}flashUntil=t+.55;hud();}
+function pos(o){return X+(o.beat*BEAT-t)*SPEED;}
+function update(dt){const oldBottom=y+S;vy+=G*dt;y+=vy*dt;grounded=false;let surface=FLOOR;const center=X+S/2;for(const o of hazards){const ox=pos(o);if(o.type==='gap'&&center>ox-o.width/2&&center<ox+o.width/2)surface=H+160;if(o.type==='platform'&&X+S-3>ox-o.width/2&&X+3<ox+o.width/2){const top=FLOOR-o.height;if(vy>=0&&oldBottom<=top+1&&y+S>=top)surface=Math.min(surface,top);else if(y+S>top+3&&y<FLOOR&&X+S-3>ox-o.width/2&&X+3<ox+o.width/2){finish();return;}}if(o.type==='spike'){const left=Math.max(X+3,ox-o.width/2),right=Math.min(X+S-3,ox+o.width/2);if(left<right){const nearest=Math.max(left,Math.min(ox,right)),height=o.height*(1-Math.abs(nearest-ox)/(o.width/2));if(y+S-3>FLOOR-height&&y<FLOOR){finish();return;}}}}
+if(vy>=0&&y+S>=surface&&oldBottom<=surface+12){y=surface-S;vy=0;grounded=true;}if(y>H+40){finish();return;}if(practice){const cp=Math.floor(t/(32*BEAT))*32*BEAT;if(cp>checkpoint){checkpoint=cp;$('estado').textContent='Bandera guardada: '+Math.round(cp/TOTAL*100)+' %';}}if(t>=TOTAL){t=TOTAL;finish(true);}}
+function draw(){const level=Math.min(4,Math.floor(combo/4)),phase=((t/BEAT)%1+1)%1;ctx.fillStyle=colors[level];ctx.fillRect(0,0,W,H);ctx.fillStyle='#fff';ctx.globalAlpha=.04+(1-phase)*.09;ctx.beginPath();ctx.arc(X+S/2,FLOOR-S/2,45+phase*90,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.fillStyle='#15171C';ctx.fillRect(0,FLOOR,W,H-FLOOR);ctx.fillStyle='#fff';ctx.fillRect(0,FLOOR,W,2);
+for(let b=Math.floor(t/BEAT)-2;b<t/BEAT+8;b++){const x=X+(b*BEAT-t)*SPEED;ctx.globalAlpha=b%4===0?.5:.2;ctx.fillStyle='#fff';ctx.fillRect(x,FLOOR+26,2,b%4===0?22:10);}ctx.globalAlpha=1;
+for(const o of hazards){const x=pos(o);if(x<-120||x>W+120)continue;const left=x-o.width/2;if(o.type==='gap'){ctx.fillStyle=colors[level];ctx.fillRect(left,FLOOR,o.width,H-FLOOR);ctx.strokeStyle='#fff';ctx.setLineDash([3,7]);ctx.beginPath();ctx.moveTo(left,FLOOR+2);ctx.lineTo(left+o.width,FLOOR+2);ctx.stroke();ctx.setLineDash([]);}else{ctx.fillStyle='#15171C';ctx.strokeStyle='#fff';ctx.lineWidth=2;if(o.type==='spike'){ctx.beginPath();ctx.moveTo(left,FLOOR);ctx.lineTo(x,FLOOR-o.height);ctx.lineTo(left+o.width,FLOOR);ctx.closePath();ctx.fill();ctx.stroke();}else{ctx.fillRect(left,FLOOR-o.height,o.width,o.height);ctx.strokeRect(left,FLOOR-o.height,o.width,o.height);}}
+const cue=x-BEAT*SPEED;ctx.fillStyle='#fff';ctx.fillRect(cue-3,FLOOR-6,6,12);ctx.globalAlpha=.6;ctx.fillRect(cue-1,FLOOR-95,2,20);ctx.globalAlpha=1;}
+for(let b=32;b<144;b+=32){const x=X+(b*BEAT-t)*SPEED;if(x<0||x>W)continue;ctx.strokeStyle='#fff';ctx.beginPath();ctx.moveTo(x,FLOOR);ctx.lineTo(x,FLOOR-86);ctx.stroke();ctx.fillStyle=practice?'#fff':'#15171C';ctx.fillRect(x,FLOOR-86,26,16);}
+ctx.fillStyle='#fff';ctx.fillRect(X,y,S,S);ctx.strokeStyle='#15171C';ctx.lineWidth=2;ctx.strokeRect(X,y,S,S);ctx.font='700 16px "Schibsted Grotesk",sans-serif';ctx.fillStyle='#fff';ctx.fillText('128 bpm',22,34);ctx.textAlign='right';ctx.fillText('Compás '+Math.min(36,Math.floor(t/BEAT/4)+1)+' / 36',W-22,34);ctx.textAlign='center';if(t<flashUntil)ctx.fillText(flash,X+S/2,Math.min(y-28,190));for(let i=0;i<4;i++){ctx.globalAlpha=Math.floor(t/BEAT)%4===i?1:.25;ctx.fillRect(W/2-42+i*24,28,12,4);}ctx.globalAlpha=1;ctx.textAlign='left';}
+function frame(){if(mode==='playing'&&!paused){const target=Math.min(TOTAL,clock());if(target-t>.25){pause();}else{while(t<target&&mode==='playing'){const step=Math.min(1/240,target-t);t+=step;update(step);}schedule();hud();}}draw();requestAnimationFrame(frame);}
+function pause(){if(mode!=='playing'||paused)return;paused=true;offset=t;if(audio)audio.suspend().catch(()=>{});$('titulo').textContent='Pulso en pausa';$('resumen').textContent='Continúa desde el mismo instante.';$('accion').textContent='Continuar';$('capa').hidden=false;}
+async function resume(){if(starting)return;starting=true;try{if(audio)await audio.resume();const queued=nextBeat;setClock(t);nextBeat=Math.max(queued,nextBeat);paused=false;$('capa').hidden=true;}catch(_){$('estado').textContent='No se pudo reanudar el audio. Inténtalo otra vez.';}finally{starting=false;}}
+function volume(){if(audio)master.gain.setValueAtTime(muted||mode!=='playing'?0:.55,audio.currentTime);}
+$('accion').addEventListener('click',()=>{if(paused)resume();else{jump();}volume();});
+canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();canvas.focus({preventScroll:true});jump();volume();});
+document.addEventListener('keydown',e=>{if(e.code!=='Space'||e.target.closest('button,input,a,textarea,select,[contenteditable]'))return;e.preventDefault();if(!e.repeat){jump();volume();}});
+$('silencio').addEventListener('click',()=>{muted=!muted;volume();$('silencio').textContent=muted?'Activar sonido':'Silenciar';$('silencio').setAttribute('aria-pressed',String(muted));});
+$('reiniciar').addEventListener('click',()=>{if(starting)return;save();checkpoint=0;start(0).then(volume);});
+$('practica').addEventListener('change',()=>{checkpoint=0;});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
+window.addEventListener('pagehide',save);
+function resize(){W=H*canvas.clientWidth/canvas.clientHeight;const dpr=window.devicePixelRatio||1;canvas.width=Math.round(canvas.clientWidth*dpr);canvas.height=Math.round(canvas.clientHeight*dpr);ctx.setTransform(canvas.width/W,0,0,canvas.height/H,0,0);draw();}
+window.addEventListener('resize',resize);hud();resize();requestAnimationFrame(frame);
+})();
+</script>
+<script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script>
+</body>
+</html>

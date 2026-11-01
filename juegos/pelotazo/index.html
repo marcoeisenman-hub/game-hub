@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pelotazo — Game Hub</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/estilo.css">
+<style>
+body{background:#fff;overscroll-behavior:none}
+main{max-width:900px;margin:0 auto;padding:70px 14px 30px}
+.hud{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.hud .d{font-size:2.4rem;font-weight:900;letter-spacing:-.05em;line-height:1}
+.hud small{display:block;color:var(--mut);font-weight:600;font-size:.82rem}
+.hud .m{text-align:right}
+.marco{position:relative;border-radius:18px;overflow:hidden;border:2px solid var(--ink)}
+canvas{display:block;width:100%;height:min(60vh,460px);touch-action:none;cursor:pointer}
+.capa{position:absolute;inset:0;background:#15171Ce0;color:#fff;display:grid;place-items:center;align-content:center;gap:10px;text-align:center;padding:16px;overflow:auto}
+.capa h1{margin:0;font-size:clamp(2.2rem,9vw,3.4rem);letter-spacing:-.05em;line-height:1}
+.capa p{margin:0;color:#C7CAD1;max-width:420px}
+.capa .big{font-size:3rem;font-weight:900;letter-spacing:-.05em;line-height:1;color:#fff}
+.mejoras{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:min(100%,460px);margin:6px 0}
+.mejoras button{font:inherit;border:2px solid #3A3E46;background:#1B1F2B;color:#fff;border-radius:12px;padding:9px 6px;cursor:pointer;text-align:center}
+.mejoras button b{display:block;font-size:.98rem}
+.mejoras button span{display:block;font-size:.78rem;color:#9AA0AE}
+.mejoras button em{display:block;font-style:normal;font-weight:800;color:#F5B700;font-size:.85rem;margin-top:3px}
+.mejoras button:disabled{opacity:.45;cursor:default}
+.mejoras i{display:flex;gap:3px;justify-content:center;margin-top:5px}
+.mejoras i u{width:8px;height:8px;border-radius:2px;background:#3A3E46;text-decoration:none}
+.mejoras i u.s{background:#F5B700}
+.capa .btn{background:#F5B700;color:#15171C;font-size:1.05rem;padding:13px 26px}
+.monedas{font-weight:800;color:#F5B700}
+.ayuda{color:var(--mut);font-size:.88rem;margin-top:10px}
+@media (max-width:400px){.mejoras button{padding:7px 3px}.mejoras button span{display:none}}
+</style>
+</head>
+<body>
+<a class="volver" href="/">← Game Hub</a>
+<main>
+  <div class="hud"><div><small>Distancia</small><div class="d" id="dist">0 m</div></div><div class="m"><small>Monedas</small><b class="monedas" id="mon">0</b> · <small style="display:inline">Récord</small> <b id="rec">0 m</b></div></div>
+  <div class="marco">
+    <canvas id="cv"></canvas>
+    <div class="capa" id="capa"></div>
+  </div>
+  <p class="ayuda">Toca una vez para fijar el ángulo y otra para la fuerza. Si le das en la zona amarilla, la patada es perfecta. Pégale a los pelícanos para que el balón vuele más.</p>
+</main>
+<script>
+const cv=document.getElementById('cv'),g=cv.getContext('2d'),capa=document.getElementById('capa');
+const LUGARES=[[40,'la cancha del barrio','cancha'],[150,'el Casco Antiguo','casco'],[350,'la Cinta Costera','torres'],[650,'el Puente de las Américas','puente'],[1000,'las Esclusas de Miraflores','esclusa'],[1450,'el Cerro Ancón','cerro'],[2000,'el Parque Soberanía','selva'],[2800,'el Atlántico','mar']];
+const MEJ={fuerza:{n:'Fuerza',d:'Patea más fuerte'},rebote:{n:'Rebote',d:'Rebota más alto'},aire:{n:'Aire',d:'Frena menos en el aire'}};
+let datos={monedas:0,record:0,fuerza:0,rebote:0,aire:0};
+try{Object.assign(datos,JSON.parse(localStorage.getItem('gamehubPelotazo')||'{}'))}catch(e){}
+function guardar(){try{localStorage.setItem('gamehubPelotazo',JSON.stringify(datos))}catch(e){}}
+const costo=k=>Math.round(40*Math.pow(1.6,datos[k]));
+let fase='menu',ang=0,pot=0,t=0,b,pel=[],texto=null,pasados=0,perfecto=false,golpes=0,camX=0,esc=8;
+
+function hud(){document.getElementById('dist').textContent=Math.floor(b?b.x:0)+' m';document.getElementById('mon').textContent=datos.monedas;document.getElementById('rec').textContent=datos.record+' m'}
+function menu(res){
+  fase='menu';let h='';
+  if(res)h+=`<p>Llegaste hasta</p><div class="big">${res.d} m</div><p>${res.lugar?'Pasaste '+res.lugar+'. ':''}${res.nuevo?'¡Récord nuevo! ':''}Ganaste <span class="monedas">${res.m} monedas</span>.</p>`;
+  else h+=`<h1>Pelotazo</h1><p>Patea el balón lo más lejos que puedas, desde la cancha del barrio hasta el otro lado de Panamá.</p>`;
+  h+=`<div class="mejoras">`+Object.keys(MEJ).map(k=>`<button type="button" data-k="${k}" ${datos.monedas<costo(k)||datos[k]>=8?'disabled':''}><b>${MEJ[k].n}</b><span>${MEJ[k].d}</span><i>${Array.from({length:8},(_,i)=>`<u class="${i<datos[k]?'s':''}"></u>`).join('')}</i><em>${datos[k]>=8?'Al máximo':costo(k)+' monedas'}</em></button>`).join('')+`</div>`;
+  h+=`<button class="btn" id="patear" type="button">${res?'Patear otra vez':'Patear'}</button>`;
+  capa.innerHTML=h;capa.hidden=false;
+  capa.querySelectorAll('[data-k]').forEach(x=>x.onclick=()=>{const k=x.dataset.k;if(datos.monedas>=costo(k)&&datos[k]<8){datos.monedas-=costo(k);datos[k]++;guardar();menu(res);hud()}});
+  document.getElementById('patear').onclick=preparar;hud()}
+function preparar(){capa.hidden=true;fase='angulo';t=0;b={x:0,y:0,vx:0,vy:0,rot:0};pel=[];pasados=0;golpes=0;perfecto=false;camX=0;hud()}
+function tocar(){
+  if(fase==='angulo'){fase='fuerza';t=0}
+  else if(fase==='fuerza'){perfecto=pot>=.86&&pot<=.96;const p=perfecto?1.15:pot;
+    const v=(26+datos.fuerza*5.5)*p,a=ang*Math.PI/180;b.vx=v*Math.cos(a);b.vy=v*Math.sin(a);b.y=0;fase='vuelo';
+    if(perfecto)mostrar('¡Patada perfecta!');
+    for(let i=0;i<5;i++)nuevoPel(40+i*60)}
+}
+function nuevoPel(x){pel.push({x:x+Math.random()*40,y:5+Math.random()*24,ok:false,f:Math.random()*6})}
+function mostrar(s){texto={s,h:performance.now()}}
+
+/* ---------- física (metros y segundos) ---------- */
+const G=7;
+function paso(dt){
+  const aire=0.0045*(1-datos.aire*0.09),e=0.42+datos.rebote*0.06;
+  const v=Math.hypot(b.vx,b.vy);b.vx-=b.vx*aire*v*dt;b.vy-=b.vy*aire*v*dt;b.vy-=G*dt;
+  b.x+=b.vx*dt;b.y+=b.vy*dt;b.rot+=b.vx*dt*1.6;
+  if(b.y<=0){b.y=0;if(b.vy<-2.5){b.vy=-b.vy*e;b.vx*=.88}else{b.vy=0;b.vx=Math.max(0,b.vx-(3+b.vx*.25)*dt)}}
+  for(const p of pel){if(!p.ok&&Math.hypot(p.x-b.x,p.y-b.y)<3.6){p.ok=true;golpes++;b.vy=Math.max(b.vy,0)+14+datos.rebote;b.vx+=5;mostrar('¡Pelícano!')}}
+  // pelícanos nuevos delante
+  const ult=pel.length?pel[pel.length-1].x:0;if(ult<b.x+260)nuevoPel(ult+30+Math.random()*60+b.x*.02);
+  pel=pel.filter(p=>p.x>b.x-120);
+  while(pasados<LUGARES.length&&b.x>LUGARES[pasados][0]){mostrar('Pasaste '+LUGARES[pasados][1]);pasados++}
+  if(b.y<=0&&b.vx<=0.05&&b.vy===0)terminar()
+}
+function terminar(){fase='fin';const d=Math.floor(b.x),m=Math.round(d/8)+golpes*3+(perfecto?5:0);datos.monedas+=m;const nuevo=d>datos.record;if(nuevo)datos.record=d;guardar();
+  setTimeout(()=>menu({d,m,nuevo,lugar:pasados?LUGARES[pasados-1][1]:null}),700)}
+
+/* ---------- dibujo ---------- */
+let W=0,H=0,dpr=1;
+function medir(){dpr=Math.min(2,devicePixelRatio||1);W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr}
+addEventListener('resize',medir);
+const SX=x=>(x-camX)*esc+W*.25,SY=y=>H-46-y*esc;
+function lugar(tipo,x){g.save();const X=SX(x),Y=SY(0),s=esc;g.fillStyle='#15171C';g.strokeStyle='#15171C';
+  if(tipo==='cancha'){g.lineWidth=Math.max(2,s*.25);g.strokeRect(X-s*1.5,Y-s*2.4,s*3,s*2.4);g.fillStyle='#fff';g.globalAlpha=.6;g.fillRect(X-s*1.5,Y-s*2.4,s*3,s*2.4)}
+  else if(tipo==='casco'){g.fillStyle='#E8D9C0';g.fillRect(X-s*12,Y-s*10,s*24,s*10);g.fillStyle='#D9C2A0';g.fillRect(X-s*3,Y-s*22,s*6,s*12);g.beginPath();g.moveTo(X-s*3,Y-s*22);g.lineTo(X,Y-s*27);g.lineTo(X+s*3,Y-s*22);g.fill();
+    g.fillStyle='#15171C33';for(let i=-10;i<10;i+=4)g.fillRect(X+i*s,Y-s*7,s*2,s*3)}
+  else if(tipo==='torres'){[[-30,60,'#9FB4C7'],[-12,90,'#B9C9D8'],[8,70,'#8EA6BC'],[26,110,'#C9D6E2']].forEach(([dx,h,c])=>{g.fillStyle=c;g.fillRect(X+dx*s,Y-h*s,s*14,h*s)})}
+  else if(tipo==='puente'){g.lineWidth=Math.max(2,s*.8);g.strokeStyle='#2E7D5B';g.beginPath();g.moveTo(X-s*90,Y-s*8);g.lineTo(X+s*90,Y-s*8);g.stroke();g.beginPath();g.moveTo(X-s*60,Y-s*8);g.quadraticCurveTo(X,Y-s*70,X+s*60,Y-s*8);g.stroke();
+    for(let i=-50;i<=50;i+=10){const yy=Y-s*8-(1-(i/60)**2)*s*31;g.lineWidth=Math.max(1,s*.3);g.beginPath();g.moveTo(X+i*s,Y-s*8);g.lineTo(X+i*s,yy);g.stroke()}}
+  else if(tipo==='esclusa'){g.fillStyle='#4FA3D1';g.fillRect(X-s*40,Y-s*4,s*80,s*4);g.fillStyle='#8D95A8';g.fillRect(X-s*44,Y-s*14,s*4,s*14);g.fillRect(X+s*40,Y-s*14,s*4,s*14);g.fillStyle='#E63946';g.fillRect(X-s*20,Y-s*12,s*30,s*8)}
+  else if(tipo==='cerro'){g.fillStyle='#3E8E4E';g.beginPath();g.moveTo(X-s*120,Y);g.quadraticCurveTo(X,Y-s*130,X+s*120,Y);g.fill();g.fillStyle='#fff';g.fillRect(X-s*.5,Y-s*82,s*1,s*18);g.fillStyle='#E63946';g.fillRect(X+s*.5,Y-s*82,s*8,s*5);g.fillStyle='#2D6CDF';g.fillRect(X+s*.5,Y-s*77,s*8,s*5)}
+  else if(tipo==='selva'){for(let i=-60;i<60;i+=12){g.fillStyle=i%24?'#2F7D45':'#24693A';g.beginPath();g.arc(X+i*s,Y-s*14,s*9,0,7);g.fill();g.fillRect(X+i*s-s,Y-s*14,s*2,s*14)}}
+  else if(tipo==='mar'){g.fillStyle='#2D6CDF';g.fillRect(X,Y-s*1,W*4,s*1+46)}
+  g.restore()}
+function dibujar(now){
+  // cámara
+  if(b){const objetivo=Math.min(9,Math.max(.5,(H-90)/(b.y+18)),W*.7/(Math.max(30,b.vx*3)));esc+=(objetivo-esc)*.08;camX=b.x}
+  g.setTransform(dpr,0,0,dpr,0,0);
+  const cielo=g.createLinearGradient(0,0,0,H);cielo.addColorStop(0,'#6EC6F2');cielo.addColorStop(1,'#CDEEFF');g.fillStyle=cielo;g.fillRect(0,0,W,H);
+  // nubes lejanas
+  g.fillStyle='#ffffffb0';for(let i=0;i<6;i++){const x=((i*260-camX*esc*.08)%(W+300)+W+300)%(W+300)-150,y=30+((i*53)%90);g.beginPath();g.ellipse(x,y,60,16,0,0,7);g.fill()}
+  for(const [m,,tipo] of LUGARES){const X=SX(m);if(X>-200*esc&&X<W+200*esc)lugar(tipo,m)}
+  // suelo
+  g.fillStyle='#3FA34D';g.fillRect(0,H-46,W,46);g.fillStyle='#348A40';g.fillRect(0,H-46,W,5);
+  // marcas de distancia
+  const pasoM=esc>4?10:esc>1.5?50:esc>.7?100:500;g.fillStyle='#fff';g.font='700 12px "Schibsted Grotesk",sans-serif';g.textAlign='center';
+  for(let m=Math.max(0,Math.floor((camX-W*.25/esc)/pasoM)*pasoM);SX(m)<W+40;m+=pasoM){const X=SX(m);g.fillRect(X-1,H-46,2,10);g.fillText(m+' m',X,H-20)}
+  // jugador (botín) en la salida
+  const X0=SX(0);if(X0>-80){const k=22;g.save();g.translate(X0-k*1.1,SY(0)-k*2.2);const sw=fase==='vuelo'||fase==='fin'?-.9:Math.sin(now/200)*.12;g.rotate(sw);g.fillStyle='#15171C';g.fillRect(-k*.22,0,k*.44,k*1.8);g.fillStyle='#fff';g.fillRect(-k*.22,k*.9,k*.44,k*.5);g.fillStyle='#E63946';g.beginPath();g.roundRect(-k*.3,k*1.75,k*.95,k*.42,k*.15);g.fill();g.restore()}
+  // pelícanos
+  for(const p of pel){if(p.ok)continue;const X=SX(p.x),Y=SY(p.y);if(X<-40||X>W+40)continue;const a=Math.sin(now/140+p.f)*.6,s=Math.max(20,esc*2.6);
+    g.strokeStyle='#15171C';g.lineWidth=Math.max(2,s*.12);g.lineCap='round';g.beginPath();g.moveTo(X-s,Y-s*a*.5);g.quadraticCurveTo(X-s*.4,Y-s*.4*a-s*.2,X,Y);g.quadraticCurveTo(X+s*.4,Y-s*.4*a-s*.2,X+s,Y-s*a*.5);g.stroke();
+    g.fillStyle='#F28C28';g.beginPath();g.moveTo(X,Y);g.lineTo(X+s*.7,Y+s*.12);g.lineTo(X,Y+s*.2);g.fill()}
+  // balón
+  if(b){const X=SX(b.x),Y=SY(b.y),r=Math.max(11,Math.min(18,esc*1.3));g.save();g.translate(X,Y-r);g.rotate(b.rot);g.fillStyle='#fff';g.strokeStyle='#15171C';g.lineWidth=2;g.beginPath();g.arc(0,0,r,0,7);g.fill();g.stroke();
+    g.fillStyle='#15171C';g.beginPath();for(let i=0;i<5;i++){const a=i*Math.PI*2/5;g.lineTo(Math.cos(a)*r*.38,Math.sin(a)*r*.38)}g.fill();g.restore();
+    if(Y<-10){g.fillStyle='#15171C';g.beginPath();g.moveTo(X,6);g.lineTo(X-7,18);g.lineTo(X+7,18);g.fill();g.font='700 12px "Schibsted Grotesk",sans-serif';g.fillText(Math.round(b.y)+' m',X,32)}}
+  // medidores
+  if(fase==='angulo'||fase==='fuerza'){const X=SX(0),Y=SY(0)-esc*.5,R=Math.min(110,W*.28);
+    g.strokeStyle='#15171C33';g.lineWidth=10;g.beginPath();g.arc(X,Y,R,-Math.PI*.42,-Math.PI*.05);g.stroke();
+    const a=ang*Math.PI/180;g.strokeStyle='#15171C';g.lineWidth=4;g.beginPath();g.moveTo(X,Y);g.lineTo(X+Math.cos(a)*R,Y-Math.sin(a)*R);g.stroke();
+    g.fillStyle='#15171C';g.font='800 16px "Schibsted Grotesk",sans-serif';g.textAlign='left';g.fillText(Math.round(ang)+'°',X+Math.cos(a)*R+8,Y-Math.sin(a)*R);
+    if(fase==='fuerza'){const bw=Math.min(260,W-40),bx=(W-bw)/2,by=18;g.fillStyle='#15171C';g.fillRect(bx-3,by-3,bw+6,22);g.fillStyle='#3A3E46';g.fillRect(bx,by,bw,16);
+      g.fillStyle='#F5B700';g.fillRect(bx+bw*.86,by,bw*.1,16);g.fillStyle='#fff';g.fillRect(bx,by,bw*pot,16)}
+    g.fillStyle='#15171C';g.font='700 14px "Schibsted Grotesk",sans-serif';g.textAlign='center';g.fillText(fase==='angulo'?'Toca para fijar el ángulo':'Toca para patear',W/2,fase==='fuerza'?62:28)}
+  if(texto&&now-texto.h<1400){g.globalAlpha=1-(now-texto.h)/1400;g.fillStyle='#15171C';g.font='900 '+Math.min(34,W/14)+'px "Schibsted Grotesk",sans-serif';g.textAlign='center';g.fillText(texto.s,W/2,H*.32);g.globalAlpha=1}
+}
+let ultimo=performance.now();
+function loop(now){const dt=Math.min(.05,(now-ultimo)/1000);ultimo=now;t+=dt;
+  if(fase==='angulo')ang=40+30*Math.sin(t*2.4);
+  if(fase==='fuerza')pot=.5-.5*Math.cos(t*3.6);
+  if(fase==='vuelo'){let r=dt;while(r>0&&fase==='vuelo'){const s=Math.min(r,1/120);paso(s);r-=s}hud()}
+  dibujar(now);requestAnimationFrame(loop)}
+cv.addEventListener('pointerdown',e=>{e.preventDefault();tocar()});
+addEventListener('keydown',e=>{if(e.code==='Space'&&capa.hidden){e.preventDefault();if(!e.repeat)tocar()}});
+medir();b={x:0,y:0,vx:0,vy:0,rot:0};menu();requestAnimationFrame(loop);
+</script>
+<script src="/lib/peerjs.min.js" defer></script>
+<script src="/amigos.js" defer></script>
+</body>
+</html>

@@ -9,7 +9,7 @@ const me={id:rid(10),name:localStorage.getItem('ratitoNombre')||'Amigo '+(10+cry
 let OFF=0; // diferencia con el reloj del anfitrión de la sala: así todos miden la llegada con el mismo reloj
 let SINCE=Date.now(); // cuándo entré a la sala en esta página (reloj propio: todos ordenan igual)
 const PAGE=location.pathname.replace(/index\.html$/,'');
-const PAGES={'/':'la portada','/juegos/vida/':'Tu vida en vivo','/juegos/orbitas/':'Órbitas','/juegos/circulo/':'Círculo perfecto','/juegos/arena/':'Arena','/juegos/reflejos/':'Reflejos','/juegos/mapa/':'¿Dónde queda?','/juegos/aojo/':'A ojo','/juegos/color/':'Mismo color','/juegos/teclazo/':'Teclazo','/juegos/reves/':'Al revés','/juegos/apagon/':'Apagón','/juegos/gravedad/':'Gravedad'};
+const PAGES={'/':'la portada','/juegos/vida/':'Tu vida en vivo','/juegos/orbitas/':'Órbitas','/juegos/circulo/':'Círculo perfecto','/juegos/arena/':'Arena','/juegos/reflejos/':'Reflejos','/juegos/mapa/':'¿Dónde queda?','/juegos/aojo/':'A ojo','/juegos/color/':'Mismo color','/juegos/teclazo/':'Teclazo','/juegos/reves/':'Al revés','/juegos/apagon/':'Apagón','/juegos/gravedad/':'Gravedad','/juegos/encaje/':'Encaje','/juegos/pelotazo/':'Pelotazo','/juegos/pulso/':'Pulso'};
 function color(id){const ids=[me.id].concat(Object.keys(people)).sort();const k=Math.max(0,ids.indexOf(id));return COLORS[k%COLORS.length]}
 const clean=s=>String(s||'').replace(/[<>&"]/g,'').slice(0,16)||'Amigo';
 
@@ -54,6 +54,7 @@ panel.innerHTML=`<h3>Jugar con amigos</h3>
   <button class="sec w" id="am-leave">Salir de la sala</button>
 </div>`;
 document.body.append(btn,panel);
+btn.hidden=true; // solo se ve si estás en una sala (se crea desde Multiplayer en la portada)
 function ponerBtn(){const v=document.querySelector('.volver');if(v){const r=v.getBoundingClientRect();if(r.width)btn.style.left=Math.round(r.right+8)+'px'}}
 ponerBtn();addEventListener('load',ponerBtn);if(document.fonts)document.fonts.ready.then(ponerBtn);
 if(!document.querySelector('.volver')){btn.style.left='auto';btn.style.right='14px';panel.style.left='auto';panel.style.right='14px'}
@@ -69,7 +70,7 @@ function send(m){m.id=me.id;m.name=me.name;m.page=PAGE;m.since=SINCE+OFF;
   if(host)conns.forEach(c=>c.open&&c.send(m));else if(hc&&hc.open)hc.send(m)}
 function relay(m,from){conns.forEach(c=>{if(c===from||!c.open)return;if(m.t==='g'){const p=people[c._pid];if(!p||p.page!==m.page)return}c.send(m)})}
 function recolor(){for(const p of Object.values(people)){const c=color(p.id);if(p.c===c)continue;p.c=c;p.el.style.setProperty('--pc',c);p.el.querySelector('path').setAttribute('fill',c);p.el.querySelector('span').style.background=c;p.edge.style.background=c}}
-function list(){
+function list(){btn.hidden=!code;if(!code)panel.hidden=true;
   recolor();
   const all=[{id:me.id,name:me.name+' (tú)',page:PAGE}].concat(Object.values(people));
   $('am-list').innerHTML=all.map(p=>`<li><i style="background:${color(p.id)}"></i>${clean(p.name.replace(' (tú)',''))}${p.id===me.id?' (tú)':''}<small>${p.page===PAGE?'aquí':'en '+(PAGES[p.page]||'otra página')}</small></li>`).join('');
@@ -145,7 +146,7 @@ function start(c){setTimeout(changed,0);
 }
 function leave(){if(code)send({t:'bye'});gen++;code=null;sessionStorage.removeItem('ratitoSala');
   for(const id of Object.keys(people))drop(id);if(peer)try{peer.destroy()}catch(e){}peer=null;conns=[];hc=null;host=false;
-  $('am-off').hidden=false;$('am-on').hidden=true;btn.innerHTML='Jugar con amigos';status('Crea una sala y manda el link: jugarán la misma partida y verán el cursor del otro, en cualquier juego.');changed()}
+  $('am-off').hidden=false;$('am-on').hidden=true;btn.innerHTML='Jugar con amigos';btn.hidden=true;panel.hidden=true;status('Crea una sala y manda el link: jugarán la misma partida y verán el cursor del otro, en cualquier juego.');changed()}
 $('am-new').onclick=()=>{const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';start(Array.from(crypto.getRandomValues(new Uint8Array(6)),x=>A[x%A.length]).join(''))};
 $('am-leave').onclick=leave;
 $('am-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('am-url').value);$('am-copy').textContent='¡Listo!';setTimeout(()=>$('am-copy').textContent='Copiar',1200)}catch(e){$('am-url').select()}};

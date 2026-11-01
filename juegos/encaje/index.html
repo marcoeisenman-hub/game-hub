@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Encaje — Game Hub</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/estilo.css">
+<style>
+body{background:#F3EEE6;overscroll-behavior:none}
+main{max-width:460px;margin:0 auto;padding:70px 14px 30px;--cel:min(48px,calc((100vw - 44px)/8))}
+.hud{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:10px}
+.hud .p{font-size:2.6rem;font-weight:900;letter-spacing:-.05em;line-height:1}
+.hud small{display:block;color:var(--mut);font-weight:600;font-size:.82rem}
+.hud .r{text-align:right}
+.tablero{position:relative;display:grid;grid-template-columns:repeat(8,var(--cel));grid-template-rows:repeat(8,var(--cel));gap:0;background:#15171C;border-radius:16px;padding:6px;width:max-content;margin:0 auto;border:2px solid #15171C;touch-action:none}
+.c{border-radius:6px;margin:2px;background:#262B38;position:relative;transition:transform .12s}
+.c.lleno{background:var(--k);box-shadow:inset 0 -4px 0 #00000033}
+.c.ver{background:var(--k);opacity:.45}
+.c.malo{background:#E63946;opacity:.35}
+.c.estrella::after{content:"";position:absolute;inset:28%;border-radius:50%;border:2.5px solid #F5B700}
+.c.oro{box-shadow:inset 0 0 0 3px #F5B700,inset 0 -4px 0 #00000033}
+.c.sale{animation:sale .32s ease-in forwards}
+@keyframes sale{to{transform:scale(0);opacity:0}}
+.abajo{display:grid;grid-template-columns:1fr 1fr 1fr 74px;gap:8px;align-items:center;margin-top:16px;min-height:120px}
+.pieza{display:grid;place-items:center;min-height:110px;border-radius:14px;touch-action:none;cursor:grab}
+.pieza .g{display:grid;gap:2px;pointer-events:none}
+.pieza .g i{width:calc(var(--cel)*.46);height:calc(var(--cel)*.46);border-radius:4px;background:var(--k);box-shadow:inset 0 -3px 0 #00000026}
+.pieza .g i.v{visibility:hidden}
+.pieza.no{opacity:.3}
+.pieza.vacia{cursor:default}
+.guardar{border:2px dashed #15171C55;border-radius:14px;min-height:110px;display:grid;place-items:center;text-align:center;font-size:.72rem;font-weight:700;color:var(--mut);padding:4px}
+.guardar.lista{border-color:#15171C}
+.guardar .pieza{min-height:auto}
+.fantasma{position:fixed;left:0;top:0;pointer-events:none;z-index:80;display:grid;gap:2px}
+.fantasma i{width:calc(var(--cel) - 4px);height:calc(var(--cel) - 4px);margin:0;border-radius:6px;background:var(--k);box-shadow:inset 0 -4px 0 #00000033,0 6px 14px #0003}
+.fantasma i.v{visibility:hidden;box-shadow:none}
+.combo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-weight:900;font-size:2.4rem;letter-spacing:-.04em;pointer-events:none;animation:combo .9s ease-out forwards;white-space:nowrap;text-shadow:0 3px 0 #15171C}
+@keyframes combo{from{opacity:0;transform:translate(-50%,-30%) scale(.7)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}to{opacity:0;transform:translate(-50%,-80%)}}
+.fin{position:absolute;inset:0;border-radius:14px;background:#15171Ce8;color:#fff;display:grid;place-items:center;align-content:center;gap:8px;text-align:center;padding:16px}
+.fin b{font-size:3rem;letter-spacing:-.05em;line-height:1}
+.fin .btn{background:#F5B700;color:#15171C}
+.ayuda{color:var(--mut);font-size:.88rem;text-align:center;margin-top:14px}
+</style>
+</head>
+<body>
+<a class="volver" href="/">← Game Hub</a>
+<main id="main">
+  <div class="hud"><div><small>Puntos</small><div class="p" id="pts">0</div></div><div class="r"><small>Récord</small><b id="rec">0</b></div></div>
+  <div class="tablero" id="tab"></div>
+  <div class="abajo" id="abajo"><div class="pieza" data-i="0"></div><div class="pieza" data-i="1"></div><div class="pieza" data-i="2"></div><div class="guardar" id="guardar">Arrastra una pieza aquí para guardarla</div></div>
+  <p class="ayuda">Arrastra las piezas al tablero. Llena filas o columnas para borrarlas. Si cubres un círculo dorado y lo borras, esa jugada vale el doble.</p>
+</main>
+<script>
+const N=8,tab=document.getElementById('tab'),main=document.getElementById('main');
+const COL=['#2D6CDF','#F5B700','#E63946','#1E9E6A','#6C4BD8','#F28C28','#0FA3B1','#E84A8A'];
+const FORMAS=[ // [forma, peso]
+ [[[1]],2],[[[1,1]],3],[[[1],[1]],3],[[[1,1,1]],3],[[[1],[1],[1]],3],[[[1,1,1,1]],2],[[[1],[1],[1],[1]],2],[[[1,1,1,1,1]],1],[[[1],[1],[1],[1],[1]],1],
+ [[[1,1],[1,1]],3],[[[1,1,1],[1,1,1],[1,1,1]],1],
+ [[[1,0],[1,1]],2],[[[0,1],[1,1]],2],[[[1,1],[1,0]],2],[[[1,1],[0,1]],2],
+ [[[1,0],[1,0],[1,1]],1],[[[0,1],[0,1],[1,1]],1],[[[1,1,1],[1,0,0]],1],[[[1,1,1],[0,0,1]],1],
+ [[[1,1,1],[0,1,0]],1],[[[0,1,0],[1,1,1]],1],[[[1,1,0],[0,1,1]],1],[[[0,1,1],[1,1,0]],1],
+ [[[1,0,0],[1,0,0],[1,1,1]],1],[[[1,1,1],[0,0,1],[0,0,1]],1]];
+const PESO=FORMAS.reduce((s,f)=>s+f[1],0);
+let celdas=[],tablero,estrellas,piezas,guardada,pts,racha,turnos,record=0,acabado=false;
+try{record=+localStorage.getItem('gamehubEncaje')||0}catch(e){}
+
+for(let i=0;i<N*N;i++){const d=document.createElement('div');d.className='c';tab.append(d);celdas.push(d)}
+function azarForma(){let r=Math.random()*PESO;for(const [f,w] of FORMAS){if((r-=w)<0)return f}return FORMAS[0][0]}
+function nuevaPieza(){return {f:azarForma(),k:COL[Math.floor(Math.random()*COL.length)]}}
+function cabe(f,x,y){for(let j=0;j<f.length;j++)for(let i=0;i<f[0].length;i++)if(f[j][i]){const X=x+i,Y=y+j;if(X<0||Y<0||X>=N||Y>=N||tablero[Y*N+X])return false}return true}
+function cabeAlgo(f){for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(cabe(f,x,y))return true;return false}
+function bandeja(){for(let t=0;t<30;t++){piezas=[nuevaPieza(),nuevaPieza(),nuevaPieza()];if(piezas.some(p=>cabeAlgo(p.f)))break}}
+
+function empezar(){tablero=new Array(N*N).fill(null);estrellas=new Set();guardada=null;pts=0;racha=0;turnos=0;acabado=false;
+  document.querySelectorAll('.fin').forEach(e=>e.remove());bandeja();ponerEstrella();pintar()}
+function ponerEstrella(){const libres=[];for(let i=0;i<N*N;i++)if(!tablero[i]&&!estrellas.has(i))libres.push(i);if(libres.length&&estrellas.size<2)estrellas.add(libres[Math.floor(Math.random()*libres.length)])}
+function mini(p){const w=p.f[0].length;return `<div class="g" style="grid-template-columns:repeat(${w},auto);--k:${p.k}">`+p.f.flat().map(v=>`<i${v?'':' class="v"'}></i>`).join('')+'</div>'}
+function pintar(sel){
+  celdas.forEach((c,i)=>{const v=tablero[i];c.className='c'+(v?' lleno':'')+(v&&v.oro?' oro':'')+(!v&&estrellas.has(i)?' estrella':'');c.style.setProperty('--k',v?v.k:'')});
+  if(sel)for(const i of sel.cs){celdas[i].classList.add(sel.ok?'ver':'malo');if(sel.ok)celdas[i].style.setProperty('--k',sel.k)}
+  document.querySelectorAll('#abajo>.pieza').forEach((d,i)=>{const p=piezas[i];d.innerHTML=p?mini(p):'';d.classList.toggle('vacia',!p);d.classList.toggle('no',!!p&&!cabeAlgo(p.f))});
+  const g=document.getElementById('guardar');g.classList.toggle('lista',!!guardada);
+  g.innerHTML=guardada?`<div class="pieza${cabeAlgo(guardada.f)?'':' no'}" data-i="g">${mini(guardada)}</div>`:'Arrastra una pieza aquí para guardarla';
+  document.getElementById('pts').textContent=pts;document.getElementById('rec').textContent=Math.max(record,pts)}
+
+function colocar(p,x,y){
+  const nuevas=[];p.f.forEach((fila,j)=>fila.forEach((v,i)=>{if(v){const k=(y+j)*N+x+i;tablero[k]={k:p.k,oro:estrellas.has(k)};estrellas.delete(k);nuevas.push(k)}}));
+  pts+=nuevas.length;turnos++;
+  // filas y columnas llenas
+  const borrar=new Set();let lineas=0;
+  for(let y2=0;y2<N;y2++){let ok=true;for(let x2=0;x2<N;x2++)if(!tablero[y2*N+x2])ok=false;if(ok){lineas++;for(let x2=0;x2<N;x2++)borrar.add(y2*N+x2)}}
+  for(let x2=0;x2<N;x2++){let ok=true;for(let y2=0;y2<N;y2++)if(!tablero[y2*N+x2])ok=false;if(ok){lineas++;for(let y2=0;y2<N;y2++)borrar.add(y2*N+x2)}}
+  if(lineas){racha++;const oro=[...borrar].some(i=>tablero[i].oro);let g=lineas*10*lineas*racha;if(oro)g*=2;pts+=g;
+    texto((lineas>1?lineas+' líneas ':'')+(racha>1?'racha x'+racha+' ':'')+(oro?'¡doble! ':'')+'+'+g);
+    borrar.forEach(i=>celdas[i].classList.add('sale'));pintar();borrar.forEach(i=>celdas[i].classList.add('sale'));
+    setTimeout(()=>{borrar.forEach(i=>tablero[i]=null);seguir()},300)}
+  else{racha=0;seguir()}
+}
+function seguir(){if(turnos%4===0)ponerEstrella();if(piezas.every(p=>!p))bandeja();pintar();
+  const quedan=[...piezas,guardada].filter(Boolean);if(!quedan.some(p=>cabeAlgo(p.f)))fin()}
+function texto(t){const d=document.createElement('div');d.className='combo';d.textContent=t;tab.append(d);setTimeout(()=>d.remove(),900)}
+function fin(){acabado=true;const nuevo=pts>record;if(nuevo){record=pts;try{localStorage.setItem('gamehubEncaje',pts)}catch(e){}}
+  const d=document.createElement('div');d.className='fin';d.innerHTML='<div>Ya no cabe nada</div><b>'+pts+'</b><div>'+(nuevo?'¡Récord nuevo!':'Récord: '+record)+'</div><button class="btn" type="button">Otra vez</button>';
+  d.querySelector('button').onclick=empezar;tab.append(d)}
+
+/* ---------- arrastrar ---------- */
+let arr=null;
+function celPx(){return celdas[0].getBoundingClientRect().width+4}
+document.addEventListener('pointerdown',e=>{
+  if(acabado)return;const d=e.target.closest('.pieza');if(!d||d.classList.contains('vacia'))return;
+  const i=d.dataset.i,p=i==='g'?guardada:piezas[+i];if(!p)return;e.preventDefault();
+  const cp=celPx(),w=p.f[0].length,h=p.f.length,fa=document.createElement('div');fa.className='fantasma';
+  fa.style.gridTemplateColumns=`repeat(${w},${cp-4}px)`;fa.style.setProperty('--k',p.k);fa.innerHTML=p.f.flat().map(v=>`<i${v?'':' class="v"'}></i>`).join('');
+  document.body.append(fa);const subir=e.pointerType==='touch'?cp*1.6:cp*0.4;
+  arr={i,p,fa,w,h,cp,subir,x:-9,y:-9};mover(e);d.style.opacity='.25'});
+function mover(e){if(!arr)return;const {fa,w,h,cp,subir}=arr;const gx=e.clientX-w*cp/2,gy=e.clientY-h*cp/2-subir;fa.style.transform=`translate(${gx}px,${gy}px)`;
+  const r=celdas[0].getBoundingClientRect();const x=Math.round((gx-r.left+2)/cp),y=Math.round((gy-r.top+2)/cp);
+  const dentro=x>-w&&y>-h&&x<N&&y<N;arr.x=x;arr.y=y;arr.ok=dentro&&cabe(arr.p.f,x,y);
+  if(dentro){const cs=[];arr.p.f.forEach((fila,j)=>fila.forEach((v,i)=>{const X=x+i,Y=y+j;if(v&&X>=0&&Y>=0&&X<N&&Y<N)cs.push(Y*N+X)}));pintar({cs,ok:arr.ok,k:arr.p.k})}else pintar();
+  const g=document.getElementById('guardar').getBoundingClientRect();arr.alGuardar=arr.i!=='g'&&!guardada&&e.clientX>g.left&&e.clientX<g.right&&e.clientY>g.top-20&&e.clientY<g.bottom+20}
+document.addEventListener('pointermove',e=>{if(arr){e.preventDefault();mover(e)}},{passive:false});
+function soltar(){if(!arr)return;const a=arr;arr=null;a.fa.remove();
+  if(a.ok){if(a.i==='g')guardada=null;else piezas[+a.i]=null;colocar(a.p,a.x,a.y)}
+  else if(a.alGuardar){guardada=a.p;piezas[+a.i]=null;if(piezas.every(p=>!p))bandeja();pintar();const q=[...piezas,guardada].filter(Boolean);if(!q.some(p=>cabeAlgo(p.f)))fin()}
+  else pintar();
+  document.querySelectorAll('.pieza').forEach(d=>d.style.opacity='')}
+document.addEventListener('pointerup',soltar);document.addEventListener('pointercancel',soltar);
+empezar();
+</script>
+<script src="/lib/peerjs.min.js" defer></script>
+<script src="/amigos.js" defer></script>
+</body>
+</html>
