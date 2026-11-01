@@ -135,7 +135,7 @@ function connect(c){
 }
 function setCode(c){code=c;sessionStorage.setItem('ratitoSala',c);const u=new URL(location.origin+'/');u.searchParams.set('sala',c);$('am-url').value=u.href;
   $('am-off').hidden=true;$('am-on').hidden=false;if(!running){running=true;requestAnimationFrame(frame)}list();send({t:'hi'})}
-function start(c){
+function start(c){setTimeout(changed,0);
   if(typeof Peer==='undefined'){status('Cargando…');const s=document.createElement('script');s.src='/lib/peerjs.min.js';
     s.onload=()=>start(c);s.onerror=()=>status('No se pudo cargar la conexión. Recarga la página.');document.head.append(s);return}
   if(code!==c)SINCE=Date.now();code=c;status('Conectando a la sala '+c+'…');$('am-off').hidden=true;$('am-on').hidden=false;
@@ -158,9 +158,11 @@ function jugadores(){const list=[{...info(me.id),since:SINCE+OFF}];for(const p o
   // el líder es el que llegó primero a este juego (así nadie que entra tarde borra la partida)
   return list.sort((a,b)=>a.since-b.since||(a.id<b.id?-1:a.id>b.id?1:0)).map(({since,...j})=>j)}
 let lastSig='';
-function changed(){const act=!!code&&(host||(hc&&hc.open));const sig=(act?'1':'0')+jugadores().map(j=>j.id+j.name).join(',');if(sig!==lastSig){lastSig=sig;emit('cambio')}}
+function changed(){const act=!!code&&(host||(hc&&hc.open));const sig=(act?'1':'0')+(code||'')+jugadores().map(j=>j.id+j.name).join(',');if(sig!==lastSig){lastSig=sig;emit('cambio')}}
 window.RatitoSala={
   get activo(){return !!code&&!!(host||(hc&&hc.open))},
+  get codigo(){return code},
+  crear(){$('am-new').click();panel.hidden=false},
   get yo(){return info(me.id)},
   jugadores,
   lider(){return jugadores()[0].id===me.id},

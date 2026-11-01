@@ -3,221 +3,241 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Game Hub — juegos para calcular a ojo, solo o con amigos</title>
-<meta name="description" content="Juegos originales en el navegador para medir qué tan bien calculas, recuerdas y reaccionas: adivina dónde queda un lugar, calcula a ojo, rehaz un color, habla al revés, carrera de tecleo, reflejos, el círculo perfecto, arena y órbitas. Solo o con amigos.">
+<title>Game Hub — juegos originales, solo o con amigos</title>
+<meta name="description" content="Juegos originales en el navegador: habla al revés, adivina dónde queda un lugar, calcula a ojo, rehaz un color, carrera de tecleo, reflejos, el círculo perfecto, órbitas, arena y tu vida en vivo. Solo o con amigos.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/estilo.css">
 <style>
-body{background:var(--paper)}
-.wrap{max-width:1120px;margin:0 auto;padding:28px 22px 70px}
-.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:34px}
-.marca{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:900;font-size:1.35rem;letter-spacing:-.03em}
-.marca svg{width:36px;height:36px}
+body{background:#fff}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 22px 70px}
 
-/* portada: texto + mini-juego del centro */
-.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:34px;align-items:center;margin-bottom:46px}
-h1{margin:0 0 14px;font-size:clamp(2.5rem,7.4vw,4.6rem);line-height:.98;font-weight:900;letter-spacing:-.045em}
-h1 em{font-style:normal;color:var(--acc)}
-.hero p{margin:0 0 22px;color:var(--mut);font-size:1.12rem;max-width:470px}
-.acciones{display:flex;gap:10px;flex-wrap:wrap}
-.btn.acc{background:var(--acc)}
-.btn.acc:hover{background:#cc4421}
-.btn svg{width:16px;height:16px;vertical-align:-3px;margin-right:6px}
-.diana{background:#fff;border:1px solid var(--line);border-radius:22px;padding:18px;text-align:center;box-shadow:0 18px 40px -26px #15171C55}
-.diana svg{width:100%;max-width:300px;display:block;margin:0 auto;cursor:crosshair;touch-action:manipulation}
-.diana b{display:block;font-size:1.05rem}
-.diana span{color:var(--mut);font-size:.9rem}
-#tiro{transition:opacity .2s}
-#centro{opacity:0;transition:opacity .3s}
-.diana.ya #centro{opacity:1}
-@keyframes cae{from{transform:scale(2.4);opacity:0}to{transform:scale(1);opacity:1}}
-.diana.ya #tiro{animation:cae .25s ease-out;transform-box:fill-box;transform-origin:center}
+/* barra de arriba: deja espacio para el botón flotante de amigos */
+.top{display:flex;align-items:center;gap:12px;min-height:44px;padding-right:170px}
+.marca{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:900;font-size:1.3rem;letter-spacing:-.03em}
+.marca svg{width:34px;height:34px}
+
+/* título: cada letra con el color de un juego */
+.cabeza{display:flex;align-items:flex-end;justify-content:space-between;gap:20px 30px;flex-wrap:wrap;margin:38px 0 30px}
+h1{margin:0;font-size:clamp(3.4rem,13vw,8.4rem);line-height:.86;font-weight:900;letter-spacing:-.055em;display:flex;flex-wrap:wrap;gap:0 .22em}
+h1 span{display:inline-flex}
+h1 i{font-style:normal;display:inline-block;color:var(--c);transition:transform .25s cubic-bezier(.3,1.8,.5,1)}
+h1 i:hover{transform:translateY(-.12em) rotate(-6deg)}
+.cabeza aside{max-width:330px}
+.cabeza aside p{margin:0 0 14px;color:var(--mut);font-size:1.08rem}
+.btn svg{width:16px;height:16px;vertical-align:-3px;margin-right:7px}
 
 /* pestañas */
-.tabs{display:flex;gap:6px;margin:0 0 22px;flex-wrap:wrap}
-.tabs button{font:700 .98rem/1 inherit;font-family:inherit;background:#fff;border:1px solid var(--line);padding:10px 15px;border-radius:999px;color:var(--ink);cursor:pointer}
-.tabs button[aria-selected=true]{background:var(--ink);border-color:var(--ink);color:#fff}
-.tabs b{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--soft);font-size:.75rem;margin-left:6px;color:var(--ink)}
-.tabs button[aria-selected=true] b{background:var(--acc);color:#fff}
-.mp{display:none;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:var(--ink);color:#fff;border-radius:18px;padding:18px 20px;margin-bottom:22px}
-.mp.on{display:flex}
-.mp h2{margin:0;font-size:1.2rem}
-.mp p{margin:3px 0 0;color:#C7CAD1;max-width:560px}
-.mp .btn{background:var(--acc)}
+.tabs{display:flex;gap:8px;margin:0 0 18px;flex-wrap:wrap}
+.tabs button{font:800 1rem/1 "Schibsted Grotesk",sans-serif;background:#fff;border:2px solid var(--ink);padding:11px 18px;border-radius:999px;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.tabs button[aria-selected=true]{background:var(--ink);color:#fff}
+.tabs b{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--soft);font-size:.78rem;color:var(--ink)}
+.tabs button[aria-selected=true] b{background:#fff}
+
+/* caja de sala (solo en Multiplayer) */
+.sala{display:none;gap:14px 24px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--ink);color:#fff;border-radius:22px;padding:20px 22px;margin-bottom:20px}
+.mp .sala{display:flex}
+.sala h2{margin:0;font-size:1.25rem;letter-spacing:-.02em}
+.sala p{margin:3px 0 0;color:#C7CAD1;max-width:520px}
+.sala .acc{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sala .btn{background:#fff;color:var(--ink)}
+.sala form{display:flex;gap:6px}
+.sala input{font:700 1rem "Schibsted Grotesk",sans-serif;width:9.5ch;text-transform:uppercase;letter-spacing:.06em;padding:10px 12px;border-radius:10px;border:2px solid #3A3E46;background:transparent;color:#fff}
+.sala input::placeholder{color:#8A8F98;letter-spacing:0;text-transform:none}
+.sala input:focus{outline:0;border-color:#fff}
+.sala .btn.sec{background:transparent;color:#fff;border:2px solid #3A3E46}
+.sala.on{background:#1E9E6A}
+.sala.on p{color:#DDF3E9}
+.sala.aviso{animation:aviso .5s}
+@keyframes aviso{25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
 
 /* tarjetas */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:18px}
-.card{position:relative;display:flex;flex-direction:column;text-decoration:none;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:#fff;transition:transform .18s cubic-bezier(.3,1.6,.6,1),box-shadow .18s,border-color .18s}
-.card:hover{transform:translateY(-5px) rotate(-.6deg);box-shadow:0 16px 30px -18px #15171C66;border-color:var(--ink)}
-.card:nth-child(even):hover{transform:translateY(-5px) rotate(.6deg)}
-.card:active{transform:scale(.98)}
-.thumb{aspect-ratio:16/10;background:var(--soft);display:grid;place-items:center;overflow:hidden;transition:background .2s}
-.card:hover .thumb{background:var(--tint)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr));gap:20px}
+.card{position:relative;display:flex;flex-direction:column;text-decoration:none;border-radius:22px;overflow:hidden;border:2px solid var(--ink);background:#fff;transition:transform .16s ease,box-shadow .16s ease}
+.card:hover,.card:focus-visible{transform:translate(-4px,-4px);box-shadow:6px 6px 0 var(--ink)}
+.card:active{transform:translate(0,0);box-shadow:0 0 0 var(--ink)}
+.thumb{position:relative;aspect-ratio:16/11;background:var(--c);display:grid;place-items:center;overflow:hidden;border-bottom:2px solid var(--ink)}
 .thumb svg{width:100%;height:100%}
-.num{position:absolute;top:10px;left:12px;font-size:.75rem;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
-.meta{flex:1;padding:13px 15px 15px}
-.meta h3{margin:0;font-size:1.12rem;display:flex;align-items:center;gap:8px}
-.meta p{margin:3px 0 0;color:var(--mut);font-size:.92rem}
-.tag{font-size:.7rem;font-weight:700;color:var(--acc);background:var(--tint);border-radius:999px;padding:2px 8px;margin-left:auto;white-space:nowrap}
+.meta{flex:1;padding:13px 16px 16px}
+.meta h3{margin:0;font-size:1.18rem;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
+.meta p{margin:3px 0 0;color:var(--mut);font-size:.93rem}
+.amigos{margin-left:auto;flex:none;width:22px;height:22px}
 .card[hidden]{display:none}
-.card.elegida{animation:elegida .9s ease}
-@keyframes elegida{0%,100%{box-shadow:0 0 0 0 transparent}30%{box-shadow:0 0 0 6px var(--acc)}}
-footer{margin-top:50px;color:var(--mut);font-size:.88rem;display:flex;gap:10px;align-items:center}
-footer svg{width:20px;height:20px}
 
-/* animaciones de las miniaturas: se mueven al pasar el mouse (en celular, siempre) */
+/* candado: en Multiplayer sin sala */
+.candado{position:absolute;inset:0;display:none;place-items:center;align-content:center;gap:8px;background:#15171Cc4;color:#fff;font-weight:800;text-align:center;padding:12px}
+.candado svg{width:30px;height:30px}
+.mp:not(.ensala) .card .candado{display:grid}
+.elegida{animation:elegida .8s ease}
+@keyframes elegida{30%{transform:translate(-4px,-4px) rotate(-1.5deg);box-shadow:6px 6px 0 var(--ink)}}
+
+footer{margin-top:54px;color:var(--mut);font-size:.9rem}
+
+/* animaciones de las miniaturas: al pasar el mouse (en celular siempre) */
 .a{animation-play-state:paused!important}
 .card:hover .a,.card:focus-visible .a{animation-play-state:running!important}
 @media (hover:none){.a{animation-play-state:running!important}}
 @keyframes pin{0%,20%{transform:translateY(-34px);opacity:0}45%{transform:translateY(0);opacity:1}55%{transform:translateY(-6px)}65%,100%{transform:translateY(0)}}
 @keyframes guion{to{stroke-dashoffset:-40}}
 @keyframes desliza{0%,100%{transform:translateX(-58px)}50%{transform:translateX(30px)}}
-@keyframes tono{0%,100%{fill:#3A7898}33%{fill:#5A6FA0}66%{fill:#2F8F7F}}
+@keyframes tono{0%,100%{fill:#FF9B78}50%{fill:#FFC36B}}
 @keyframes tecla{0%,100%{fill:#fff}10%,30%{fill:#15171C}}
 @keyframes barra{0%{transform:scaleX(0)}60%,100%{transform:scaleX(1)}}
-@keyframes traza{from{stroke-dashoffset:420}to{stroke-dashoffset:0}}
+@keyframes traza{0%,100%{stroke-dashoffset:0}50%{stroke-dashoffset:420}}
 @keyframes gira{to{transform:rotate(360deg)}}
 @keyframes grano{0%{transform:translateY(-30px);opacity:0}15%{opacity:1}100%{transform:translateY(62px);opacity:0}}
-@keyframes ola{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.45)}}
-.ola{animation:ola 1s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
 @keyframes latido{to{stroke-dashoffset:-360}}
+@keyframes ola{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.45)}}
 .pin{animation:pin 2.2s ease-out infinite}
 .guion{animation:guion 1s linear infinite}
 .desliza{animation:desliza 2.6s ease-in-out infinite}
 .tono{animation:tono 3s ease-in-out infinite}
 .tecla{animation:tecla 1.6s steps(1) infinite}
 .barra{animation:barra 1.4s ease-out infinite;transform-box:fill-box;transform-origin:left}
-.traza{stroke-dasharray:420;animation:traza 2.4s ease-in-out infinite alternate}
-.gira{transform-origin:160px 100px;animation:gira 6s linear infinite}
+.traza{stroke-dasharray:420;animation:traza 3s ease-in-out infinite}
+.gira{transform-origin:160px 110px;animation:gira 6s linear infinite}
 .gira.r{animation-duration:3.4s}
 .grano{animation:grano 1.1s linear infinite}
 .latido{stroke-dasharray:180 180;animation:latido 2.4s linear infinite}
-@media (prefers-reduced-motion:reduce){.a{animation:none!important}}
+.ola{animation:ola 1s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
 
-@media (max-width:760px){
-  .hero{grid-template-columns:1fr;gap:24px}
-  .diana svg{max-width:230px}
+/* entrada: las tarjetas caen una tras otra, una sola vez */
+@keyframes entra{from{opacity:0;transform:translateY(18px) rotate(1.5deg)}}
+.grid .card{animation:entra .45s cubic-bezier(.3,1.4,.6,1) backwards}
+@media (prefers-reduced-motion:reduce){.a,.grid .card,.elegida{animation:none!important}h1 i{transition:none}}
+
+@media (max-width:640px){
+  .top{padding-right:150px}
+  .cabeza{margin:26px 0 24px}
+  .cabeza aside{max-width:none}
 }
 @media (max-width:380px){
-  .wrap{padding:20px 16px 60px}
+  .wrap{padding:18px 16px 60px}
+  .marca span{display:none}
+  .sala{padding:16px}
 }
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap" id="todo">
   <div class="top">
     <a class="marca" href="/" aria-label="Game Hub, inicio">
       <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#15171C"/><circle cx="32" cy="32" r="19" fill="none" stroke="#fff" stroke-width="5"/><circle cx="37" cy="27.5" r="6.5" fill="#E4572E"/></svg>
-      Game Hub
+      <span>Game Hub</span>
     </a>
   </div>
 
-  <section class="hero">
-    <div>
-      <h1>¿Qué tan bien calculas <em>a ojo</em>?</h1>
-      <p>Juegos cortos para poner a prueba tu puntería, tu memoria y tus reflejos. Sin cuentas, sin anuncios. Solo o con tus amigos.</p>
-      <div class="acciones">
-        <a class="btn acc" id="azar" href="/juegos/mapa/"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4h3l7 8h4M1 12h3l2-2.3M9.5 6.3 11 4h4M13 2l2 2-2 2M13 10l2 2-2 2"/></svg>Juego al azar</a>
-        <a class="btn sec" href="#juegos">Ver los 10 juegos</a>
-      </div>
-    </div>
-    <div class="diana" id="diana">
-      <svg viewBox="0 0 200 200" id="blanco" role="button" aria-label="Toca el centro exacto del aro">
-        <circle cx="100" cy="100" r="88" fill="none" stroke="#15171C" stroke-width="4"/>
-        <g id="centro"><line x1="92" y1="100" x2="108" y2="100" stroke="#15171C" stroke-width="2"/><line x1="100" y1="92" x2="100" y2="108" stroke="#15171C" stroke-width="2"/><line id="raya" x1="100" y1="100" x2="100" y2="100" stroke="#6B7079" stroke-width="1.5" stroke-dasharray="3 3"/></g>
-        <circle id="tiro" cx="-20" cy="-20" r="7" fill="#E4572E" stroke="#fff" stroke-width="2.5"/>
-      </svg>
-      <b id="dTxt">Toca el centro exacto del aro</b>
-      <span id="dSub">Calentamiento: sin pistas, solo tu ojo.</span>
-    </div>
-  </section>
+  <header class="cabeza">
+    <h1 aria-label="Game Hub"><span><i style="--c:#2D6CDF">G</i><i style="--c:#F5B700">a</i><i style="--c:#E63946">m</i><i style="--c:#1E9E6A">e</i></span><span><i style="--c:#6C4BD8">H</i><i style="--c:#F28C28">u</i><i style="--c:#0FA3B1">b</i></span></h1>
+    <aside>
+      <p>Diez juegos hechos desde cero en Panamá. Juega solo, o crea una sala y compite con tus amigos.</p>
+      <a class="btn" id="azar" href="/juegos/reves/"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1.5" width="13" height="13" rx="3"/><circle cx="5.3" cy="5.3" r=".6" fill="currentColor"/><circle cx="10.7" cy="10.7" r=".6" fill="currentColor"/><circle cx="8" cy="8" r=".6" fill="currentColor"/></svg>Juego al azar</a>
+    </aside>
+  </header>
 
   <nav class="tabs" role="tablist" id="juegos">
-    <button role="tab" aria-selected="true" data-f="todos">Todos <b id="nTodos"></b></button>
+    <button role="tab" aria-selected="true" data-f="solo">Solo <b id="nSolo"></b></button>
     <button role="tab" aria-selected="false" data-f="mp">Multiplayer <b id="nMp"></b></button>
   </nav>
 
-  <section class="mp" id="mpInfo">
-    <div><h2>Jugar con amigos</h2><p>Crea una sala, mándale el link a tus amigos y abran el mismo juego. Juegan la misma partida, con puntos para cada uno y el cursor del otro en vivo.</p></div>
-    <button class="btn" id="crear" type="button">Crear sala</button>
+  <section class="sala" id="sala" aria-live="polite">
+    <div><h2 id="salaT">Necesitas una sala</h2><p id="salaP">Los juegos de aquí se juegan con amigos. Crea una sala y mándales el link, o escribe el código que te pasaron.</p></div>
+    <div class="acc" id="salaAcc">
+      <button class="btn" id="crear" type="button">Crear sala</button>
+      <form id="unir"><input id="codigo" maxlength="8" placeholder="Código" aria-label="Código de la sala" autocomplete="off"><button class="btn sec" type="submit">Unirme</button></form>
+    </div>
   </section>
 
   <main class="grid" id="grid">
-    <a class="card" href="/juegos/reves/">
-      <div class="thumb"><svg viewBox="0 0 320 200"><g fill="#9AA0A8"><rect class="a ola" style="animation-delay:0.00s" x="60" y="96" width="5" height="8" rx="2.5"/><rect class="a ola" style="animation-delay:0.08s" x="69" y="78" width="5" height="44" rx="2.5"/><rect class="a ola" style="animation-delay:0.16s" x="78" y="72" width="5" height="56" rx="2.5"/><rect class="a ola" style="animation-delay:0.24s" x="87" y="81" width="5" height="39" rx="2.5"/><rect class="a ola" style="animation-delay:0.32s" x="96" y="96" width="5" height="9" rx="2.5"/><rect class="a ola" style="animation-delay:0.40s" x="105" y="85" width="5" height="30" rx="2.5"/><rect class="a ola" style="animation-delay:0.48s" x="114" y="88" width="5" height="25" rx="2.5"/><rect class="a ola" style="animation-delay:0.56s" x="123" y="91" width="5" height="17" rx="2.5"/><rect class="a ola" style="animation-delay:0.64s" x="132" y="79" width="5" height="41" rx="2.5"/><rect class="a ola" style="animation-delay:0.72s" x="141" y="79" width="5" height="42" rx="2.5"/><rect class="a ola" style="animation-delay:0.80s" x="150" y="92" width="5" height="15" rx="2.5"/><rect class="a ola" style="animation-delay:0.00s" fill="#E4572E" x="159" y="81" width="5" height="38" rx="2.5"/><rect class="a ola" style="animation-delay:0.08s" fill="#E4572E" x="168" y="70" width="5" height="61" rx="2.5"/><rect class="a ola" style="animation-delay:0.16s" fill="#E4572E" x="177" y="74" width="5" height="53" rx="2.5"/><rect class="a ola" style="animation-delay:0.24s" fill="#E4572E" x="186" y="89" width="5" height="21" rx="2.5"/><rect class="a ola" style="animation-delay:0.32s" fill="#E4572E" x="195" y="86" width="5" height="28" rx="2.5"/><rect class="a ola" style="animation-delay:0.40s" fill="#E4572E" x="204" y="80" width="5" height="39" rx="2.5"/><rect class="a ola" style="animation-delay:0.48s" fill="#E4572E" x="213" y="88" width="5" height="23" rx="2.5"/><rect class="a ola" style="animation-delay:0.56s" fill="#E4572E" x="222" y="90" width="5" height="20" rx="2.5"/><rect class="a ola" style="animation-delay:0.64s" fill="#E4572E" x="231" y="83" width="5" height="35" rx="2.5"/><rect class="a ola" style="animation-delay:0.72s" fill="#E4572E" x="240" y="89" width="5" height="22" rx="2.5"/><rect class="a ola" style="animation-delay:0.80s" fill="#E4572E" x="249" y="87" width="5" height="26" rx="2.5"/></g><path d="M150 160h20m0 0-6-5m6 5-6 5" fill="none" stroke="#15171C" stroke-width="2" stroke-linecap="round" transform="rotate(180 160 160)"/></svg></div>
-      <div class="meta"><h3>Al revés <span class="tag">Nuevo</span></h3><p>Graba tu voz, óyela al revés e imítala. ¿Se entiende cuando la volteas?</p></div>
+    <a class="card" href="/juegos/reves/" style="--c:#0FA3B1">
+      <div class="thumb"><svg viewBox="0 0 320 220"><g fill="#fff"><rect class="a ola" x="60" y="94" width="6" height="32" rx="3"/><rect class="a ola" style="animation-delay:.08s" x="70" y="80" width="6" height="60" rx="3"/><rect class="a ola" style="animation-delay:.16s" x="80" y="88" width="6" height="44" rx="3"/><rect class="a ola" style="animation-delay:.24s" x="90" y="70" width="6" height="80" rx="3"/><rect class="a ola" style="animation-delay:.32s" x="100" y="84" width="6" height="52" rx="3"/><rect class="a ola" style="animation-delay:.4s" x="110" y="96" width="6" height="28" rx="3"/><rect class="a ola" style="animation-delay:.48s" x="120" y="76" width="6" height="68" rx="3"/><rect class="a ola" style="animation-delay:.56s" x="130" y="64" width="6" height="92" rx="3"/><rect class="a ola" style="animation-delay:.64s" x="140" y="86" width="6" height="48" rx="3"/><rect class="a ola" style="animation-delay:.72s" x="150" y="98" width="6" height="24" rx="3"/></g><g fill="#15171C"><rect class="a ola" style="animation-delay:.72s" x="164" y="98" width="6" height="24" rx="3"/><rect class="a ola" style="animation-delay:.64s" x="174" y="86" width="6" height="48" rx="3"/><rect class="a ola" style="animation-delay:.56s" x="184" y="64" width="6" height="92" rx="3"/><rect class="a ola" style="animation-delay:.48s" x="194" y="76" width="6" height="68" rx="3"/><rect class="a ola" style="animation-delay:.4s" x="204" y="96" width="6" height="28" rx="3"/><rect class="a ola" style="animation-delay:.32s" x="214" y="84" width="6" height="52" rx="3"/><rect class="a ola" style="animation-delay:.24s" x="224" y="70" width="6" height="80" rx="3"/><rect class="a ola" style="animation-delay:.16s" x="234" y="88" width="6" height="44" rx="3"/><rect class="a ola" style="animation-delay:.08s" x="244" y="80" width="6" height="60" rx="3"/><rect class="a ola" x="254" y="94" width="6" height="32" rx="3"/></g><path d="M178 180h-36m0 0 8-7m-8 7 8 7" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="meta"><h3>Al revés</h3><p>Graba tu voz, óyela al revés e imítala. ¿Se entiende cuando la volteas?</p></div>
     </a>
-    <a class="card" href="/juegos/mapa/" data-mp>
-      <div class="thumb"><svg viewBox="0 0 320 200"><circle cx="160" cy="100" r="78" fill="none" stroke="#C9CDD3" stroke-width="2"/><ellipse cx="160" cy="100" rx="34" ry="78" fill="none" stroke="#DDE0E4" stroke-width="2"/><line x1="82" y1="100" x2="238" y2="100" stroke="#DDE0E4" stroke-width="2"/><path d="M120 70c10-12 30-10 34 2s-8 18-2 28-16 22-26 12-16-30-6-42z" fill="#B8BDC4"/><path d="M176 60c14-6 34 4 36 18s-14 10-18 22-18 6-22-6 -10-28 4-34z" fill="#B8BDC4"/><line class="a guion" x1="140" y1="92" x2="190" y2="120" stroke="#15171C" stroke-width="2" stroke-dasharray="5 5"/><circle cx="140" cy="92" r="6" fill="#15171C" stroke="#fff" stroke-width="2.5"/><circle class="a pin" cx="190" cy="120" r="8" fill="#E4572E" stroke="#fff" stroke-width="2.5"/></svg></div>
-      <div class="meta"><h3>¿Dónde queda? <span class="tag">Multiplayer</span></h3><p>Te dan un lugar del mundo y lo marcas en el mapa. Más cerca, más puntos.</p></div>
+    <a class="card" href="/juegos/mapa/" data-mp style="--c:#2D6CDF">
+      <div class="thumb"><svg viewBox="0 0 320 220"><circle cx="160" cy="110" r="80" fill="#ffffff22" stroke="#fff" stroke-opacity=".55" stroke-width="2"/><ellipse cx="160" cy="110" rx="35" ry="80" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="2"/><line x1="80" y1="110" x2="240" y2="110" stroke="#fff" stroke-opacity=".35" stroke-width="2"/><path d="M120 80c10-12 30-10 34 2s-8 18-2 28-16 22-26 12-16-30-6-42z" fill="#fff" fill-opacity=".85"/><path d="M176 70c14-6 34 4 36 18s-14 10-18 22-18 6-22-6 -10-28 4-34z" fill="#fff" fill-opacity=".85"/><line class="a guion" x1="140" y1="102" x2="190" y2="130" stroke="#15171C" stroke-width="2.5" stroke-dasharray="5 5"/><circle cx="140" cy="102" r="6" fill="#15171C" stroke="#fff" stroke-width="2.5"/><circle class="a pin" cx="190" cy="130" r="9" fill="#F5B700" stroke="#15171C" stroke-width="2.5"/></svg></div>
+      <div class="meta"><h3>¿Dónde queda?</h3><p>Te dan un lugar del mundo y lo marcas en el mapa. Más cerca, más puntos.</p></div>
     </a>
-    <a class="card" href="/juegos/aojo/" data-mp>
-      <div class="thumb"><svg viewBox="0 0 320 200"><text x="160" y="96" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="54" letter-spacing="-2" fill="#15171C">8.849 m</text><line x1="50" y1="140" x2="270" y2="140" stroke="#C9CDD3" stroke-width="3"/><circle cx="118" cy="140" r="7" fill="#9AA0A8"/><circle cx="206" cy="140" r="7" fill="#15171C"/><circle class="a desliza" cx="172" cy="140" r="9" fill="#E4572E"/></svg></div>
-      <div class="meta"><h3>A ojo <span class="tag">Multiplayer</span></h3><p>¿Cuánto mide el Everest? ¿Cuántos huesos tienes? Calcula sin buscar.</p></div>
+    <a class="card" href="/juegos/aojo/" data-mp style="--c:#F5B700">
+      <div class="thumb"><svg viewBox="0 0 320 220"><text x="160" y="104" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="56" letter-spacing="-2" fill="#15171C">8.849 m</text><line x1="50" y1="150" x2="270" y2="150" stroke="#15171C" stroke-opacity=".25" stroke-width="4" stroke-linecap="round"/><circle cx="118" cy="150" r="8" fill="#fff" stroke="#15171C" stroke-width="2.5"/><circle cx="206" cy="150" r="8" fill="#15171C"/><circle class="a desliza" cx="172" cy="150" r="10" fill="#E63946" stroke="#15171C" stroke-width="2.5"/></svg></div>
+      <div class="meta"><h3>A ojo</h3><p>¿Cuánto mide el Everest? ¿Cuántos huesos tienes? Calcula sin buscar.</p></div>
     </a>
-    <a class="card" href="/juegos/color/" data-mp>
-      <div class="thumb"><svg viewBox="0 0 320 200"><rect x="78" y="44" width="80" height="112" rx="10" fill="#2F6F8F"/><rect class="a tono" x="162" y="44" width="80" height="112" rx="10" fill="#3A7898"/><text x="160" y="182" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="700" font-size="15" fill="#6B7079">9,4 / 10</text></svg></div>
-      <div class="meta"><h3>Mismo color <span class="tag">Multiplayer</span></h3><p>Mira un color tres segundos y rehazlo de memoria.</p></div>
+    <a class="card" href="/juegos/color/" data-mp style="--c:#6C4BD8">
+      <div class="thumb"><svg viewBox="0 0 320 220"><rect x="76" y="46" width="82" height="118" rx="12" fill="#FF8A65" stroke="#15171C" stroke-width="2.5"/><rect class="a tono" x="162" y="46" width="82" height="118" rx="12" fill="#FF9B78" stroke="#15171C" stroke-width="2.5"/><text x="160" y="196" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="800" font-size="17" fill="#fff">9,4 / 10</text></svg></div>
+      <div class="meta"><h3>Mismo color</h3><p>Mira un color tres segundos y rehazlo de memoria.</p></div>
     </a>
-    <a class="card" href="/juegos/teclazo/" data-mp>
-      <div class="thumb"><svg viewBox="0 0 320 200"><g fill="#fff" stroke="#C9CDD3" stroke-width="2"><rect class="a tecla" x="44" y="70" width="28" height="28" rx="5"/><rect x="78" y="70" width="28" height="28" rx="5"/><rect class="a tecla" style="animation-delay:.4s" x="112" y="70" width="28" height="28" rx="5"/><rect x="146" y="70" width="28" height="28" rx="5"/><rect class="a tecla" style="animation-delay:1s" x="180" y="70" width="28" height="28" rx="5"/><rect x="214" y="70" width="28" height="28" rx="5"/><rect class="a tecla" style="animation-delay:.2s" x="248" y="70" width="28" height="28" rx="5"/><rect x="60" y="104" width="28" height="28" rx="5"/><rect class="a tecla" style="animation-delay:1.2s" x="94" y="104" width="28" height="28" rx="5"/><rect x="128" y="104" width="28" height="28" rx="5"/><rect x="162" y="104" width="28" height="28" rx="5" fill="#E4572E" stroke="#E4572E"/><rect class="a tecla" style="animation-delay:.7s" x="196" y="104" width="28" height="28" rx="5"/><rect x="230" y="104" width="28" height="28" rx="5"/><rect class="a tecla" style="animation-delay:.5s" x="96" y="138" width="128" height="22" rx="5"/></g><text x="160" y="50" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="22" fill="#15171C">74 ppm</text></svg></div>
-      <div class="meta"><h3>Teclazo <span class="tag">Multiplayer</span></h3><p>Carrera de tecleo: misma frase, gana el que escribe más rápido y sin errores.</p></div>
+    <a class="card" href="/juegos/teclazo/" data-mp style="--c:#1E9E6A">
+      <div class="thumb"><svg viewBox="0 0 320 220"><g fill="#fff"><rect class="a tecla" x="44" y="78" width="28" height="28" rx="6"/><rect x="78" y="78" width="28" height="28" rx="6"/><rect class="a tecla" style="animation-delay:.4s" x="112" y="78" width="28" height="28" rx="6"/><rect x="146" y="78" width="28" height="28" rx="6"/><rect class="a tecla" style="animation-delay:1s" x="180" y="78" width="28" height="28" rx="6"/><rect x="214" y="78" width="28" height="28" rx="6"/><rect class="a tecla" style="animation-delay:.2s" x="248" y="78" width="28" height="28" rx="6"/><rect x="60" y="112" width="28" height="28" rx="6"/><rect class="a tecla" style="animation-delay:1.2s" x="94" y="112" width="28" height="28" rx="6"/><rect x="128" y="112" width="28" height="28" rx="6"/><rect x="162" y="112" width="28" height="28" rx="6" fill="#F5B700"/><rect class="a tecla" style="animation-delay:.7s" x="196" y="112" width="28" height="28" rx="6"/><rect x="230" y="112" width="28" height="28" rx="6"/><rect class="a tecla" style="animation-delay:.5s" x="96" y="146" width="128" height="24" rx="6"/></g><text x="160" y="58" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="24" fill="#fff">74 ppm</text></svg></div>
+      <div class="meta"><h3>Teclazo</h3><p>Carrera de tecleo: misma frase, gana el que escribe más rápido y sin errores.</p></div>
     </a>
-    <a class="card" href="/juegos/reflejos/" data-mp>
-      <div class="thumb"><svg viewBox="0 0 320 200"><text x="160" y="112" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="64" letter-spacing="-3" fill="#15171C">214<tspan font-size="26" fill="#6B7079"> ms</tspan></text><rect x="110" y="140" width="100" height="6" rx="3" fill="#DDE0E4"/><rect class="a barra" x="110" y="140" width="100" height="6" rx="3" fill="#E4572E"/></svg></div>
-      <div class="meta"><h3>Reflejos <span class="tag">Multiplayer</span></h3><p>Toca apenas cambie, o para el reloj en 10 segundos exactos.</p></div>
+    <a class="card" href="/juegos/reflejos/" data-mp style="--c:#E63946">
+      <div class="thumb"><svg viewBox="0 0 320 220"><text x="160" y="122" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="70" letter-spacing="-3" fill="#fff">214<tspan font-size="28" fill="#15171C"> ms</tspan></text><rect x="105" y="150" width="110" height="8" rx="4" fill="#ffffff55"/><rect class="a barra" x="105" y="150" width="110" height="8" rx="4" fill="#fff"/></svg></div>
+      <div class="meta"><h3>Reflejos</h3><p>Toca apenas cambie, o para el reloj en 10 segundos exactos.</p></div>
     </a>
-    <a class="card" href="/juegos/circulo/" data-mp>
-      <div class="thumb"><svg viewBox="0 0 320 200"><path class="a traza" d="M160 34c40 1 68 30 66 68-2 37-32 64-68 63-37-1-64-31-62-67 2-35 30-62 60-64" fill="none" stroke="#15171C" stroke-width="6" stroke-linecap="round"/><circle cx="160" cy="100" r="5" fill="#E4572E"/></svg></div>
-      <div class="meta"><h3>Círculo perfecto <span class="tag">Multiplayer</span></h3><p>Dibuja un círculo de una pasada. ¿Llegas al 95 %?</p></div>
+    <a class="card" href="/juegos/circulo/" data-mp style="--c:#F28C28">
+      <div class="thumb"><svg viewBox="0 0 320 220"><path class="a traza" d="M160 42c40 1 68 30 66 68-2 37-32 64-68 63-37-1-64-31-62-67 2-35 30-62 60-64" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><circle cx="160" cy="110" r="6" fill="#15171C"/></svg></div>
+      <div class="meta"><h3>Círculo perfecto</h3><p>Dibuja un círculo de una pasada. ¿Llegas al 95 %?</p></div>
     </a>
-    <a class="card" href="/juegos/orbitas/" data-mp>
-      <div class="thumb"><svg viewBox="0 0 320 200"><circle cx="160" cy="100" r="76" fill="none" stroke="#C9CDD3" stroke-width="2"/><circle cx="160" cy="100" r="44" fill="none" stroke="#C9CDD3" stroke-width="2"/><circle cx="160" cy="100" r="14" fill="#15171C"/><g class="a gira r"><circle cx="204" cy="100" r="6" fill="#E4572E"/></g><g class="a gira"><circle cx="160" cy="24" r="4.5" fill="#15171C"/></g></svg></div>
-      <div class="meta"><h3>Órbitas <span class="tag">Multiplayer</span></h3><p>Lanza planetas alrededor de una estrella y mantenlos en órbita.</p></div>
+    <a class="card" href="/juegos/orbitas/" data-mp style="--c:#1B2A4A">
+      <div class="thumb"><svg viewBox="0 0 320 220"><g fill="#fff"><circle cx="40" cy="40" r="1.5"/><circle cx="270" cy="30" r="1.5"/><circle cx="290" cy="180" r="1.5"/><circle cx="30" cy="190" r="1.5"/><circle cx="250" cy="90" r="1"/></g><circle cx="160" cy="110" r="78" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="2"/><circle cx="160" cy="110" r="46" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="2"/><circle cx="160" cy="110" r="16" fill="#F5B700"/><g class="a gira r"><circle cx="206" cy="110" r="7" fill="#F28C28"/></g><g class="a gira"><circle cx="160" cy="32" r="5" fill="#fff"/></g></svg></div>
+      <div class="meta"><h3>Órbitas</h3><p>Lanza planetas alrededor de una estrella y mantenlos en órbita.</p></div>
     </a>
-    <a class="card" href="/juegos/arena/" data-mp>
-      <div class="thumb"><svg viewBox="0 0 320 200"><path d="M40 170c40-30 70-62 120-62s80 32 120 62z" fill="#C9B48A"/><g fill="#B39A6B"><circle class="a grano" cx="150" cy="48" r="3"/><circle class="a grano" style="animation-delay:.25s" cx="153" cy="48" r="2.5"/><circle class="a grano" style="animation-delay:.5s" cx="148" cy="48" r="3"/><circle class="a grano" style="animation-delay:.75s" cx="152" cy="48" r="2.5"/><circle class="a grano" style="animation-delay:.12s" cx="151" cy="48" r="2"/><circle class="a grano" style="animation-delay:.62s" cx="149" cy="48" r="2"/></g><rect x="40" y="170" width="240" height="6" fill="#9AA0A8"/></svg></div>
-      <div class="meta"><h3>Arena <span class="tag">Multiplayer</span></h3><p>Arena, agua, lava y fuego que caen y reaccionan de verdad.</p></div>
+    <a class="card" href="/juegos/arena/" data-mp style="--c:#A9744B">
+      <div class="thumb"><svg viewBox="0 0 320 220"><path d="M40 182c40-30 70-62 120-62s80 32 120 62z" fill="#F3D9A8"/><g fill="#F3D9A8"><circle class="a grano" cx="150" cy="58" r="3.5"/><circle class="a grano" style="animation-delay:.25s" cx="154" cy="58" r="3"/><circle class="a grano" style="animation-delay:.5s" cx="147" cy="58" r="3.5"/><circle class="a grano" style="animation-delay:.75s" cx="152" cy="58" r="3"/><circle class="a grano" style="animation-delay:.12s" cx="151" cy="58" r="2.5"/><circle class="a grano" style="animation-delay:.62s" cx="149" cy="58" r="2.5"/></g><rect x="40" y="182" width="240" height="7" rx="2" fill="#15171C"/></svg></div>
+      <div class="meta"><h3>Arena</h3><p>Arena, agua, lava y fuego que caen y reaccionan de verdad.</p></div>
     </a>
-    <a class="card" href="/juegos/vida/">
-      <div class="thumb"><svg viewBox="0 0 320 200"><text x="160" y="96" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="40" letter-spacing="-1" fill="#15171C">571.028.925</text><polyline points="70,140 120,140 132,120 144,160 156,128 166,140 250,140" fill="none" stroke="#DDE0E4" stroke-width="3"/><polyline class="a latido" points="70,140 120,140 132,120 144,160 156,128 166,140 250,140" fill="none" stroke="#E4572E" stroke-width="3"/></svg></div>
+    <a class="card" href="/juegos/vida/" style="--c:#E84A8A">
+      <div class="thumb"><svg viewBox="0 0 320 220"><text x="160" y="104" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="42" letter-spacing="-1" fill="#fff">571.028.925</text><polyline points="70,150 120,150 132,128 144,172 156,138 166,150 250,150" fill="none" stroke="#ffffff55" stroke-width="4" stroke-linejoin="round"/><polyline class="a latido" points="70,150 120,150 132,128 144,172 156,138 166,150 250,150" fill="none" stroke="#15171C" stroke-width="4" stroke-linejoin="round"/></svg></div>
       <div class="meta"><h3>Tu vida en vivo</h3><p>Tus latidos, respiraciones y días contando en tiempo real.</p></div>
     </a>
   </main>
 
-  <footer><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" fill="none" stroke="#6B7079" stroke-width="6"/><circle cx="37" cy="27.5" r="7.5" fill="#E4572E"/></svg>Game Hub, hecho en Panamá. Todos los juegos son originales y funcionan en tu navegador.</footer>
+  <footer>Game Hub, hecho en Panamá. Todos los juegos son originales y funcionan en tu navegador.</footer>
 </div>
 <script>
-const cards=[...document.querySelectorAll('.card')],tabs=[...document.querySelectorAll('.tabs button')];
-cards.forEach((c,i)=>{const n=document.createElement('span');n.className='num';n.textContent=String(i+1).padStart(2,'0');c.prepend(n)});
-document.getElementById('nTodos').textContent=cards.length;document.getElementById('nMp').textContent=cards.filter(c=>c.hasAttribute('data-mp')).length;
-function filtro(f){tabs.forEach(t=>t.setAttribute('aria-selected',t.dataset.f===f));cards.forEach(c=>c.hidden=f==='mp'&&!c.hasAttribute('data-mp'));
-  document.getElementById('mpInfo').classList.toggle('on',f==='mp');history.replaceState(null,'',f==='mp'?'#multiplayer':location.pathname+location.search)}
+const todo=document.getElementById('todo'),cards=[...document.querySelectorAll('.card')],tabs=[...document.querySelectorAll('.tabs button')];
+const CANDADO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="10.5" width="16" height="11" rx="3"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>Crea una sala para jugar';
+const AMIGOS='<svg class="amigos" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" role="img" aria-label="Se juega con amigos"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M17 14.6c2.6.2 4.2 2 4.6 5"/></svg>';
+cards.forEach((c,i)=>{c.style.animationDelay=(i*45)+'ms';if(c.hasAttribute('data-mp')){const d=document.createElement('div');d.className='candado';d.innerHTML=CANDADO;c.querySelector('.thumb').append(d);c.querySelector('h3').insertAdjacentHTML('beforeend',AMIGOS)}});
+document.getElementById('nSolo').textContent=cards.length;document.getElementById('nMp').textContent=cards.filter(c=>c.hasAttribute('data-mp')).length;
+
+let modo='solo';
+const salaHTML=document.getElementById('salaAcc').innerHTML,salaPTxt=document.getElementById('salaP').textContent;
+function sala(){return window.RatitoSala||null}
+function enSala(){const s=sala();return !!(s&&s.codigo)}
+function pintarSala(){
+  const s=sala(),on=enSala(),box=document.getElementById('sala');
+  todo.classList.toggle('ensala',on);box.classList.toggle('on',on);
+  if(on){const n=s.activo?s.jugadores().length:0;
+    document.getElementById('salaT').textContent='Estás en la sala '+s.codigo;
+    document.getElementById('salaP').textContent=s.activo?(n>1?'Hay '+n+' jugadores aquí. Elijan un juego y ábranlo todos.':'Manda el link a tus amigos y elijan un juego.'):'Conectando…';
+    if(!document.getElementById('copiar')){document.getElementById('salaAcc').innerHTML='<button class="btn" id="copiar" type="button">Copiar link</button>';
+      document.getElementById('copiar').onclick=async e=>{const u=new URL(location.origin+'/');u.searchParams.set('sala',sala().codigo);try{await navigator.clipboard.writeText(u.href);e.target.textContent='¡Copiado!'}catch(x){e.target.textContent=u.href}}}
+  }else if(document.getElementById('copiar')){
+    document.getElementById('salaT').textContent='Necesitas una sala';document.getElementById('salaP').textContent=salaPTxt;
+    document.getElementById('salaAcc').innerHTML=salaHTML;conectarBotones()}
+}
+function filtro(f){modo=f;tabs.forEach(t=>t.setAttribute('aria-selected',t.dataset.f===f));cards.forEach(c=>c.hidden=f==='mp'&&!c.hasAttribute('data-mp'));
+  todo.classList.toggle('mp',f==='mp');history.replaceState(null,'',f==='mp'?'#multiplayer':location.pathname+location.search)}
 tabs.forEach(t=>t.onclick=()=>filtro(t.dataset.f));
-if(location.hash==='#multiplayer')filtro('mp');
-function abrirSala(){const b=document.querySelector('.am-btn');if(!b)return;b.click();setTimeout(()=>{const n=document.getElementById('am-new');if(n&&!n.closest('[hidden]'))n.click()},50)}
-document.getElementById('crear').onclick=abrirSala;
+if(location.hash==='#multiplayer'||new URLSearchParams(location.search).get('sala'))filtro('mp');
 
-/* juego al azar */
+function avisar(){const b=document.getElementById('sala');b.classList.remove('aviso');void b.offsetWidth;b.classList.add('aviso')}
+function conectarBotones(){
+  document.getElementById('crear').onclick=()=>{const s=sala();if(s&&s.crear)s.crear()};
+  document.getElementById('unir').onsubmit=e=>{e.preventDefault();const c=document.getElementById('codigo').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(!/^[A-Z0-9]{5,8}$/.test(c)){document.getElementById('codigo').focus();avisar();return}location.href='/?sala='+c+'#multiplayer'};
+}
+conectarBotones();
+cards.forEach(c=>c.addEventListener('click',e=>{if(modo==='mp'&&c.hasAttribute('data-mp')&&!enSala()){e.preventDefault();avisar();document.getElementById('sala').scrollIntoView({behavior:'smooth',block:'center'})}}));
+let enganchado=false;
+function enganchar(){if(enganchado||!window.RatitoSala)return;enganchado=true;RatitoSala.al('cambio',pintarSala);pintarSala()}
+addEventListener('ratitosala',enganchar);enganchar();
+
+/* juego al azar: entre los que se pueden jugar ahora */
 const azar=document.getElementById('azar');
-function sortear(){const c=cards[Math.floor(Math.random()*cards.length)];azar.href=c.getAttribute('href');return c}
-sortear();
-azar.onclick=e=>{e.preventDefault();const c=sortear();c.classList.remove('elegida');void c.offsetWidth;c.classList.add('elegida');
-  c.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>location.href=c.getAttribute('href'),matchMedia('(prefers-reduced-motion:reduce)').matches?0:700)};
-
-/* calentamiento: toca el centro del aro */
-const diana=document.getElementById('diana'),blanco=document.getElementById('blanco'),tiro=document.getElementById('tiro'),raya=document.getElementById('raya');
-let mejor=0;try{mejor=+localStorage.getItem('tanteoCentro')||0}catch(e){}
-function frase(p){return p>=99?'¡Perfecto! Ojo de cirujano.':p>=95?'Casi perfecto.':p>=88?'Muy bien.':p>=75?'Nada mal.':'Uf, lejos. Otra vez.'}
-blanco.addEventListener('pointerdown',e=>{
-  const r=blanco.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*200,y=(e.clientY-r.top)/r.height*200;
-  const d=Math.hypot(x-100,y-100),p=Math.max(0,Math.round(1000-d/88*1000)/10);
-  tiro.setAttribute('cx',x);tiro.setAttribute('cy',y);raya.setAttribute('x2',x);raya.setAttribute('y2',y);
-  diana.classList.remove('ya');void diana.offsetWidth;diana.classList.add('ya');
-  const nuevo=p>mejor;if(nuevo){mejor=p;try{localStorage.setItem('tanteoCentro',p)}catch(e){}}
-  document.getElementById('dTxt').textContent=p.toLocaleString('es')+' / 100 · '+frase(p);
-  document.getElementById('dSub').textContent=(nuevo?'¡Récord nuevo! ':'Tu récord: '+mejor.toLocaleString('es')+' · ')+'Toca otra vez para repetir.';
-});
+function jugables(){return cards.filter(c=>!c.hidden&&!(modo==='mp'&&c.hasAttribute('data-mp')&&!enSala()))}
+azar.onclick=e=>{e.preventDefault();const l=jugables();if(!l.length){avisar();return}const c=l[Math.floor(Math.random()*l.length)];
+  c.classList.remove('elegida');void c.offsetWidth;c.classList.add('elegida');c.scrollIntoView({behavior:'smooth',block:'center'});
+  setTimeout(()=>location.href=c.getAttribute('href'),matchMedia('(prefers-reduced-motion:reduce)').matches?0:750)};
 </script>
 <script src="/lib/peerjs.min.js" defer></script>
 <script src="/amigos.js" defer></script>
