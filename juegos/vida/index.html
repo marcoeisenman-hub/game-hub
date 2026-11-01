@@ -32,6 +32,7 @@ h2{font-size:1.4rem;margin:44px 0 6px}
 .mile{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;padding:14px 0;border-bottom:1px solid #3A242A}
 .mile.past{opacity:.45}
 .duo[hidden]{display:none}
+.duo .btn{background:#E5484D;margin:2px 0 10px}.duo .btn:hover{background:#F26165}
 .duo .row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #3A242A}
 .duo i{width:12px;height:12px;border-radius:50%}
 .duo b{font-size:1.2rem}
@@ -62,8 +63,8 @@ h2{font-size:1.4rem;margin:44px 0 6px}
     <h2>Tus próximos récords</h2>
     <p class="next">Momentos redondos que casi nadie celebra. Anótalos.</p>
     <div id="miles"></div>
-    <div class="duo" id="duo" hidden><h2>Con tus amigos</h2><p class="next">Todos los de la sala que pusieron su fecha. Tus amigos ven tu fecha de nacimiento.</p><div id="duoL"></div></div>
-    <p class="note">Son aproximaciones con promedios: 75 latidos y 16 respiraciones por minuto, 15 parpadeos por minuto despierto, 8 horas de sueño al día. Nada de lo que escribes sale de tu navegador.</p>
+    <div class="duo" id="duo" hidden><h2>Con tus amigos</h2><p class="next">Comparen latidos. Tu fecha solo se manda a la sala si tocas el botón.</p><button class="btn" id="share" type="button">Compartir mi fecha con la sala</button><div id="duoL"></div></div>
+    <p class="note">Son aproximaciones con promedios: 75 latidos y 16 respiraciones por minuto, 15 parpadeos por minuto despierto, 8 horas de sueño al día. Tu fecha no sale de tu navegador, salvo que la compartas con tu sala de amigos.</p>
   </div>
 </div>
 <script>
@@ -109,25 +110,27 @@ $('f').onsubmit=e=>{
   if(b>Date.now()){$('err').textContent='Esa fecha está en el futuro. Revisa el año.';return}
   if(Y<1900){$('err').textContent='Escribe un año desde 1900.';return}
   $('err').textContent='';birth=b;localStorage.setItem('ratitoVida',$('d').value+'|'+$('h').value);
-  $('out').hidden=false;tx({birth:b});miles();tick();clearInterval(timer);let k=0;timer=setInterval(()=>{tick();if(++k%600===0)miles()},100);
+  $('out').hidden=false;if(compartir)tx({birth:b});miles();tick();clearInterval(timer);let k=0;timer=setInterval(()=>{tick();if(++k%600===0)miles()},100);
   $('out').scrollIntoView({behavior:'smooth',block:'start'});
 };
 /* jugar con amigos */
-let sala=null;const amigos={};
+let sala=null,compartir=false;const amigos={};
 const tx=d=>{if(sala&&sala.activo)sala.enviar(d)};
 function duo(){
   const box=$('duo');if(!sala||!sala.activo||!birth){box.hidden=true;return}
-  const rows=sala.jugadores().map(j=>({...j,b:j.yo?birth:amigos[j.id]})).filter(r=>r.b);
-  if(rows.length<2){box.hidden=false;$('duoL').innerHTML='<p class="next">Esperando a que tus amigos pongan su fecha…</p>';return}
+  $('share').textContent=compartir?'Dejar de compartir mi fecha':'Compartir mi fecha con la sala';
+  const rows=sala.jugadores().map(j=>({...j,b:j.yo?(compartir?birth:null):amigos[j.id]})).filter(r=>r.b);
+  if(rows.length<2){box.hidden=false;$('duoL').innerHTML='<p class="next">'+(compartir?'Esperando a que tus amigos compartan su fecha…':'Comparte tu fecha para compararte con tus amigos.')+'</p>';return}
   box.hidden=false;rows.sort((a,b)=>a.b-b.b);const now=Date.now();
   $('duoL').innerHTML=rows.map((r,k)=>{const sec=(now-r.b)/1000,dif=k?Math.round((r.b-rows[0].b)/864e5):0;
     return `<div class="row"><i style="background:${r.color}"></i><div>${r.name}${r.yo?' (tú)':''}<small>${k===0?'el que más ha vivido':nf.format(dif)+' días menos que '+rows[0].name}</small></div><div class="r"><b>${n0(sec/60*75)}</b><small>latidos</small></div></div>`}).join('');
 }
 function conSala(fn){window.RatitoSala?fn(RatitoSala):addEventListener('ratitosala',()=>fn(RatitoSala),{once:true})}
 conSala(S0=>{sala=S0;
-  sala.al('mensaje',(d,de)=>{const b=+(d&&d.birth);if(Number.isFinite(b)&&b>-22e11&&b<Date.now()){amigos[de.id]=b;duo()}});
-  sala.al('cambio',()=>{for(const id of Object.keys(amigos))if(!sala.jugadores().some(j=>j.id===id))delete amigos[id];if(birth)tx({birth});duo()});
+  sala.al('mensaje',(d,de)=>{if(d&&d.birth===null){delete amigos[de.id];duo();return}const b=+(d&&d.birth);if(Number.isFinite(b)&&b>-22e11&&b<Date.now()){amigos[de.id]=b;duo()}});
+  sala.al('cambio',()=>{for(const id of Object.keys(amigos))if(!sala.jugadores().some(j=>j.id===id))delete amigos[id];if(birth&&compartir)tx({birth});duo()});
 });
+$('share').onclick=()=>{compartir=!compartir;tx({birth:compartir?birth:null});duo()};
 const saved=localStorage.getItem('ratitoVida');
 $('d').max=new Date().toISOString().slice(0,10);
 if(saved){const [d,h]=saved.split('|');$('d').value=d;if(h)$('h').value=h}
