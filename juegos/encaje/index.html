@@ -62,7 +62,7 @@ const FORMAS=[ // [forma, peso]
  [[[1,1,1],[0,1,0]],1],[[[0,1,0],[1,1,1]],1],[[[1,1,0],[0,1,1]],1],[[[0,1,1],[1,1,0]],1],
  [[[1,0,0],[1,0,0],[1,1,1]],1],[[[1,1,1],[0,0,1],[0,0,1]],1]];
 const PESO=FORMAS.reduce((s,f)=>s+f[1],0);
-let celdas=[],tablero,estrellas,piezas,guardada,pts,racha,turnos,record=0,acabado=false;
+let borrando=false,celdas=[],tablero,estrellas,piezas,guardada,pts,racha,turnos,record=0,acabado=false;borrando=false;
 try{record=+localStorage.getItem('gamehubEncaje')||0}catch(e){}
 
 for(let i=0;i<N*N;i++){const d=document.createElement('div');d.className='c';tab.append(d);celdas.push(d)}
@@ -72,7 +72,7 @@ function cabe(f,x,y){for(let j=0;j<f.length;j++)for(let i=0;i<f[0].length;i++)if
 function cabeAlgo(f){for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(cabe(f,x,y))return true;return false}
 function bandeja(){for(let t=0;t<30;t++){piezas=[nuevaPieza(),nuevaPieza(),nuevaPieza()];if(piezas.some(p=>cabeAlgo(p.f)))break}}
 
-function empezar(){tablero=new Array(N*N).fill(null);estrellas=new Set();guardada=null;pts=0;racha=0;turnos=0;acabado=false;
+function empezar(){tablero=new Array(N*N).fill(null);estrellas=new Set();guardada=null;pts=0;racha=0;turnos=0;acabado=false;borrando=false;
   document.querySelectorAll('.fin').forEach(e=>e.remove());bandeja();ponerEstrella();pintar()}
 function ponerEstrella(){const libres=[];for(let i=0;i<N*N;i++)if(!tablero[i]&&!estrellas.has(i))libres.push(i);if(libres.length&&estrellas.size<2)estrellas.add(libres[Math.floor(Math.random()*libres.length)])}
 function mini(p){const w=p.f[0].length;return `<div class="g" style="grid-template-columns:repeat(${w},auto);--k:${p.k}">`+p.f.flat().map(v=>`<i${v?'':' class="v"'}></i>`).join('')+'</div>'}
@@ -94,7 +94,7 @@ function colocar(p,x,y){
   if(lineas){racha++;const oro=[...borrar].some(i=>tablero[i].oro);let g=lineas*10*lineas*racha;if(oro)g*=2;pts+=g;
     texto((lineas>1?lineas+' líneas ':'')+(racha>1?'racha x'+racha+' ':'')+(oro?'¡doble! ':'')+'+'+g);
     borrar.forEach(i=>celdas[i].classList.add('sale'));pintar();borrar.forEach(i=>celdas[i].classList.add('sale'));
-    setTimeout(()=>{borrar.forEach(i=>tablero[i]=null);seguir()},300)}
+    borrando=true;setTimeout(()=>{borrar.forEach(i=>tablero[i]=null);borrando=false;seguir()},300)}
   else{racha=0;seguir()}
 }
 function seguir(){if(turnos%4===0)ponerEstrella();if(piezas.every(p=>!p))bandeja();pintar();
@@ -108,10 +108,10 @@ function fin(){acabado=true;const nuevo=pts>record;if(nuevo){record=pts;try{loca
 let arr=null;
 function celPx(){return celdas[0].getBoundingClientRect().width+4}
 document.addEventListener('pointerdown',e=>{
-  if(acabado)return;const d=e.target.closest('.pieza');if(!d||d.classList.contains('vacia'))return;
+  if(acabado||borrando)return;const d=e.target.closest('.pieza');if(!d||d.classList.contains('vacia'))return;
   const i=d.dataset.i,p=i==='g'?guardada:piezas[+i];if(!p)return;e.preventDefault();
   const cp=celPx(),w=p.f[0].length,h=p.f.length,fa=document.createElement('div');fa.className='fantasma';
-  fa.style.gridTemplateColumns=`repeat(${w},${cp-4}px)`;fa.style.setProperty('--k',p.k);fa.innerHTML=p.f.flat().map(v=>`<i${v?'':' class="v"'}></i>`).join('');
+  fa.style.gridTemplateColumns=`repeat(${w},${cp-4}px)`;fa.style.setProperty('--k',p.k);fa.style.setProperty('--cel',cp+'px');fa.innerHTML=p.f.flat().map(v=>`<i${v?'':' class="v"'}></i>`).join('');
   document.body.append(fa);const subir=e.pointerType==='touch'?cp*1.6:cp*0.4;
   arr={i,p,fa,w,h,cp,subir,x:-9,y:-9};mover(e);d.style.opacity='.25'});
 function mover(e){if(!arr)return;const {fa,w,h,cp,subir}=arr;const gx=e.clientX-w*cp/2,gy=e.clientY-h*cp/2-subir;fa.style.transform=`translate(${gx}px,${gy}px)`;
