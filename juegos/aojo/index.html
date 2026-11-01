@@ -113,7 +113,9 @@ function desdeSl(v){const [, , ,lo,hi]=Q();return 10**(lg(lo)+(lg(hi)-lg(lo))*v/
 function haciaSl(x){const [, , ,lo,hi]=Q();return Math.round(1000*(lg(x)-lg(lo))/(lg(hi)-lg(lo)))}
 function bonito(x){if(x>=100)return Math.round(x);if(x>=10)return Math.round(x*10)/10;return Math.round(x*100)/100}
 function leer(){let t=$('num').value.replace(/\s/g,'');t=/^\d+\.\d{1,2}$/.test(t)?t:t.replace(/\./g,'').replace(',','.');const v=parseFloat(t);return Number.isFinite(v)&&v>0?v:null}
-const puntos=(g,r)=>Math.round(1000*Math.max(0,1-Math.abs(lg(g/r))/1.3));
+// exacto = 1000; 10 % de error ≈ 800; 25 % ≈ 600; el doble ≈ 200; el triple ≈ 80
+const puntos=(g,r)=>{if(!(g>0)||!(r>0))return 0;return Math.round(1000*Math.exp(-2.3*Math.abs(Math.log(g/r))))};
+const errorPct=(g,r)=>Math.round(Math.abs(g-r)/r*100);
 function nueva(){const q=Q();$('sl').value=500;$('num').value=nf.format(bonito(desdeSl(500)));}
 $('sl').oninput=()=>{$('num').value=nf.format(bonito(desdeSl(+$('sl').value)))};
 $('num').oninput=()=>{const v=leer();if(v)$('sl').value=Math.max(0,Math.min(1000,haciaSl(v)))};
@@ -132,7 +134,7 @@ function pintar(){
     const pts=Object.values(rs).sort((x,y)=>x.d.g-y.d.g);
     $('linea').innerHTML='<div class="eje"></div>'+pts.map((x,i)=>`<div class="p ${i%2?'abajo':''}" style="left:${pos(x.d.g)}%"><i style="background:${x.yo?'#15171C':x.color}"></i><small style="color:${x.yo?'#15171C':x.color}">${x.yo?'Tú':x.name}: ${nf.format(bonito(x.d.g))}</small></div>`).join('')+`<div class="p real" style="left:${pos(q[1])}%"><i></i><small>${nf.format(q[1])}</small></div>`;
     const veces=mia.g>q[1]?mia.g/q[1]:q[1]/mia.g;
-    $('real').textContent=`${nf.format(q[1])} ${q[2]} · ganaste ${nf.format(mia.pts)} pts`;
+    $('real').textContent=`${nf.format(q[1])} ${q[2]} · ${errorPct(mia.g,q[1])===0?'¡exacto!':'te fuiste por '+nf.format(errorPct(mia.g,q[1]))+' %'} · ganaste ${nf.format(mia.pts)} pts`;
     $('nota').textContent=(veces<1.05?'¡Casi exacto! ':veces<1.5?'Muy cerca. ':`Te fuiste ${nf.format(Math.round(veces*10)/10)} veces ${mia.g>q[1]?'por arriba':'por abajo'}. `)+q[5];
     const ult=P.ronda>=RONDAS-1,faltan=P.jugadores().filter(j=>!rs[j.id]),s=$('sig');
     if(faltan.length&&P.enSala){s.disabled=true;s.textContent='Esperando a '+faltan.map(j=>j.name).join(', ')}
