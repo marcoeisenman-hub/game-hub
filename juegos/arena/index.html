@@ -240,9 +240,9 @@ setInterval(()=>{if(!enSala()){outbox=[];return}if(outbox.length){tx({p:outbox,m
 function rle(a){const out=[];let v=a[0],n=0;for(let i=0;i<a.length;i++){if(a[i]===v&&n<255)n++;else{out.push(v,n);v=a[i];n=1}}out.push(v,n);return new Uint8Array(out)}
 function unrle(u,len){const a=new Uint8Array(len);let k=0;for(let i=0;i+1<u.length&&k<len;i+=2){a.fill(u[i],k,Math.min(len,k+u[i+1]));k+=u[i+1]}return k===len?a:null}
 setInterval(()=>{if(!enSala()||!sala.lider()||sala.jugadores().length<2)return;const u=rle(snapArr());if(u.length<60000)tx({snap:u,w:W,h:H,pause:paused})},1500);
-function snapArr(){const a=new Uint8Array(type);for(let i=0;i<N;i++)if(a[i]===SPONGE)a[i]=20+Math.min(SPMAX,life[i]);return a}
+function snapArr(){const a=new Uint8Array(type);for(let i=0;i<N;i++)if(a[i]===SPONGE)a[i]=20+Math.min(SPMAX,life[i]);else if(a[i]===STONE&&life[i]>1)a[i]=30+Math.min(200,life[i]);return a}
 function aplicarSnap(d){const u=d.snap instanceof Uint8Array?d.snap:new Uint8Array(d.snap||[]);if(d.w!==W||d.h!==H)return;const a=unrle(u,N);if(!a)return;
-  for(let i=0;i<N;i++){if(a[i]>=20&&a[i]<=20+SPMAX){if(type[i]!==SPONGE)set(i,SPONGE);life[i]=a[i]-20;continue}if(a[i]===type[i])continue;if(a[i]>12)continue;if(a[i]===E)type[i]=E;else set(i,a[i])}
+  for(let i=0;i<N;i++){if(a[i]>=20&&a[i]<=20+SPMAX){if(type[i]!==SPONGE)set(i,SPONGE);life[i]=a[i]-20;continue}if(a[i]>=30){if(type[i]!==STONE)set(i,STONE);life[i]=a[i]-30;continue}if(a[i]===type[i])continue;if(a[i]>12)continue;if(a[i]===E)type[i]=E;else set(i,a[i])}
   if(typeof d.pause==='boolean'&&d.pause!==paused)setPause(d.pause)}
 const badge=document.createElement('div');badge.style.cssText='position:fixed;right:18px;top:64px;color:#d4d1cb;font-size:.8rem;text-shadow:0 1px 4px #000;pointer-events:none';badge.hidden=true;document.body.append(badge);
 function conSala(fn){window.RatitoSala?fn(RatitoSala):addEventListener('ratitosala',()=>fn(RatitoSala),{once:true})}
