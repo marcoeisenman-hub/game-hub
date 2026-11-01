@@ -3,50 +3,134 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vaina — juegos raros para jugar solo o con amigos</title>
-<meta name="description" content="Juegos originales en el navegador: adivina dónde queda un lugar, calcula a ojo, rehaz un color, carrera de tecleo, reflejos, el círculo perfecto, arena y órbitas. Solo o con amigos.">
+<title>Tanteo — juegos para calcular a ojo, solo o con amigos</title>
+<meta name="description" content="Juegos originales en el navegador para medir qué tan bien calculas, recuerdas y reaccionas: adivina dónde queda un lugar, calcula a ojo, rehaz un color, carrera de tecleo, reflejos, el círculo perfecto, arena y órbitas. Solo o con amigos.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/estilo.css">
 <style>
-.wrap{max-width:1120px;margin:0 auto;padding:64px 22px 70px}
-header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:26px}
-.logo{display:flex;align-items:center;gap:14px}
-.logo svg{width:clamp(54px,11vw,78px);height:auto}
-h1{margin:0;font-size:clamp(3rem,10vw,5.2rem);line-height:.9;font-weight:900;letter-spacing:-.05em}
-header p{margin:0;max-width:340px;color:var(--mut);font-size:1.05rem}
-.tabs{display:flex;gap:6px;margin:0 0 24px;border-bottom:1px solid var(--line)}
-.tabs button{font:700 1rem inherit;background:none;border:0;padding:10px 4px;margin-right:18px;color:var(--mut);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
-.tabs button[aria-selected=true]{color:var(--ink);border-color:var(--ink)}
-.tabs b{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--soft);font-size:.78rem;margin-left:6px;color:var(--ink)}
-.mp{display:none;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:var(--ink);color:#fff;border-radius:16px;padding:18px 20px;margin-bottom:22px}
+body{background:var(--paper)}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 22px 70px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:34px}
+.marca{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:900;font-size:1.35rem;letter-spacing:-.03em}
+.marca svg{width:36px;height:36px}
+
+/* portada: texto + mini-juego del centro */
+.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:34px;align-items:center;margin-bottom:46px}
+h1{margin:0 0 14px;font-size:clamp(2.5rem,7.4vw,4.6rem);line-height:.98;font-weight:900;letter-spacing:-.045em}
+h1 em{font-style:normal;color:var(--acc)}
+.hero p{margin:0 0 22px;color:var(--mut);font-size:1.12rem;max-width:470px}
+.acciones{display:flex;gap:10px;flex-wrap:wrap}
+.btn.acc{background:var(--acc)}
+.btn.acc:hover{background:#cc4421}
+.btn svg{width:16px;height:16px;vertical-align:-3px;margin-right:6px}
+.diana{background:#fff;border:1px solid var(--line);border-radius:22px;padding:18px;text-align:center;box-shadow:0 18px 40px -26px #15171C55}
+.diana svg{width:100%;max-width:300px;display:block;margin:0 auto;cursor:crosshair;touch-action:manipulation}
+.diana b{display:block;font-size:1.05rem}
+.diana span{color:var(--mut);font-size:.9rem}
+#tiro{transition:opacity .2s}
+#centro{opacity:0;transition:opacity .3s}
+.diana.ya #centro{opacity:1}
+@keyframes cae{from{transform:scale(2.4);opacity:0}to{transform:scale(1);opacity:1}}
+.diana.ya #tiro{animation:cae .25s ease-out;transform-box:fill-box;transform-origin:center}
+
+/* pestañas */
+.tabs{display:flex;gap:6px;margin:0 0 22px;flex-wrap:wrap}
+.tabs button{font:700 .98rem/1 inherit;font-family:inherit;background:#fff;border:1px solid var(--line);padding:10px 15px;border-radius:999px;color:var(--ink);cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.tabs b{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--soft);font-size:.75rem;margin-left:6px;color:var(--ink)}
+.tabs button[aria-selected=true] b{background:var(--acc);color:#fff}
+.mp{display:none;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:var(--ink);color:#fff;border-radius:18px;padding:18px 20px;margin-bottom:22px}
 .mp.on{display:flex}
 .mp h2{margin:0;font-size:1.2rem}
 .mp p{margin:3px 0 0;color:#C7CAD1;max-width:560px}
-.mp .btn{background:#fff;color:var(--ink)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:20px}
-.card{display:flex;flex-direction:column;text-decoration:none;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#fff;transition:border-color .15s}
-.card:hover{border-color:var(--ink)}
-.thumb{aspect-ratio:16/10;background:var(--soft);display:grid;place-items:center;overflow:hidden}
+.mp .btn{background:var(--acc)}
+
+/* tarjetas */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:18px}
+.card{position:relative;display:flex;flex-direction:column;text-decoration:none;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:#fff;transition:transform .18s cubic-bezier(.3,1.6,.6,1),box-shadow .18s,border-color .18s}
+.card:hover{transform:translateY(-5px) rotate(-.6deg);box-shadow:0 16px 30px -18px #15171C66;border-color:var(--ink)}
+.card:nth-child(even):hover{transform:translateY(-5px) rotate(.6deg)}
+.card:active{transform:scale(.98)}
+.thumb{aspect-ratio:16/10;background:var(--soft);display:grid;place-items:center;overflow:hidden;transition:background .2s}
+.card:hover .thumb{background:var(--tint)}
 .thumb svg{width:100%;height:100%}
+.num{position:absolute;top:10px;left:12px;font-size:.75rem;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
 .meta{flex:1;padding:13px 15px 15px}
-.meta h3{margin:0;font-size:1.1rem;display:flex;align-items:center;gap:8px}
+.meta h3{margin:0;font-size:1.12rem;display:flex;align-items:center;gap:8px}
 .meta p{margin:3px 0 0;color:var(--mut);font-size:.92rem}
-.tag{font-size:.72rem;font-weight:700;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:1px 8px;margin-left:auto;white-space:nowrap}
+.tag{font-size:.7rem;font-weight:700;color:var(--acc);background:var(--tint);border-radius:999px;padding:2px 8px;margin-left:auto;white-space:nowrap}
 .card[hidden]{display:none}
-footer{margin-top:50px;color:var(--mut);font-size:.88rem}
+.card.elegida{animation:elegida .9s ease}
+@keyframes elegida{0%,100%{box-shadow:0 0 0 0 transparent}30%{box-shadow:0 0 0 6px var(--acc)}}
+footer{margin-top:50px;color:var(--mut);font-size:.88rem;display:flex;gap:10px;align-items:center}
+footer svg{width:20px;height:20px}
+
+/* animaciones de las miniaturas: se mueven al pasar el mouse (en celular, siempre) */
+.a{animation-play-state:paused!important}
+.card:hover .a,.card:focus-visible .a{animation-play-state:running!important}
+@media (hover:none){.a{animation-play-state:running!important}}
+@keyframes pin{0%,20%{transform:translateY(-34px);opacity:0}45%{transform:translateY(0);opacity:1}55%{transform:translateY(-6px)}65%,100%{transform:translateY(0)}}
+@keyframes guion{to{stroke-dashoffset:-40}}
+@keyframes desliza{0%,100%{transform:translateX(-58px)}50%{transform:translateX(30px)}}
+@keyframes tono{0%,100%{fill:#3A7898}33%{fill:#5A6FA0}66%{fill:#2F8F7F}}
+@keyframes tecla{0%,100%{fill:#fff}10%,30%{fill:#15171C}}
+@keyframes barra{0%{transform:scaleX(0)}60%,100%{transform:scaleX(1)}}
+@keyframes traza{from{stroke-dashoffset:420}to{stroke-dashoffset:0}}
+@keyframes gira{to{transform:rotate(360deg)}}
+@keyframes grano{0%{transform:translateY(-30px);opacity:0}15%{opacity:1}100%{transform:translateY(62px);opacity:0}}
+@keyframes latido{to{stroke-dashoffset:-360}}
+.pin{animation:pin 2.2s ease-out infinite}
+.guion{animation:guion 1s linear infinite}
+.desliza{animation:desliza 2.6s ease-in-out infinite}
+.tono{animation:tono 3s ease-in-out infinite}
+.tecla{animation:tecla 1.6s steps(1) infinite}
+.barra{animation:barra 1.4s ease-out infinite;transform-box:fill-box;transform-origin:left}
+.traza{stroke-dasharray:420;animation:traza 2.4s ease-in-out infinite alternate}
+.gira{transform-origin:160px 100px;animation:gira 6s linear infinite}
+.gira.r{animation-duration:3.4s}
+.grano{animation:grano 1.1s linear infinite}
+.latido{stroke-dasharray:180 180;animation:latido 2.4s linear infinite}
+@media (prefers-reduced-motion:reduce){.a{animation:none!important}}
+
+@media (max-width:760px){
+  .hero{grid-template-columns:1fr;gap:24px}
+  .diana svg{max-width:230px}
+}
+@media (max-width:380px){
+  .wrap{padding:20px 16px 60px}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <div class="logo">
-      <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M6 44C14 18 42 6 60 12 56 34 30 56 6 44Z" fill="#15171C"/><path d="M6 44C22 40 44 26 60 12" fill="none" stroke="#3A3E46" stroke-width="2"/><circle cx="22" cy="37" r="6" fill="#F2F3F5"/><circle cx="34" cy="29" r="6.5" fill="#E4572E"/><circle cx="46" cy="21" r="6" fill="#F2F3F5"/></svg>
-      <h1>Vaina</h1>
-    </div>
-    <p>Juegos raros hechos desde cero en Panamá. Juega solo o arma una sala con tus amigos.</p>
-  </header>
+  <div class="top">
+    <a class="marca" href="/" aria-label="Tanteo, inicio">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#15171C"/><circle cx="32" cy="32" r="19" fill="none" stroke="#fff" stroke-width="5"/><circle cx="37" cy="27.5" r="6.5" fill="#E4572E"/></svg>
+      Tanteo
+    </a>
+  </div>
 
-  <nav class="tabs" role="tablist">
+  <section class="hero">
+    <div>
+      <h1>¿Qué tan bien calculas <em>a ojo</em>?</h1>
+      <p>Juegos cortos para poner a prueba tu puntería, tu memoria y tus reflejos. Sin cuentas, sin anuncios. Solo o con tus amigos.</p>
+      <div class="acciones">
+        <a class="btn acc" id="azar" href="/juegos/mapa/"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4h3l7 8h4M1 12h3l2-2.3M9.5 6.3 11 4h4M13 2l2 2-2 2M13 10l2 2-2 2"/></svg>Juego al azar</a>
+        <a class="btn sec" href="#juegos">Ver los 9 juegos</a>
+      </div>
+    </div>
+    <div class="diana" id="diana">
+      <svg viewBox="0 0 200 200" id="blanco" role="button" aria-label="Toca el centro exacto del aro">
+        <circle cx="100" cy="100" r="88" fill="none" stroke="#15171C" stroke-width="4"/>
+        <g id="centro"><line x1="92" y1="100" x2="108" y2="100" stroke="#15171C" stroke-width="2"/><line x1="100" y1="92" x2="100" y2="108" stroke="#15171C" stroke-width="2"/><line id="raya" x1="100" y1="100" x2="100" y2="100" stroke="#6B7079" stroke-width="1.5" stroke-dasharray="3 3"/></g>
+        <circle id="tiro" cx="-20" cy="-20" r="7" fill="#E4572E" stroke="#fff" stroke-width="2.5"/>
+      </svg>
+      <b id="dTxt">Toca el centro exacto del aro</b>
+      <span id="dSub">Calentamiento: sin pistas, solo tu ojo.</span>
+    </div>
+  </section>
+
+  <nav class="tabs" role="tablist" id="juegos">
     <button role="tab" aria-selected="true" data-f="todos">Todos <b id="nTodos"></b></button>
     <button role="tab" aria-selected="false" data-f="mp">Multiplayer <b id="nMp"></b></button>
   </nav>
@@ -58,53 +142,76 @@ footer{margin-top:50px;color:var(--mut);font-size:.88rem}
 
   <main class="grid" id="grid">
     <a class="card" href="/juegos/mapa/" data-mp>
-      <div class="thumb"><svg viewBox="0 0 320 200"><g fill="#C9CDD3"><circle cx="160" cy="100" r="78" fill="none" stroke="#C9CDD3" stroke-width="2"/><ellipse cx="160" cy="100" rx="34" ry="78" fill="none" stroke="#DDE0E4" stroke-width="2"/><line x1="82" y1="100" x2="238" y2="100" stroke="#DDE0E4" stroke-width="2"/></g><path d="M120 70c10-12 30-10 34 2s-8 18-2 28-16 22-26 12-16-30-6-42z" fill="#B8BDC4"/><path d="M176 60c14-6 34 4 36 18s-14 10-18 22-18 6-22-6 -10-28 4-34z" fill="#B8BDC4"/><line x1="140" y1="92" x2="190" y2="120" stroke="#15171C" stroke-width="2" stroke-dasharray="5 5"/><circle cx="140" cy="92" r="6" fill="#15171C" stroke="#fff" stroke-width="2.5"/><circle cx="190" cy="120" r="8" fill="#E4572E" stroke="#fff" stroke-width="2.5"/></svg></div>
+      <div class="thumb"><svg viewBox="0 0 320 200"><circle cx="160" cy="100" r="78" fill="none" stroke="#C9CDD3" stroke-width="2"/><ellipse cx="160" cy="100" rx="34" ry="78" fill="none" stroke="#DDE0E4" stroke-width="2"/><line x1="82" y1="100" x2="238" y2="100" stroke="#DDE0E4" stroke-width="2"/><path d="M120 70c10-12 30-10 34 2s-8 18-2 28-16 22-26 12-16-30-6-42z" fill="#B8BDC4"/><path d="M176 60c14-6 34 4 36 18s-14 10-18 22-18 6-22-6 -10-28 4-34z" fill="#B8BDC4"/><line class="a guion" x1="140" y1="92" x2="190" y2="120" stroke="#15171C" stroke-width="2" stroke-dasharray="5 5"/><circle cx="140" cy="92" r="6" fill="#15171C" stroke="#fff" stroke-width="2.5"/><circle class="a pin" cx="190" cy="120" r="8" fill="#E4572E" stroke="#fff" stroke-width="2.5"/></svg></div>
       <div class="meta"><h3>¿Dónde queda? <span class="tag">Multiplayer</span></h3><p>Te dan un lugar del mundo y lo marcas en el mapa. Más cerca, más puntos.</p></div>
     </a>
     <a class="card" href="/juegos/aojo/" data-mp>
-      <div class="thumb"><svg viewBox="0 0 320 200"><text x="160" y="96" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="54" letter-spacing="-2" fill="#15171C">8.849 m</text><line x1="50" y1="140" x2="270" y2="140" stroke="#C9CDD3" stroke-width="3"/><circle cx="118" cy="140" r="7" fill="#9AA0A8"/><circle cx="206" cy="140" r="7" fill="#15171C"/><circle cx="172" cy="140" r="9" fill="#E4572E"/></svg></div>
+      <div class="thumb"><svg viewBox="0 0 320 200"><text x="160" y="96" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="54" letter-spacing="-2" fill="#15171C">8.849 m</text><line x1="50" y1="140" x2="270" y2="140" stroke="#C9CDD3" stroke-width="3"/><circle cx="118" cy="140" r="7" fill="#9AA0A8"/><circle cx="206" cy="140" r="7" fill="#15171C"/><circle class="a desliza" cx="172" cy="140" r="9" fill="#E4572E"/></svg></div>
       <div class="meta"><h3>A ojo <span class="tag">Multiplayer</span></h3><p>¿Cuánto mide el Everest? ¿Cuántos huesos tienes? Calcula sin buscar.</p></div>
     </a>
     <a class="card" href="/juegos/color/" data-mp>
-      <div class="thumb"><svg viewBox="0 0 320 200"><rect x="78" y="44" width="80" height="112" rx="10" fill="#2F6F8F"/><rect x="162" y="44" width="80" height="112" rx="10" fill="#3A7898"/><text x="160" y="182" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="700" font-size="15" fill="#6B7079">9,4 / 10</text></svg></div>
+      <div class="thumb"><svg viewBox="0 0 320 200"><rect x="78" y="44" width="80" height="112" rx="10" fill="#2F6F8F"/><rect class="a tono" x="162" y="44" width="80" height="112" rx="10" fill="#3A7898"/><text x="160" y="182" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="700" font-size="15" fill="#6B7079">9,4 / 10</text></svg></div>
       <div class="meta"><h3>Mismo color <span class="tag">Multiplayer</span></h3><p>Mira un color tres segundos y rehazlo de memoria.</p></div>
     </a>
     <a class="card" href="/juegos/teclazo/" data-mp>
-      <div class="thumb"><svg viewBox="0 0 320 200"><g fill="#fff" stroke="#C9CDD3" stroke-width="2"><rect x="44" y="70" width="28" height="28" rx="5"/><rect x="78" y="70" width="28" height="28" rx="5"/><rect x="112" y="70" width="28" height="28" rx="5" fill="#15171C" stroke="#15171C"/><rect x="146" y="70" width="28" height="28" rx="5"/><rect x="180" y="70" width="28" height="28" rx="5"/><rect x="214" y="70" width="28" height="28" rx="5"/><rect x="248" y="70" width="28" height="28" rx="5"/><rect x="60" y="104" width="28" height="28" rx="5"/><rect x="94" y="104" width="28" height="28" rx="5"/><rect x="128" y="104" width="28" height="28" rx="5"/><rect x="162" y="104" width="28" height="28" rx="5" fill="#E4572E" stroke="#E4572E"/><rect x="196" y="104" width="28" height="28" rx="5"/><rect x="230" y="104" width="28" height="28" rx="5"/><rect x="96" y="138" width="128" height="22" rx="5"/></g><text x="160" y="50" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="22" fill="#15171C">74 ppm</text></svg></div>
+      <div class="thumb"><svg viewBox="0 0 320 200"><g fill="#fff" stroke="#C9CDD3" stroke-width="2"><rect class="a tecla" x="44" y="70" width="28" height="28" rx="5"/><rect x="78" y="70" width="28" height="28" rx="5"/><rect class="a tecla" style="animation-delay:.4s" x="112" y="70" width="28" height="28" rx="5"/><rect x="146" y="70" width="28" height="28" rx="5"/><rect class="a tecla" style="animation-delay:1s" x="180" y="70" width="28" height="28" rx="5"/><rect x="214" y="70" width="28" height="28" rx="5"/><rect class="a tecla" style="animation-delay:.2s" x="248" y="70" width="28" height="28" rx="5"/><rect x="60" y="104" width="28" height="28" rx="5"/><rect class="a tecla" style="animation-delay:1.2s" x="94" y="104" width="28" height="28" rx="5"/><rect x="128" y="104" width="28" height="28" rx="5"/><rect x="162" y="104" width="28" height="28" rx="5" fill="#E4572E" stroke="#E4572E"/><rect class="a tecla" style="animation-delay:.7s" x="196" y="104" width="28" height="28" rx="5"/><rect x="230" y="104" width="28" height="28" rx="5"/><rect class="a tecla" style="animation-delay:.5s" x="96" y="138" width="128" height="22" rx="5"/></g><text x="160" y="50" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="22" fill="#15171C">74 ppm</text></svg></div>
       <div class="meta"><h3>Teclazo <span class="tag">Multiplayer</span></h3><p>Carrera de tecleo: misma frase, gana el que escribe más rápido y sin errores.</p></div>
     </a>
     <a class="card" href="/juegos/reflejos/" data-mp>
-      <div class="thumb"><svg viewBox="0 0 320 200"><text x="160" y="112" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="64" letter-spacing="-3" fill="#15171C">214<tspan font-size="26" fill="#6B7079"> ms</tspan></text><rect x="110" y="140" width="100" height="6" rx="3" fill="#E4572E"/></svg></div>
+      <div class="thumb"><svg viewBox="0 0 320 200"><text x="160" y="112" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="64" letter-spacing="-3" fill="#15171C">214<tspan font-size="26" fill="#6B7079"> ms</tspan></text><rect x="110" y="140" width="100" height="6" rx="3" fill="#DDE0E4"/><rect class="a barra" x="110" y="140" width="100" height="6" rx="3" fill="#E4572E"/></svg></div>
       <div class="meta"><h3>Reflejos <span class="tag">Multiplayer</span></h3><p>Toca apenas cambie, o para el reloj en 10 segundos exactos.</p></div>
     </a>
     <a class="card" href="/juegos/circulo/" data-mp>
-      <div class="thumb"><svg viewBox="0 0 320 200"><path d="M160 34c40 1 68 30 66 68-2 37-32 64-68 63-37-1-64-31-62-67 2-35 30-62 60-64" fill="none" stroke="#15171C" stroke-width="6" stroke-linecap="round"/><circle cx="160" cy="100" r="5" fill="#E4572E"/></svg></div>
+      <div class="thumb"><svg viewBox="0 0 320 200"><path class="a traza" d="M160 34c40 1 68 30 66 68-2 37-32 64-68 63-37-1-64-31-62-67 2-35 30-62 60-64" fill="none" stroke="#15171C" stroke-width="6" stroke-linecap="round"/><circle cx="160" cy="100" r="5" fill="#E4572E"/></svg></div>
       <div class="meta"><h3>Círculo perfecto <span class="tag">Multiplayer</span></h3><p>Dibuja un círculo de una pasada. ¿Llegas al 95 %?</p></div>
     </a>
     <a class="card" href="/juegos/orbitas/" data-mp>
-      <div class="thumb"><svg viewBox="0 0 320 200"><ellipse cx="160" cy="100" rx="120" ry="48" fill="none" stroke="#C9CDD3" stroke-width="2"/><ellipse cx="160" cy="100" rx="70" ry="28" fill="none" stroke="#C9CDD3" stroke-width="2"/><circle cx="160" cy="100" r="14" fill="#15171C"/><circle cx="230" cy="100" r="6" fill="#E4572E"/><circle cx="62" cy="128" r="4" fill="#15171C"/></svg></div>
+      <div class="thumb"><svg viewBox="0 0 320 200"><circle cx="160" cy="100" r="76" fill="none" stroke="#C9CDD3" stroke-width="2"/><circle cx="160" cy="100" r="44" fill="none" stroke="#C9CDD3" stroke-width="2"/><circle cx="160" cy="100" r="14" fill="#15171C"/><g class="a gira r"><circle cx="204" cy="100" r="6" fill="#E4572E"/></g><g class="a gira"><circle cx="160" cy="24" r="4.5" fill="#15171C"/></g></svg></div>
       <div class="meta"><h3>Órbitas <span class="tag">Multiplayer</span></h3><p>Lanza planetas alrededor de una estrella y mantenlos en órbita.</p></div>
     </a>
     <a class="card" href="/juegos/arena/" data-mp>
-      <div class="thumb"><svg viewBox="0 0 320 200"><path d="M40 170c40-30 70-62 120-62s80 32 120 62z" fill="#C9B48A"/><path d="M150 40v50" stroke="#C9B48A" stroke-width="6" stroke-dasharray="2 6" stroke-linecap="round"/><rect x="40" y="170" width="240" height="6" fill="#9AA0A8"/></svg></div>
+      <div class="thumb"><svg viewBox="0 0 320 200"><path d="M40 170c40-30 70-62 120-62s80 32 120 62z" fill="#C9B48A"/><g fill="#B39A6B"><circle class="a grano" cx="150" cy="48" r="3"/><circle class="a grano" style="animation-delay:.25s" cx="153" cy="48" r="2.5"/><circle class="a grano" style="animation-delay:.5s" cx="148" cy="48" r="3"/><circle class="a grano" style="animation-delay:.75s" cx="152" cy="48" r="2.5"/><circle class="a grano" style="animation-delay:.12s" cx="151" cy="48" r="2"/><circle class="a grano" style="animation-delay:.62s" cx="149" cy="48" r="2"/></g><rect x="40" y="170" width="240" height="6" fill="#9AA0A8"/></svg></div>
       <div class="meta"><h3>Arena <span class="tag">Multiplayer</span></h3><p>Arena, agua, lava y fuego que caen y reaccionan de verdad.</p></div>
     </a>
     <a class="card" href="/juegos/vida/">
-      <div class="thumb"><svg viewBox="0 0 320 200"><text x="160" y="96" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="40" letter-spacing="-1" fill="#15171C">571.028.925</text><polyline points="70,140 120,140 132,120 144,160 156,128 166,140 250,140" fill="none" stroke="#E4572E" stroke-width="3"/></svg></div>
+      <div class="thumb"><svg viewBox="0 0 320 200"><text x="160" y="96" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="40" letter-spacing="-1" fill="#15171C">571.028.925</text><polyline points="70,140 120,140 132,120 144,160 156,128 166,140 250,140" fill="none" stroke="#DDE0E4" stroke-width="3"/><polyline class="a latido" points="70,140 120,140 132,120 144,160 156,128 166,140 250,140" fill="none" stroke="#E4572E" stroke-width="3"/></svg></div>
       <div class="meta"><h3>Tu vida en vivo</h3><p>Tus latidos, respiraciones y días contando en tiempo real.</p></div>
     </a>
   </main>
 
-  <footer>Vaina, hecho en Panamá. Todos los juegos son originales y funcionan en tu navegador.</footer>
+  <footer><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" fill="none" stroke="#6B7079" stroke-width="6"/><circle cx="37" cy="27.5" r="7.5" fill="#E4572E"/></svg>Tanteo, hecho en Panamá. Todos los juegos son originales y funcionan en tu navegador.</footer>
 </div>
 <script>
 const cards=[...document.querySelectorAll('.card')],tabs=[...document.querySelectorAll('.tabs button')];
+cards.forEach((c,i)=>{const n=document.createElement('span');n.className='num';n.textContent=String(i+1).padStart(2,'0');c.prepend(n)});
 document.getElementById('nTodos').textContent=cards.length;document.getElementById('nMp').textContent=cards.filter(c=>c.hasAttribute('data-mp')).length;
 function filtro(f){tabs.forEach(t=>t.setAttribute('aria-selected',t.dataset.f===f));cards.forEach(c=>c.hidden=f==='mp'&&!c.hasAttribute('data-mp'));
   document.getElementById('mpInfo').classList.toggle('on',f==='mp');history.replaceState(null,'',f==='mp'?'#multiplayer':location.pathname+location.search)}
 tabs.forEach(t=>t.onclick=()=>filtro(t.dataset.f));
 if(location.hash==='#multiplayer')filtro('mp');
-document.getElementById('crear').onclick=()=>{const b=document.querySelector('.am-btn');if(!b)return;b.click();setTimeout(()=>{const n=document.getElementById('am-new');if(n&&!n.closest('[hidden]'))n.click()},50)};
+function abrirSala(){const b=document.querySelector('.am-btn');if(!b)return;b.click();setTimeout(()=>{const n=document.getElementById('am-new');if(n&&!n.closest('[hidden]'))n.click()},50)}
+document.getElementById('crear').onclick=abrirSala;
+
+/* juego al azar */
+const azar=document.getElementById('azar');
+function sortear(){const c=cards[Math.floor(Math.random()*cards.length)];azar.href=c.getAttribute('href');return c}
+sortear();
+azar.onclick=e=>{e.preventDefault();const c=sortear();c.classList.remove('elegida');void c.offsetWidth;c.classList.add('elegida');
+  c.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>location.href=c.getAttribute('href'),matchMedia('(prefers-reduced-motion:reduce)').matches?0:700)};
+
+/* calentamiento: toca el centro del aro */
+const diana=document.getElementById('diana'),blanco=document.getElementById('blanco'),tiro=document.getElementById('tiro'),raya=document.getElementById('raya');
+let mejor=0;try{mejor=+localStorage.getItem('tanteoCentro')||0}catch(e){}
+function frase(p){return p>=99?'¡Perfecto! Ojo de cirujano.':p>=95?'Casi perfecto.':p>=88?'Muy bien.':p>=75?'Nada mal.':'Uf, lejos. Otra vez.'}
+blanco.addEventListener('pointerdown',e=>{
+  const r=blanco.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*200,y=(e.clientY-r.top)/r.height*200;
+  const d=Math.hypot(x-100,y-100),p=Math.max(0,Math.round(1000-d/88*1000)/10);
+  tiro.setAttribute('cx',x);tiro.setAttribute('cy',y);raya.setAttribute('x2',x);raya.setAttribute('y2',y);
+  diana.classList.remove('ya');void diana.offsetWidth;diana.classList.add('ya');
+  const nuevo=p>mejor;if(nuevo){mejor=p;try{localStorage.setItem('tanteoCentro',p)}catch(e){}}
+  document.getElementById('dTxt').textContent=p.toLocaleString('es')+' / 100 · '+frase(p);
+  document.getElementById('dSub').textContent=(nuevo?'¡Récord nuevo! ':'Tu récord: '+mejor.toLocaleString('es')+' · ')+'Toca otra vez para repetir.';
+});
 </script>
 <script src="/lib/peerjs.min.js" defer></script>
 <script src="/amigos.js" defer></script>
