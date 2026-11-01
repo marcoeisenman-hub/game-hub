@@ -104,7 +104,8 @@ const PREG=[
 const RONDAS=7,nf=new Intl.NumberFormat('es',{maximumFractionDigits:2});
 const $=id=>document.getElementById(id);
 let lista=[];
-const P=Partida({rondas:RONDAS,alCambiar:t=>{if(t==='partida'){armar();$('fin').hidden=true;$('juego').hidden=false}if(t==='partida'||t==='ronda')nueva();pintar()}});
+function actOtra(){const b=document.getElementById('otra');b.disabled=!P.mando;b.textContent=P.mando?'Jugar otra vez':'El líder empieza otra'}
+const P=Partida({rondas:RONDAS,alCambiar:t=>{try{actOtra()}catch(e){}if(t==='partida'){armar();$('fin').hidden=true;$('juego').hidden=false}if(t==='partida'||t==='ronda')nueva();pintar()}});
 function armar(){lista=barajar(PREG.map((_,i)=>i),azar(P.seed)).slice(0,RONDAS)}
 const Q=()=>PREG[lista[P.ronda]];
 const lg=Math.log10;

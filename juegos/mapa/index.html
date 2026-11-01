@@ -84,7 +84,8 @@ let proj,path,W,H,mundo,pin=null,k=1,lista=[];
 const nf=new Intl.NumberFormat('es');
 function km(a,b){const t=Math.PI/180,dl=(b[0]-a[0])*t,dn=(b[1]-a[1])*t,x=Math.sin(dl/2)**2+Math.cos(a[0]*t)*Math.cos(b[0]*t)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.min(1,Math.sqrt(x)))}
 const puntos=d=>Math.round(5000*Math.exp(-d/1800));
-const P=Partida({rondas:RONDAS,alCambiar:t=>{if(t==='partida'){armar();pin=null}if(t==='ronda')pin=null;pintar()}});
+function actOtra(){const b=document.getElementById('otra');b.disabled=!P.mando;b.textContent=P.mando?'Jugar otra vez':'El líder empieza otra'}
+const P=Partida({rondas:RONDAS,alCambiar:t=>{try{actOtra()}catch(e){}if(t==='partida'){armar();pin=null}if(t==='ronda')pin=null;pintar()}});
 function armar(){lista=barajar(LUGARES.map((_,i)=>i),azar(P.seed)).slice(0,RONDAS)}
 function lugar(){return LUGARES[lista[P.ronda]]}
 function size(){W=innerWidth;H=innerHeight;svg.attr('viewBox',[0,0,W,H]);
