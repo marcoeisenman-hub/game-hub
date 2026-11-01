@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Al revés — Tanteo</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/estilo.css">
+<style>
+body{background:#fff}
+main{max-width:720px;margin:0 auto;padding:84px 20px 60px}
+h1{font-size:clamp(2.2rem,8vw,3.4rem);letter-spacing:-.045em;line-height:1;margin:0 0 8px}
+.sub{color:var(--mut);margin:0 0 26px;font-size:1.05rem}
+.paso{border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:16px;transition:opacity .2s}
+.paso.off{opacity:.38;pointer-events:none}
+.paso h2{margin:0 0 4px;font-size:1.15rem;display:flex;gap:10px;align-items:center}
+.paso h2 i{font-style:normal;display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;font-size:.85rem;flex:none}
+.paso.hecho h2 i{background:var(--acc)}
+.paso>p{margin:0 0 14px;color:var(--mut)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.chips button{font:600 .85rem inherit;font-family:inherit;border:1px solid var(--line);background:var(--soft);border-radius:999px;padding:6px 11px;cursor:pointer;color:var(--ink)}
+.chips button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.frase{font-weight:900;font-size:1.3rem;letter-spacing:-.02em;margin:0 0 12px;min-height:1.6em}
+.fila{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grabar{display:inline-flex;align-items:center;gap:9px}
+.grabar b{width:12px;height:12px;border-radius:50%;background:var(--acc);display:inline-block}
+.grabar.on{background:var(--acc)}
+.grabar.on b{background:#fff;border-radius:2px;animation:late .8s ease-in-out infinite alternate}
+@keyframes late{to{transform:scale(.7)}}
+.btn:disabled{opacity:.35;cursor:default}
+.btn.sec svg{width:13px;height:13px;margin-right:6px;vertical-align:-1px}
+canvas{display:block;width:100%;height:84px;background:var(--soft);border-radius:12px;margin:12px 0}
+canvas[hidden]{display:none}
+.tiempo{height:4px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:12px}
+.tiempo i{display:block;height:100%;width:0;background:var(--acc)}
+.archivo{font-size:.88rem;color:var(--mut);margin-top:12px}
+.archivo label{text-decoration:underline;cursor:pointer;color:var(--ink)}
+.archivo input{display:none}
+.vel{display:inline-flex;align-items:center;gap:6px;color:var(--mut);font-size:.88rem;margin-left:auto}
+.vel select{font:inherit;border:1px solid var(--line);border-radius:8px;padding:5px 6px;background:#fff;color:var(--ink)}
+.nota{text-align:center;padding:10px 0 4px}
+.nota strong{display:block;font-size:clamp(3.4rem,14vw,5rem);letter-spacing:-.05em;line-height:1}
+.nota span{color:var(--mut)}
+.nota em{font-style:normal;font-weight:700;color:var(--ink);display:block;margin-top:6px}
+.err{color:#b82020;font-weight:600;min-height:1.2em;margin:10px 0 0}
+small.ayuda{display:block;color:var(--mut);margin-top:22px}
+@media (max-width:420px){main{padding:76px 16px 50px}.vel{margin-left:0}}
+</style>
+</head>
+<body>
+<a class="volver" href="/">← Tanteo</a>
+<main>
+  <h1>Al revés</h1>
+  <p class="sub">Graba algo, escúchalo al revés e intenta imitarlo. Si lo haces bien, al darle vuelta a tu imitación se va a oír lo que dijiste al principio.</p>
+
+  <section class="paso" id="p1">
+    <h2><i>1</i>Graba una frase</h2>
+    <p>Elige una o di lo que quieras. Máximo 5 segundos.</p>
+    <div class="chips" id="chips"></div>
+    <div class="frase" id="frase"></div>
+    <div class="fila">
+      <button class="btn grabar" id="g1" type="button"><b></b><span>Grabar</span></button>
+      <button class="btn sec" id="n1" type="button" disabled><svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z" fill="currentColor"/></svg>Normal</button>
+      <button class="btn sec" id="r1" type="button" disabled><svg viewBox="0 0 12 12"><path d="M10 1L1 6l9 5z" fill="currentColor"/></svg>Al revés</button>
+      <label class="vel">Velocidad <select id="vel"><option value="0.75">Lenta</option><option value="1" selected>Normal</option></select></label>
+    </div>
+    <div class="tiempo" id="t1"><i></i></div>
+    <canvas id="c1" hidden></canvas>
+    <div class="archivo">¿Sin micrófono? <label>Sube un audio<input type="file" id="f1" accept="audio/*"></label></div>
+  </section>
+
+  <section class="paso off" id="p2">
+    <h2><i>2</i>Imita la versión al revés</h2>
+    <p>Escúchala varias veces y grábate diciéndola igualita, sonido por sonido.</p>
+    <div class="fila">
+      <button class="btn sec" id="r1b" type="button"><svg viewBox="0 0 12 12"><path d="M10 1L1 6l9 5z" fill="currentColor"/></svg>Oír al revés</button>
+      <button class="btn grabar" id="g2" type="button"><b></b><span>Grabar imitación</span></button>
+    </div>
+    <div class="tiempo" id="t2"><i></i></div>
+    <canvas id="c2" hidden></canvas>
+  </section>
+
+  <section class="paso off" id="p3">
+    <h2><i>3</i>El resultado</h2>
+    <p>Tu imitación, puesta al derecho. ¿Suena como el original?</p>
+    <div class="nota" id="nota"></div>
+    <div class="fila" style="justify-content:center">
+      <button class="btn" id="r2" type="button"><svg viewBox="0 0 12 12" style="width:13px;height:13px;margin-right:6px;vertical-align:-1px"><path d="M2 1l9 5-9 5z" fill="currentColor"/></svg>Oír resultado</button>
+      <button class="btn sec" id="n1b" type="button">Oír original</button>
+      <button class="btn sec" id="otra" type="button">Otra vez</button>
+    </div>
+  </section>
+
+  <p class="err" id="err" role="status"></p>
+  <small class="ayuda">El parecido se calcula comparando el ritmo y el tipo de sonido de las dos grabaciones; es aproximado. El audio no sale de tu celular: no se guarda ni se envía.</small>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const FRASES=['Anita lava la tina','Tres tristes tigres','Panamá','Hola, ¿qué xopá?','Supercalifragilístico','Mi mamá me mima','Libre'];
+const MAX=5;
+let ctx,orig=null,origRev=null,imit=null,imitRev=null,rec=null,fuente=null;
+function ac(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)();if(ctx.state==='suspended')ctx.resume();return ctx}
+function error(t){$('err').textContent=t||''}
+
+/* frases sugeridas */
+FRASES.forEach((f,i)=>{const b=document.createElement('button');b.type='button';b.textContent=f;b.setAttribute('aria-pressed','false');
+  b.onclick=()=>{[...$('chips').children].forEach(x=>x.setAttribute('aria-pressed',x===b));$('frase').textContent=f==='Libre'?'':'«'+f+'»'};$('chips').append(b)});
+
+/* audio */
+function reves(buf){const c=ac(),r=c.createBuffer(buf.numberOfChannels,buf.length,buf.sampleRate);
+  for(let ch=0;ch<buf.numberOfChannels;ch++){const a=buf.getChannelData(ch),o=r.getChannelData(ch);for(let i=0,n=a.length;i<n;i++)o[i]=a[n-1-i]}return r}
+function recortar(buf){/* quita el silencio del principio y del final */
+  const d=buf.getChannelData(0);let m=0;for(let i=0;i<d.length;i++)m=Math.max(m,Math.abs(d[i]));const u=m*0.06,pad=Math.floor(buf.sampleRate*0.08);
+  let a=0,b=d.length-1;while(a<b&&Math.abs(d[a])<u)a++;while(b>a&&Math.abs(d[b])<u)b--;a=Math.max(0,a-pad);b=Math.min(d.length,b+pad);
+  if(b-a<buf.sampleRate*0.2)return buf;const c=ac(),r=c.createBuffer(buf.numberOfChannels,b-a,buf.sampleRate);
+  for(let ch=0;ch<buf.numberOfChannels;ch++)r.getChannelData(ch).set(buf.getChannelData(ch).subarray(a,b));return r}
+function parar(){if(fuente){try{fuente.onended=null;fuente.stop()}catch(e){}fuente=null}cancelAnimationFrame(raf);redibujar()}
+let raf=0,dibujos={};
+function tocar(buf,canvas,alReves){parar();const c=ac(),s=c.createBufferSource();s.buffer=buf;const v=+$('vel').value;s.playbackRate.value=v;s.connect(c.destination);
+  const t0=c.currentTime,dur=buf.duration/v;s.start();fuente=s;s.onended=()=>{fuente=null;cancelAnimationFrame(raf);redibujar()};
+  const paso=()=>{const p=Math.min(1,(c.currentTime-t0)/dur);dibujar(canvas,dibujos[canvas.id],alReves?1-p:p);if(p<1)raf=requestAnimationFrame(paso)};paso()}
+function dibujar(cv,buf,cabeza){if(!buf)return;cv.hidden=false;const w=cv.clientWidth*devicePixelRatio,h=cv.clientHeight*devicePixelRatio;cv.width=w;cv.height=h;
+  const g=cv.getContext('2d'),d=buf.getChannelData(0),barras=Math.floor(w/(5*devicePixelRatio)),paso=d.length/barras;let m=0;
+  const v=[];for(let i=0;i<barras;i++){let s=0;for(let j=Math.floor(i*paso);j<(i+1)*paso;j+=4)s=Math.max(s,Math.abs(d[j]||0));v.push(s);m=Math.max(m,s)}
+  v.forEach((s,i)=>{const x=i*w/barras,bh=Math.max(2*devicePixelRatio,s/(m||1)*h*.8);g.fillStyle=cabeza!=null&&i/barras<cabeza?'#E4572E':'#9AA0A8';
+    g.fillRect(x,(h-bh)/2,w/barras*.6,bh)});
+  if(cabeza!=null){g.fillStyle='#15171C';g.fillRect(cabeza*w-devicePixelRatio,0,2*devicePixelRatio,h)}}
+function redibujar(){for(const id in dibujos)dibujar($(id),dibujos[id])}
+addEventListener('resize',redibujar);
+
+/* grabar */
+async function grabar(btn,barra,alTerminar){
+  if(rec){rec.stop();return}
+  parar();error();
+  if(!navigator.mediaDevices||!window.MediaRecorder){error('Tu navegador no deja grabar. Prueba con Chrome o Safari actualizados, o sube un audio.');return}
+  let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}})}
+  catch(e){error('No hay permiso para el micrófono. Actívalo en el candado de la barra de direcciones, o sube un audio.');return}
+  ac();const partes=[];rec=new MediaRecorder(stream);rec.ondataavailable=e=>e.data.size&&partes.push(e.data);
+  const t0=performance.now(),i=barra.querySelector('i');btn.classList.add('on');btn.querySelector('span').dataset.t=btn.querySelector('span').textContent;btn.querySelector('span').textContent='Parar';
+  const tic=setInterval(()=>{const p=(performance.now()-t0)/1000/MAX;i.style.width=Math.min(100,p*100)+'%';if(p>=1&&rec&&rec.state==='recording')rec.stop()},50);
+  rec.onstop=async()=>{clearInterval(tic);stream.getTracks().forEach(t=>t.stop());rec=null;btn.classList.remove('on');btn.querySelector('span').textContent=btn.querySelector('span').dataset.t;
+    try{const buf=await ac().decodeAudioData(await new Blob(partes,{type:partes[0]?.type}).arrayBuffer());alTerminar(recortar(buf))}
+    catch(e){error('No se pudo leer la grabación. Intenta otra vez.')}};
+  rec.start();
+}
+function listo1(buf){orig=buf;origRev=reves(buf);imit=imitRev=null;dibujos={c1:origRev};delete dibujos.c2;$('c2').hidden=true;$('t2').firstChild.style.width='0';
+  $('n1').disabled=$('r1').disabled=false;$('p1').classList.add('hecho');$('p2').classList.remove('off');$('p2').classList.remove('hecho');$('p3').classList.add('off');redibujar();
+  tocar(origRev,$('c1'),false)}
+$('g1').onclick=()=>grabar($('g1'),$('t1'),listo1);
+$('f1').onchange=async e=>{const f=e.target.files[0];if(!f)return;error();
+  try{let buf=await ac().decodeAudioData(await f.arrayBuffer());if(buf.duration>MAX*2){const c=ac(),n=Math.floor(buf.sampleRate*MAX*2),r=c.createBuffer(buf.numberOfChannels,n,buf.sampleRate);for(let ch=0;ch<buf.numberOfChannels;ch++)r.getChannelData(ch).set(buf.getChannelData(ch).subarray(0,n));buf=r}
+  listo1(recortar(buf))}catch(x){error('Ese archivo no se pudo abrir. Prueba con un mp3, m4a o wav.')}e.target.value=''};
+$('n1').onclick=$('n1b').onclick=()=>tocar(orig,$('c1'),true);
+$('r1').onclick=$('r1b').onclick=()=>tocar(origRev,$('c1'),false);
+$('g2').onclick=()=>grabar($('g2'),$('t2'),buf=>{imit=buf;imitRev=reves(buf);dibujos.c2=imitRev;redibujar();
+  $('p2').classList.add('hecho');$('p3').classList.remove('off');mostrarNota(parecido(orig,imitRev));tocar(imitRev,$('c2'),false);
+  $('p3').scrollIntoView({behavior:'smooth',block:'center'})});
+$('r2').onclick=()=>imitRev&&tocar(imitRev,$('c2'),false);
+$('otra').onclick=()=>{parar();orig=origRev=imit=imitRev=null;dibujos={};['c1','c2'].forEach(c=>$(c).hidden=true);['t1','t2'].forEach(t=>$(t).firstChild.style.width='0');
+  $('n1').disabled=$('r1').disabled=true;['p1','p2','p3'].forEach(p=>$(p).classList.remove('hecho'));$('p2').classList.add('off');$('p3').classList.add('off');scrollTo({top:0,behavior:'smooth'})};
+
+/* parecido: compara la forma del volumen y el "brillo" del sonido, estirando las dos al mismo largo */
+function rasgos(buf){const d=buf.getChannelData(0),f=Math.floor(buf.sampleRate*0.02),vol=[],zc=[];
+  for(let i=0;i+f<=d.length;i+=f){let s=0,z=0;for(let j=i;j<i+f;j++){s+=d[j]*d[j];if(j>i&&(d[j]>=0)!==(d[j-1]>=0))z++}vol.push(Math.sqrt(s/f));zc.push(z/f)}
+  return {vol:estirar(vol,80),zc:estirar(zc.map((z,i)=>vol[i]>0.01?z:0),80)}}
+function estirar(a,n){const o=[];for(let i=0;i<n;i++){const x=i*(a.length-1)/(n-1),k=Math.floor(x),t=x-k;o.push((a[k]||0)*(1-t)+(a[k+1]??a[k]??0)*t)}return o}
+function suavizar(a){return a.map((v,i)=>((a[i-1]??v)+v*2+(a[i+1]??v))/4)}
+function corr(a,b){const n=a.length,ma=a.reduce((s,x)=>s+x,0)/n,mb=b.reduce((s,x)=>s+x,0)/n;let num=0,da=0,db=0;
+  for(let i=0;i<n;i++){num+=(a[i]-ma)*(b[i]-mb);da+=(a[i]-ma)**2;db+=(b[i]-mb)**2}return da&&db?num/Math.sqrt(da*db):0}
+function mejorCorr(a,b){let m=-1;for(let s=-6;s<=6;s++){const x=[],y=[];for(let i=0;i<a.length;i++){const j=i+s;if(j>=0&&j<b.length){x.push(a[i]);y.push(b[j])}}m=Math.max(m,corr(x,y))}return m}
+function parecido(a,b){const A=rasgos(a),B=rasgos(b);const v=mejorCorr(suavizar(A.vol),suavizar(B.vol)),z=mejorCorr(suavizar(A.zc),suavizar(B.zc));
+  const largo=Math.min(a.duration,b.duration)/Math.max(a.duration,b.duration);
+  const r=(0.6*Math.max(0,v)+0.4*Math.max(0,z))*(0.75+0.25*largo);return Math.round(Math.min(1,Math.max(0,(r-0.15)/0.75))*100)}
+function mostrarNota(p){let mejor=0;try{mejor=+localStorage.getItem('tanteoReves')||0;if(p>mejor)localStorage.setItem('tanteoReves',p)}catch(e){}
+  const t=p>=85?'¡Idéntico! Hablas al revés.':p>=70?'¡Se entiende!':p>=50?'Se parece bastante.':p>=30?'Más o menos… otra vez.':'Eso no se parece en nada.';
+  $('nota').innerHTML='<strong>'+p+'%</strong><span>de parecido</span><em>'+t+'</em><span>'+(p>mejor?'¡Récord nuevo!':'Tu récord: '+mejor+'%')+'</span>'}
+</script>
+<script src="/lib/peerjs.min.js" defer></script>
+<script src="/amigos.js" defer></script>
+</body>
+</html>
