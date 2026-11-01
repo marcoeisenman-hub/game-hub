@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gravedad — Game Hub</title>
+<link rel="stylesheet" href="/estilo.css">
+<link rel="icon" href="/favicon.svg">
+<style>
+main{max-width:960px;margin:auto;padding:84px 16px 40px}h1{font-size:clamp(2.4rem,8vw,4rem);line-height:1;letter-spacing:-.05em;margin:0 0 12px}.sub{color:var(--mut);margin:0 0 24px}.marco{position:relative;background:#6C4BD8;border-radius:16px;overflow:hidden}canvas{display:block;width:100%;aspect-ratio: 1.6;touch-action:none;cursor:pointer}.capa{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;color:white;background:#6c4bd8c9;padding:18px;pointer-events:none}.capa h2{font-size:clamp(1.7rem,7vw,3rem);line-height:1.1;margin:8px 0}.capa p{margin:6px 0 18px}.capa button{pointer-events:auto;background:#fff;color:#15171C;font:700 1rem inherit;font-family:inherit;border:0;border-radius:8px;padding:13px 23px;cursor:pointer}.datos{display:flex;justify-content:space-between;gap:8px;font-size:.85rem;font-weight:700;margin:12px 0}.ayuda{font-size:.9rem;color:var(--mut)}
+</style>
+</head>
+<body>
+<a class="volver" href="/">← Game Hub</a>
+<main>
+<h1>Gravedad</h1>
+<p class="sub">El túnel sigue. Tú decides qué lado es abajo.</p>
+<div class="marco">
+<canvas id="juego" tabindex="0" aria-label="Gravedad. Toca o pulsa espacio para invertir la gravedad."></canvas>
+<div class="capa" id="capa"><h2 id="titulo">Toca para empezar</h2><p id="resumen">Un toque cambia la gravedad.</p><button id="accion" type="button">Empezar</button></div>
+</div>
+<div class="datos"><span id="puntos">0 m</span><span id="monedas">0 monedas</span><span id="record">Récord: 0 m</span></div>
+<p class="ayuda">Clic, toque o espacio: invertir gravedad. Esquiva picos y bloques. Las monedas son opcionales.</p>
+<p id="estado" role="status" class="ayuda"></p>
+</main>
+<script>
+(() => {
+'use strict';
+const $=id=>document.getElementById(id), canvas=$('juego'),ctx=canvas.getContext('2d');
+const W=720,H=450,TOP=66,BOTTOM=402,SIZE=22,X=142,KEY='gamehub-gravedad-record';
+let best=0;
+try{best=Math.max(0,Number(localStorage.getItem(KEY))||0);if(!Number.isFinite(best))best=0;}catch(_){}
+let mode='ready',y=BOTTOM-SIZE,vy=0,gravity=1,distance=0,coins=0,speed=245,spawn=1.8,obstacles=[],tokens=[],trail=[],clock=0,last=0,paused=false;
+function hud(){ $('puntos').textContent=Math.floor(distance)+' m';$('monedas').textContent=coins+' monedas';$('record').textContent='Récord: '+best+' m'; }
+function resize(){const dpr=window.devicePixelRatio||1;canvas.width=Math.round(canvas.clientWidth*dpr);canvas.height=Math.round(canvas.clientHeight*dpr);ctx.setTransform(canvas.width/W,0,0,canvas.height/H,0,0);draw();}
+function start(){mode='playing';y=BOTTOM-SIZE;vy=0;gravity=1;distance=0;coins=0;speed=245;spawn=1.8;obstacles=[];tokens=[];trail=[];clock=0;last=0;$('capa').hidden=true;$('estado').textContent='';hud();}
+function input(){if(paused)return;if(mode!=='playing'){start();return;}gravity*=-1;vy=gravity*155;}
+function end(){mode='over';const score=Math.floor(distance),fresh=score>best;if(fresh){best=score;try{localStorage.setItem(KEY,String(best));}catch(_){}}hud();$('titulo').textContent='Fin del túnel';$('resumen').textContent=score+' puntos · '+coins+' monedas'+(fresh?' · Nuevo récord':'');$('accion').textContent='Otra vez';$('capa').hidden=false;}
+function generate(){const side=Math.random()<.5?-1:1,type=Math.random()<.5?'spike':'block',width=type==='spike'?44:36+Math.random()*30,height=type==='spike'?50:52+Math.random()*34;
+obstacles.push({x:W+32,w:width,h:height,side,type});
+// One hazard per section: the opposite rail always stays open.
+tokens.push({x:W+32+width/2,y:side===1?TOP+SIZE/2+12:BOTTOM-SIZE/2-12,taken:false});
+spawn=1.25+Math.random()*.55;
+}
+function hits(o){const left=Math.max(X+3,o.x),right=Math.min(X+SIZE-3,o.x+o.w);if(left>=right)return false;
+const py=y+3,pb=y+SIZE-3;
+if(o.type==='block')return o.side===1?pb>BOTTOM-o.h:py<TOP+o.h;
+const center=o.x+o.w/2,nearest=Math.max(left,Math.min(center,right)),height=o.h*(1-Math.abs(nearest-center)/(o.w/2));
+return o.side===1?pb>BOTTOM-height:py<TOP+height;
+}
+function update(dt){clock+=dt;speed=Math.min(440,245+distance*.15);distance+=speed*dt/12;spawn-=dt;if(spawn<=0)generate();
+vy+=gravity*1550*dt;y+=vy*dt;if(y<TOP){y=TOP;vy=0;}if(y>BOTTOM-SIZE){y=BOTTOM-SIZE;vy=0;}
+for(const o of obstacles){o.x-=speed*dt;if(hits(o)){end();return;}}
+for(const t of tokens){t.x-=speed*dt;if(!t.taken&&Math.abs(t.x-(X+SIZE/2))<SIZE/2+8&&Math.abs(t.y-(y+SIZE/2))<SIZE/2+8){t.taken=true;coins++;}}
+obstacles=obstacles.filter(o=>o.x+o.w>-20);tokens=tokens.filter(t=>t.x>-20&&!t.taken);
+trail.push({x:X,y,life:.22});for(const t of trail){t.x-=speed*dt;t.life-=dt;}trail=trail.filter(t=>t.life>0);hud();}
+function draw(){ctx.fillStyle='#6C4BD8';ctx.fillRect(0,0,W,H);
+ctx.fillStyle='#15171C';ctx.fillRect(0,0,W,TOP);ctx.fillRect(0,BOTTOM,W,H-BOTTOM);
+ctx.fillStyle='#fff';ctx.fillRect(0,TOP-3,W,3);ctx.fillRect(0,BOTTOM,W,3);
+ctx.globalAlpha=.16;for(let i=0;i<12;i++){const x=((i*90-clock*speed*.35)%990+990)%990;ctx.fillRect(x,TOP+28,28,2);ctx.fillRect(x,BOTTOM-30,28,2);}ctx.globalAlpha=1;
+for(const t of trail){ctx.globalAlpha=t.life/.22*.25;ctx.fillStyle='#fff';ctx.fillRect(t.x,t.y,SIZE,SIZE);}ctx.globalAlpha=1;
+for(const o of obstacles){ctx.fillStyle='#15171C';ctx.strokeStyle='#fff';ctx.lineWidth=2;const base=o.side===1?BOTTOM:TOP;if(o.type==='spike'){ctx.beginPath();ctx.moveTo(o.x,base);ctx.lineTo(o.x+o.w/2,base-o.side*o.h);ctx.lineTo(o.x+o.w,base);ctx.closePath();ctx.fill();ctx.stroke();}else{const oy=o.side===1?BOTTOM-o.h:TOP;ctx.fillRect(o.x,oy,o.w,o.h);ctx.strokeRect(o.x,oy,o.w,o.h);}}
+for(const t of tokens){ctx.save();ctx.translate(t.x,t.y);ctx.rotate(Math.PI/4);ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.strokeRect(-6,-6,12,12);ctx.restore();}
+ctx.fillStyle='#fff';ctx.fillRect(X,y,SIZE,SIZE);ctx.fillStyle='#15171C';ctx.fillRect(X+8,y+(gravity===1?13:5),6,4);
+ctx.fillStyle='#fff';ctx.font='700 15px "Schibsted Grotesk", sans-serif';ctx.fillText('GRAVEDAD',22,40);ctx.textAlign='right';ctx.fillText(String(Math.floor(distance)).padStart(4,'0')+' m',W-22,40);ctx.textAlign='left';}
+function frame(now){let dt=last?Math.min((now-last)/1000,.05):0;last=now;if(mode==='playing'&&!paused){while(dt>0&&mode==='playing'){const step=Math.min(dt,1/120);update(step);dt-=step;}}draw();requestAnimationFrame(frame);}
+canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();canvas.focus({preventScroll:true});input();});
+$('accion').addEventListener('click',()=>{input();canvas.focus({preventScroll:true});});
+document.addEventListener('keydown',e=>{if(e.code!=='Space'||e.target.closest('input,textarea,select,button,a,[contenteditable]'))return;e.preventDefault();if(!e.repeat)input();});
+document.addEventListener('visibilitychange',()=>{paused=document.hidden;last=0;$('estado').textContent=paused?'Partida en pausa.':'';});
+window.addEventListener('resize',resize);hud();resize();requestAnimationFrame(frame);
+})();
+</script>
+<script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script>
+</body>
+</html>

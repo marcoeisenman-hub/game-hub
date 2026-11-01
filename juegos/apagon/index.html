@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Apagón — Game Hub</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/estilo.css">
+<style>
+html,body{background:#0E1016;color:#fff;overscroll-behavior:none}
+main{max-width:620px;margin:0 auto;padding:70px 14px 30px;display:flex;flex-direction:column;align-items:center}
+.hud{width:100%;display:flex;align-items:center;gap:14px;font-weight:800;font-size:.95rem;margin-bottom:10px;flex-wrap:wrap}
+.hud span{color:#9AA0AE;font-weight:600;margin-right:4px}
+.pila{flex:1;min-width:90px;height:10px;border-radius:6px;background:#262B38;overflow:hidden}
+.pila i{display:block;height:100%;width:100%;background:#F5B700;transition:width .2s linear}
+.pila.baja i{background:#E63946}
+.marco{position:relative;width:100%;border-radius:18px;overflow:hidden;border:2px solid #262B38}
+canvas{display:block;width:100%;touch-action:none}
+.capa{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:10px;text-align:center;background:#0E1016e6;padding:20px}
+.capa h1{margin:0;font-size:clamp(2.4rem,11vw,3.6rem);letter-spacing:-.05em;line-height:1}
+.capa p{margin:0;color:#C7CAD1;max-width:360px}
+.capa .btn{background:#F5B700;color:#15171C;margin-top:8px}
+.capa b.n{font-size:3rem;letter-spacing:-.04em;line-height:1}
+.ayuda{color:#9AA0AE;font-size:.88rem;margin-top:12px;text-align:center}
+.volver{background:#1B1F2B;color:#fff;border-color:#262B38}
+</style>
+</head>
+<body>
+<a class="volver" href="/">← Game Hub</a>
+<main>
+  <div class="hud"><div><span>Nivel</span><b id="nivel">1</b></div><div><span>Vidas</span><b id="vidas">3</b></div><div><span>Puntos</span><b id="pts">0</b></div><div class="pila" id="pila" title="Linterna"><i></i></div></div>
+  <div class="marco" id="marco">
+    <canvas id="cv"></canvas>
+    <div class="capa" id="capa">
+      <h1>Apagón</h1>
+      <p>Se fue la luz. Busca los 3 fusibles de cada zona para prenderla. Las sombras te persiguen en lo oscuro, pero no pueden entrar donde hay luz.</p>
+      <button class="btn" id="jugar" type="button">Jugar</button>
+    </div>
+  </div>
+  <p class="ayuda">Flechas o WASD en compu. Desliza el dedo en el celular. Tu linterna se gasta: cada fusible la recarga.</p>
+</main>
+<script>
+const cv=document.getElementById('cv'),g=cv.getContext('2d'),capa=document.getElementById('capa');
+const N=14,Z=7; // laberinto de 14x14, 4 zonas de 7x7
+const DIR=[[0,-1,1],[1,0,2],[0,1,4],[-1,0,8]]; // dx,dy,bit de pared (N,E,S,O)
+const OPU=[2,3,0,1];
+let walls,lit,fus,player,sombras,nivel,vidas,pts,pila,estado='menu',t0=0,tocado=0,mensaje=null;
+let record=0;try{record=+localStorage.getItem('gamehubApagon')||0}catch(e){}
+
+/* ---------- laberinto ---------- */
+function rnd(n){return Math.floor(Math.random()*n)}
+function laberinto(){
+  const w=new Array(N*N).fill(15),vis=new Array(N*N).fill(false),pila=[[0,0]];vis[0]=true;
+  while(pila.length){const [x,y]=pila[pila.length-1];const op=[];
+    DIR.forEach((d,i)=>{const nx=x+d[0],ny=y+d[1];if(nx>=0&&ny>=0&&nx<N&&ny<N&&!vis[ny*N+nx])op.push(i)});
+    if(!op.length){pila.pop();continue}const i=op[rnd(op.length)],d=DIR[i],nx=x+d[0],ny=y+d[1];
+    w[y*N+x]&=~d[2];w[ny*N+nx]&=~DIR[OPU[i]][2];vis[ny*N+nx]=true;pila.push([nx,ny])}
+  // abrir paredes extra para que haya vueltas y se pueda escapar
+  for(let k=0;k<N*N*0.16;k++){const x=rnd(N),y=rnd(N),i=rnd(4),d=DIR[i],nx=x+d[0],ny=y+d[1];
+    if(nx<0||ny<0||nx>=N||ny>=N)continue;w[y*N+x]&=~d[2];w[ny*N+nx]&=~DIR[OPU[i]][2]}
+  return w}
+const zona=(x,y)=>(x<Z?0:1)+(y<Z?0:2);
+function abierto(x,y,i){return !(walls[y*N+x]&DIR[i][2])}
+
+/* ---------- nivel ---------- */
+function nuevoNivel(){
+  walls=laberinto();lit=[false,false,false,false];fus=[];
+  for(let z=0;z<4;z++){let k=0;while(k<3){const x=(z%2)*Z+rnd(Z),y=(z>>1)*Z+rnd(Z);
+    if((x<2&&y<2)||fus.some(f=>f.x===x&&f.y===y))continue;fus.push({x,y,z,ok:false});k++}}
+  player={x:0,y:0,tx:0,ty:0,dir:-1,quiere:-1,v:5};
+  sombras=[];const n=Math.min(5,1+nivel);for(let i=0;i<n;i++)sombras.push(nuevaSombra(i));
+  pila=1;mensaje={t:'Nivel '+nivel,h:performance.now()};
+}
+function nuevaSombra(i){const lejos=[[N-1,N-1],[N-1,0],[0,N-1],[N-1,Math.floor(N/2)],[Math.floor(N/2),N-1]];
+  let [x,y]=lejos[i%lejos.length];if(lit[zona(x,y)]){const c=celdaOscura();if(!c)return null;[x,y]=c}
+  return {x,y,tx:x,ty:y,dir:-1,v:2.6+nivel*0.35,espera:0}}
+function celdaOscura(){const l=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(!lit[zona(x,y)]&&Math.hypot(x-player.x,y-player.y)>5)l.push([x,y]);return l.length?l[rnd(l.length)]:null}
+
+/* ---------- movimiento por la cuadrícula ---------- */
+function puede(e,x,y,i,esSombra){if(!abierto(x,y,i))return false;const nx=x+DIR[i][0],ny=y+DIR[i][1];return !(esSombra&&lit[zona(nx,ny)])}
+function mover(e,dt,elegir,esSombra){
+  let paso=e.v*dt;
+  while(paso>0){
+    const dx=e.tx-e.x,dy=e.ty-e.y,d=Math.abs(dx)+Math.abs(dy);
+    if(d>1e-6){const m=Math.min(paso,d);e.x+=Math.sign(dx)*m;e.y+=Math.sign(dy)*m;paso-=m;continue}
+    e.x=e.tx;e.y=e.ty;const i=elegir(e);if(i<0||!puede(e,e.x,e.y,i,esSombra)){e.dir=-1;break}
+    e.dir=i;e.tx=e.x+DIR[i][0];e.ty=e.y+DIR[i][1]}
+}
+function elegirJugador(e){if(e.quiere>=0&&puede(e,e.x,e.y,e.quiere))return e.quiere;if(e.dir>=0&&puede(e,e.x,e.y,e.dir))return e.dir;return -1}
+function bfs(sx,sy){const dist=new Array(N*N).fill(-1),q=[sy*N+sx];dist[q[0]]=0;
+  for(let h=0;h<q.length;h++){const c=q[h],x=c%N,y=(c/N)|0;for(let i=0;i<4;i++){if(!abierto(x,y,i))continue;const n=(y+DIR[i][1])*N+x+DIR[i][0];
+    if(dist[n]<0&&!lit[zona(x+DIR[i][0],y+DIR[i][1])]){dist[n]=dist[c]+1;q.push(n)}}}return dist}
+let mapa=null;
+function elegirSombra(e){
+  const op=[];for(let i=0;i<4;i++)if(puede(e,e.x,e.y,i,true))op.push(i);if(!op.length)return -1;
+  const enLuz=lit[zona(Math.round(player.x),Math.round(player.y))];
+  if(mapa&&!enLuz){const aqui=mapa[e.y*N+e.x];
+    if(aqui>=0&&aqui<=7+nivel&&Math.random()<0.7+nivel*0.05){let mejor=-1,md=1e9;for(const i of op){const v=mapa[(e.y+DIR[i][1])*N+e.x+DIR[i][0]];if(v>=0&&v<md){md=v;mejor=i}}if(mejor>=0)return mejor}}
+  const sin=op.filter(i=>i!==OPU[e.dir]);const l=sin.length?sin:op;return l[rnd(l.length)]}
+
+/* ---------- juego ---------- */
+function empezar(){nivel=1;vidas=3;pts=0;nuevoNivel();estado='juego';capa.hidden=true;hud()}
+function hud(){document.getElementById('nivel').textContent=nivel;document.getElementById('vidas').textContent=vidas;document.getElementById('pts').textContent=pts;
+  document.getElementById('pila').firstElementChild.style.width=(pila*100)+'%';document.getElementById('pila').classList.toggle('baja',pila<.25)}
+function prender(z){lit[z]=true;pts+=100;pila=1;mensaje={t:'¡Luz!',h:performance.now()};
+  sombras=sombras.map((s,i)=>s&&lit[zona(Math.round(s.x),Math.round(s.y))]?(()=>{const n=nuevaSombra(i);if(n)n.espera=1.5;return n})():s);
+  if(lit.every(Boolean)){pts+=250*nivel;nivel++;estado='pausa';setTimeout(()=>{nuevoNivel();estado='juego'},1100)}}
+function atrapado(){vidas--;hud();if(vidas<=0){fin();return}
+  estado='pausa';mensaje={t:'¡Te agarró!',h:performance.now()};
+  setTimeout(()=>{player={x:0,y:0,tx:0,ty:0,dir:-1,quiere:-1,v:5};
+    sombras=sombras.map((s,i)=>{const n=nuevaSombra(i);if(n)n.espera=1;return n});pila=Math.max(pila,.5);estado='juego'},900)}
+function fin(){estado='fin';const nuevo=pts>record;if(nuevo){record=pts;try{localStorage.setItem('gamehubApagon',pts)}catch(e){}}
+  capa.innerHTML='<h1>Apagón</h1><b class="n">'+pts+'</b><p>'+(nuevo?'¡Récord nuevo!':'Tu récord: '+record)+' · llegaste al nivel '+nivel+'</p><button class="btn" id="jugar" type="button">Otra vez</button>';
+  capa.hidden=false;document.getElementById('jugar').onclick=empezar}
+
+let ultimo=performance.now(),cuentaMapa=0;
+function loop(t){const dt=Math.min(.05,(t-ultimo)/1000);ultimo=t;
+  if(estado==='juego'){
+    mover(player,dt,elegirJugador,false);
+    const px=Math.round(player.x),py=Math.round(player.y);
+    for(const f of fus)if(!f.ok&&f.x===px&&f.y===py&&Math.abs(player.x-px)+Math.abs(player.y-py)<.35){f.ok=true;pts+=10;pila=Math.min(1,pila+.35);
+      if(fus.filter(o=>o.z===f.z).every(o=>o.ok))prender(f.z)}
+    if(estado==='juego'){
+      pila=Math.max(0,pila-dt*(0.035+nivel*0.004));
+      if((cuentaMapa-=dt)<=0){mapa=bfs(px,py);cuentaMapa=.15}
+      for(const s of sombras){if(!s)continue;if(s.espera>0){s.espera-=dt;continue}mover(s,dt,elegirSombra,true);
+        if(Math.hypot(s.x-player.x,s.y-player.y)<.6&&!lit[zona(px,py)]){atrapado();break}}
+    }
+    hud();
+  }
+  dibujar(t);requestAnimationFrame(loop)}
+
+/* ---------- dibujo ---------- */
+let C=30,dpr=1,niebla=document.createElement('canvas'),ng=niebla.getContext('2d');
+function medir(){const w=document.getElementById('marco').clientWidth,h=Math.max(260,innerHeight-190);const s=Math.min(w,h);
+  C=s/N;dpr=Math.min(2,devicePixelRatio||1);cv.style.height=s+'px';cv.style.width=s+'px';cv.width=niebla.width=s*dpr;cv.height=niebla.height=s*dpr;
+  document.getElementById('marco').style.width=s+4+'px'}
+addEventListener('resize',medir);
+function dibujar(t){
+  const s=N*C;g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle='#1B1F2B';g.fillRect(0,0,s,s);
+  if(!walls){g.fillStyle='#0E1016';g.fillRect(0,0,s,s);return}
+  // zonas con luz
+  for(let z=0;z<4;z++)if(lit[z]){g.fillStyle='#2A3042';g.fillRect((z%2)*Z*C,(z>>1)*Z*C,Z*C,Z*C)}
+  // fusibles
+  for(const f of fus){if(f.ok)continue;const cx=(f.x+.5)*C,cy=(f.y+.5)*C,p=1+Math.sin(t/220+f.x)*.12;
+    g.fillStyle='#F5B700';g.beginPath();const r=C*.2*p;g.moveTo(cx+r*.2,cy-r*1.3);g.lineTo(cx-r*.7,cy+r*.15);g.lineTo(cx,cy+r*.15);g.lineTo(cx-r*.2,cy+r*1.3);g.lineTo(cx+r*.7,cy-r*.15);g.lineTo(cx,cy-r*.15);g.closePath();g.fill()}
+  // paredes
+  g.strokeStyle='#8D95A8';g.lineWidth=Math.max(2,C*.1);g.lineCap='round';g.beginPath();
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const w=walls[y*N+x],X=x*C,Y=y*C;
+    if(w&1){g.moveTo(X,Y);g.lineTo(X+C,Y)}if(w&8){g.moveTo(X,Y);g.lineTo(X,Y+C)}
+    if(x===N-1&&w&2){g.moveTo(X+C,Y);g.lineTo(X+C,Y+C)}if(y===N-1&&w&4){g.moveTo(X,Y+C);g.lineTo(X+C,Y+C)}}
+  g.stroke();
+  // sombras (cuerpo)
+  for(const s2 of sombras){if(!s2)continue;const cx=(s2.x+.5)*C,cy=(s2.y+.5)*C,r=C*.36;g.globalAlpha=s2.espera>0?.35:1;
+    g.fillStyle='#4B2A6B';g.beginPath();g.arc(cx,cy,r,Math.PI,0);g.lineTo(cx+r,cy+r);
+    for(let k=0;k<3;k++){const a=cx+r-(k+.5)*(2*r/3),o=Math.sin(t/120+k)*r*.15;g.quadraticCurveTo(a+r/3*.5,cy+r*.6+o,a-r/3*.5+0,cy+r)}
+    g.lineTo(cx-r,cy+r);g.closePath();g.fill();g.globalAlpha=1}
+  // jugador
+  const px=(player.x+.5)*C,py=(player.y+.5)*C;g.fillStyle='#fff';g.beginPath();g.arc(px,py,C*.3,0,7);g.fill();
+  g.fillStyle='#F5B700';g.beginPath();g.arc(px,py,C*.13,0,7);g.fill();
+  // oscuridad
+  ng.setTransform(dpr,0,0,dpr,0,0);ng.globalCompositeOperation='source-over';ng.clearRect(0,0,s,s);ng.fillStyle='rgba(6,7,11,.965)';ng.fillRect(0,0,s,s);
+  ng.globalCompositeOperation='destination-out';
+  for(let z=0;z<4;z++)if(lit[z])ng.fillRect((z%2)*Z*C,(z>>1)*Z*C,Z*C,Z*C);
+  const R=C*(1.3+2.4*pila)*(1+Math.sin(t/90)*.015);const gr=ng.createRadialGradient(px,py,R*.35,px,py,R);gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(1,'rgba(0,0,0,0)');
+  ng.fillStyle=gr;ng.beginPath();ng.arc(px,py,R,0,7);ng.fill();
+  g.setTransform(1,0,0,1,0,0);g.drawImage(niebla,0,0);g.setTransform(dpr,0,0,dpr,0,0);
+  // ojos de las sombras: se ven un poco en lo oscuro
+  for(const s2 of sombras){if(!s2||s2.espera>0)continue;const cx=(s2.x+.5)*C,cy=(s2.y+.5)*C;g.fillStyle='rgba(255,255,255,.75)';
+    g.beginPath();g.arc(cx-C*.12,cy-C*.04,C*.06,0,7);g.arc(cx+C*.12,cy-C*.04,C*.06,0,7);g.fill()}
+  // fusibles: un brillito en lo oscuro para saber dónde buscar
+  for(const f of fus){if(f.ok||lit[f.z])continue;g.fillStyle='rgba(245,183,0,'+(.18+.12*Math.sin(t/300+f.y))+')';g.beginPath();g.arc((f.x+.5)*C,(f.y+.5)*C,C*.07,0,7);g.fill()}
+  if(mensaje&&t-mensaje.h<1000){const a=1-(t-mensaje.h)/1000;g.globalAlpha=a;g.fillStyle='#fff';g.font='900 '+Math.round(C*1.3)+'px "Schibsted Grotesk",sans-serif';g.textAlign='center';g.fillText(mensaje.t,s/2,s/2);g.globalAlpha=1}
+}
+
+/* ---------- controles ---------- */
+const TECLAS={ArrowUp:0,KeyW:0,ArrowRight:1,KeyD:1,ArrowDown:2,KeyS:2,ArrowLeft:3,KeyA:3};
+addEventListener('keydown',e=>{if(e.code in TECLAS){e.preventDefault();if(player)player.quiere=TECLAS[e.code]}
+  else if((e.code==='Space'||e.code==='Enter')&&estado!=='juego'&&estado!=='pausa'&&!capa.hidden){e.preventDefault();empezar()}});
+let ini=null;
+cv.addEventListener('pointerdown',e=>{ini={x:e.clientX,y:e.clientY}});
+cv.addEventListener('pointermove',e=>{if(!ini||!player)return;const dx=e.clientX-ini.x,dy=e.clientY-ini.y;if(Math.hypot(dx,dy)<18)return;
+  player.quiere=Math.abs(dx)>Math.abs(dy)?(dx>0?1:3):(dy>0?2:0);ini={x:e.clientX,y:e.clientY}});
+addEventListener('pointerup',()=>ini=null);
+document.getElementById('jugar').onclick=empezar;
+medir();requestAnimationFrame(loop);
+</script>
+<script src="/lib/peerjs.min.js" defer></script>
+<script src="/amigos.js" defer></script>
+</body>
+</html>

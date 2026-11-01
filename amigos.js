@@ -9,13 +9,13 @@ const me={id:rid(10),name:localStorage.getItem('ratitoNombre')||'Amigo '+(10+cry
 let OFF=0; // diferencia con el reloj del anfitrión de la sala: así todos miden la llegada con el mismo reloj
 let SINCE=Date.now(); // cuándo entré a la sala en esta página (reloj propio: todos ordenan igual)
 const PAGE=location.pathname.replace(/index\.html$/,'');
-const PAGES={'/':'la portada','/juegos/vida/':'Tu vida en vivo','/juegos/orbitas/':'Órbitas','/juegos/circulo/':'Círculo perfecto','/juegos/arena/':'Arena','/juegos/reflejos/':'Reflejos','/juegos/mapa/':'¿Dónde queda?','/juegos/aojo/':'A ojo','/juegos/color/':'Mismo color','/juegos/teclazo/':'Teclazo','/juegos/reves/':'Al revés'};
+const PAGES={'/':'la portada','/juegos/vida/':'Tu vida en vivo','/juegos/orbitas/':'Órbitas','/juegos/circulo/':'Círculo perfecto','/juegos/arena/':'Arena','/juegos/reflejos/':'Reflejos','/juegos/mapa/':'¿Dónde queda?','/juegos/aojo/':'A ojo','/juegos/color/':'Mismo color','/juegos/teclazo/':'Teclazo','/juegos/reves/':'Al revés','/juegos/apagon/':'Apagón','/juegos/gravedad/':'Gravedad'};
 function color(id){const ids=[me.id].concat(Object.keys(people)).sort();const k=Math.max(0,ids.indexOf(id));return COLORS[k%COLORS.length]}
 const clean=s=>String(s||'').replace(/[<>&"]/g,'').slice(0,16)||'Amigo';
 
 /* ---------- interfaz ---------- */
 const css=`
-.am-btn{position:fixed;top:14px;left:112px;z-index:60;display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:999px;background:#fff;color:#15171C;border:1px solid #E2E4E8;font:700 .9rem "Schibsted Grotesk",system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 10px #0000000f}
+.am-btn{position:fixed;top:14px;left:150px;z-index:60;display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:999px;background:#fff;color:#15171C;border:1px solid #E2E4E8;font:700 .9rem "Schibsted Grotesk",system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 10px #0000000f}
 .am-btn:hover{border-color:#15171C}
 .am-btn b{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#E4572E;color:#fff;font-size:.75rem}
 .am-panel{position:fixed;top:58px;left:14px;z-index:60;width:300px;max-width:calc(100vw - 28px);background:#fff;color:#15171C;border:1px solid #E2E4E8;border-radius:14px;padding:14px;box-shadow:0 10px 30px #0000001f;font:400 .9rem/1.45 "Schibsted Grotesk",system-ui,sans-serif}
@@ -54,6 +54,8 @@ panel.innerHTML=`<h3>Jugar con amigos</h3>
   <button class="sec w" id="am-leave">Salir de la sala</button>
 </div>`;
 document.body.append(btn,panel);
+function ponerBtn(){const v=document.querySelector('.volver');if(v){const r=v.getBoundingClientRect();if(r.width)btn.style.left=Math.round(r.right+8)+'px'}}
+ponerBtn();addEventListener('load',ponerBtn);if(document.fonts)document.fonts.ready.then(ponerBtn);
 if(!document.querySelector('.volver')){btn.style.left='auto';btn.style.right='14px';panel.style.left='auto';panel.style.right='14px'}
 const $=id=>panel.querySelector('#'+id);
 btn.onclick=()=>{panel.hidden=!panel.hidden};
@@ -138,7 +140,7 @@ function setCode(c){code=c;sessionStorage.setItem('ratitoSala',c);const u=new UR
 function start(c){setTimeout(changed,0);
   if(typeof Peer==='undefined'){status('Cargando…');const s=document.createElement('script');s.src='/lib/peerjs.min.js';
     s.onload=()=>start(c);s.onerror=()=>status('No se pudo cargar la conexión. Recarga la página.');document.head.append(s);return}
-  if(code!==c)SINCE=Date.now();code=c;status('Conectando a la sala '+c+'…');$('am-off').hidden=true;$('am-on').hidden=false;
+  if(code!==c)SINCE=Date.now();code=c;try{sessionStorage.setItem('ratitoSala',c)}catch(e){}status('Conectando a la sala '+c+'…');$('am-off').hidden=true;$('am-on').hidden=false;
   const u=new URL(location.origin+'/');u.searchParams.set('sala',c);$('am-url').value=u.href;list();connect(c);
 }
 function leave(){if(code)send({t:'bye'});gen++;code=null;sessionStorage.removeItem('ratitoSala');

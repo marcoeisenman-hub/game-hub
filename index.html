@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Game Hub — juegos originales, solo o con amigos</title>
-<meta name="description" content="Juegos originales en el navegador: habla al revés, adivina dónde queda un lugar, calcula a ojo, rehaz un color, carrera de tecleo, reflejos, el círculo perfecto, órbitas, arena y tu vida en vivo. Solo o con amigos.">
+<meta name="description" content="Juegos originales en el navegador: laberinto a oscuras, gravedad invertida, habla al revés, adivina dónde queda un lugar, calcula a ojo, rehaz un color, carrera de tecleo, reflejos, el círculo perfecto, órbitas, arena y tu vida en vivo. Solo o con amigos.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/estilo.css">
 <style>
@@ -129,7 +129,7 @@ footer{margin-top:54px;color:var(--mut);font-size:.9rem}
   <header class="cabeza">
     <h1 aria-label="Game Hub"><span><i style="--c:#2D6CDF">G</i><i style="--c:#F5B700">a</i><i style="--c:#E63946">m</i><i style="--c:#1E9E6A">e</i></span><span><i style="--c:#6C4BD8">H</i><i style="--c:#F28C28">u</i><i style="--c:#0FA3B1">b</i></span></h1>
     <aside>
-      <p>Diez juegos hechos desde cero en Panamá. Juega solo, o crea una sala y compite con tus amigos.</p>
+      <p>Doce juegos hechos desde cero en Panamá. Juega solo, o crea una sala y compite con tus amigos.</p>
       <a class="btn" id="azar" href="/juegos/reves/"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1.5" width="13" height="13" rx="3"/><circle cx="5.3" cy="5.3" r=".6" fill="currentColor"/><circle cx="10.7" cy="10.7" r=".6" fill="currentColor"/><circle cx="8" cy="8" r=".6" fill="currentColor"/></svg>Juego al azar</a>
     </aside>
   </header>
@@ -148,6 +148,14 @@ footer{margin-top:54px;color:var(--mut);font-size:.9rem}
   </section>
 
   <main class="grid" id="grid">
+    <a class="card" href="/juegos/apagon/" style="--c:#0E1016">
+      <div class="thumb"><svg viewBox="0 0 320 220"><defs><radialGradient id="luzA"><stop offset=".35" stop-color="#2A3042"/><stop offset="1" stop-color="#2A3042" stop-opacity="0"/></radialGradient></defs><circle cx="130" cy="120" r="70" fill="url(#luzA)"/><g fill="none" stroke="#8D95A8" stroke-width="4" stroke-linecap="round"><path d="M60 40h80v40M180 40h80v60M60 80v100h60M100 120h60v60M200 140v40h60M220 60v40h-40"/></g><circle cx="130" cy="120" r="11" fill="#fff"/><circle cx="130" cy="120" r="5" fill="#F5B700"/><path class="a pin" d="M244 146l-9 14h7l-3 12 10-15h-7z" fill="#F5B700"/><g fill="#fff" opacity=".8"><circle cx="232" cy="78" r="2.5"/><circle cx="241" cy="78" r="2.5"/></g></svg></div>
+      <div class="meta"><h3>Apagón</h3><p>Laberinto a oscuras: busca los fusibles con tu linterna y escapa de las sombras.</p></div>
+    </a>
+    <a class="card" href="/juegos/gravedad/" style="--c:#6C4BD8">
+      <div class="thumb"><svg viewBox="0 0 320 220"><rect x="0" y="0" width="320" height="44" fill="#15171C"/><rect x="0" y="176" width="320" height="44" fill="#15171C"/><path d="M190 176l20-40 20 40z" fill="#15171C" stroke="#fff" stroke-width="2.5"/><rect x="250" y="44" width="34" height="58" fill="#15171C" stroke="#fff" stroke-width="2.5"/><g class="a desliza"><rect x="128" y="44" width="24" height="24" fill="#fff"/><rect x="104" y="44" width="24" height="24" fill="#fff" opacity=".3"/></g></svg></div>
+      <div class="meta"><h3>Gravedad</h3><p>Un toque y el piso se vuelve techo. Esquiva picos el mayor tiempo posible.</p></div>
+    </a>
     <a class="card" href="/juegos/reves/" style="--c:#0FA3B1">
       <div class="thumb"><svg viewBox="0 0 320 220"><g fill="#fff"><rect class="a ola" x="60" y="94" width="6" height="32" rx="3"/><rect class="a ola" style="animation-delay:.08s" x="70" y="80" width="6" height="60" rx="3"/><rect class="a ola" style="animation-delay:.16s" x="80" y="88" width="6" height="44" rx="3"/><rect class="a ola" style="animation-delay:.24s" x="90" y="70" width="6" height="80" rx="3"/><rect class="a ola" style="animation-delay:.32s" x="100" y="84" width="6" height="52" rx="3"/><rect class="a ola" style="animation-delay:.4s" x="110" y="96" width="6" height="28" rx="3"/><rect class="a ola" style="animation-delay:.48s" x="120" y="76" width="6" height="68" rx="3"/><rect class="a ola" style="animation-delay:.56s" x="130" y="64" width="6" height="92" rx="3"/><rect class="a ola" style="animation-delay:.64s" x="140" y="86" width="6" height="48" rx="3"/><rect class="a ola" style="animation-delay:.72s" x="150" y="98" width="6" height="24" rx="3"/></g><g fill="#15171C"><rect class="a ola" style="animation-delay:.72s" x="164" y="98" width="6" height="24" rx="3"/><rect class="a ola" style="animation-delay:.64s" x="174" y="86" width="6" height="48" rx="3"/><rect class="a ola" style="animation-delay:.56s" x="184" y="64" width="6" height="92" rx="3"/><rect class="a ola" style="animation-delay:.48s" x="194" y="76" width="6" height="68" rx="3"/><rect class="a ola" style="animation-delay:.4s" x="204" y="96" width="6" height="28" rx="3"/><rect class="a ola" style="animation-delay:.32s" x="214" y="84" width="6" height="52" rx="3"/><rect class="a ola" style="animation-delay:.24s" x="224" y="70" width="6" height="80" rx="3"/><rect class="a ola" style="animation-delay:.16s" x="234" y="88" width="6" height="44" rx="3"/><rect class="a ola" style="animation-delay:.08s" x="244" y="80" width="6" height="60" rx="3"/><rect class="a ola" x="254" y="94" width="6" height="32" rx="3"/></g><path d="M178 180h-36m0 0 8-7m-8 7 8 7" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="meta"><h3>Al revés</h3><p>Graba tu voz, óyela al revés e imítala. ¿Se entiende cuando la volteas?</p></div>
@@ -160,8 +168,8 @@ footer{margin-top:54px;color:var(--mut);font-size:.9rem}
       <div class="thumb"><svg viewBox="0 0 320 220"><text x="160" y="104" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="900" font-size="56" letter-spacing="-2" fill="#15171C">8.849 m</text><line x1="50" y1="150" x2="270" y2="150" stroke="#15171C" stroke-opacity=".25" stroke-width="4" stroke-linecap="round"/><circle cx="118" cy="150" r="8" fill="#fff" stroke="#15171C" stroke-width="2.5"/><circle cx="206" cy="150" r="8" fill="#15171C"/><circle class="a desliza" cx="172" cy="150" r="10" fill="#E63946" stroke="#15171C" stroke-width="2.5"/></svg></div>
       <div class="meta"><h3>A ojo</h3><p>¿Cuánto mide el Everest? ¿Cuántos huesos tienes? Calcula sin buscar.</p></div>
     </a>
-    <a class="card" href="/juegos/color/" data-mp style="--c:#6C4BD8">
-      <div class="thumb"><svg viewBox="0 0 320 220"><rect x="76" y="46" width="82" height="118" rx="12" fill="#FF8A65" stroke="#15171C" stroke-width="2.5"/><rect class="a tono" x="162" y="46" width="82" height="118" rx="12" fill="#FF9B78" stroke="#15171C" stroke-width="2.5"/><text x="160" y="196" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="800" font-size="17" fill="#fff">9,4 / 10</text></svg></div>
+    <a class="card" href="/juegos/color/" data-mp style="--c:#F3EEE6">
+      <div class="thumb"><svg viewBox="0 0 320 220"><rect x="76" y="46" width="82" height="118" rx="12" fill="#FF8A65" stroke="#15171C" stroke-width="2.5"/><rect class="a tono" x="162" y="46" width="82" height="118" rx="12" fill="#FF9B78" stroke="#15171C" stroke-width="2.5"/><text x="160" y="196" text-anchor="middle" font-family="Schibsted Grotesk,sans-serif" font-weight="800" font-size="17" fill="#15171C">9,4 / 10</text></svg></div>
       <div class="meta"><h3>Mismo color</h3><p>Mira un color tres segundos y rehazlo de memoria.</p></div>
     </a>
     <a class="card" href="/juegos/teclazo/" data-mp style="--c:#1E9E6A">
