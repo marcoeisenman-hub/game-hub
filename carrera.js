@@ -59,8 +59,9 @@ window.Carrera=function(o){
     if(d.v!==null&&!(Number.isFinite(d.v)&&d.v>=0&&d.v<1e9))return;game.results[de.id]=d.v;reconcile();publish()}
 
   function terminar(v){if(!juego()||mio!==undefined)return;mio=(v==null||!Number.isFinite(+v))?null:+v;acabo=true;guardar(mio);
-    prog[me()]={...(prog[me()]||{}),fin:true};const d={type:'result',id:game.id,v:mio};if(host())receive(d,{id:me()});else tx(d);render()}
-  function progreso(n,max){if(!juego())return;prog[me()]={n:+n||0,max:+max||1};const t=Date.now();if(t-lastProg>140){lastProg=t;tx({type:'prog',id:game.id,n:prog[me()].n,max:prog[me()].max})}renderList()}
+    prog[me()]={...(prog[me()]||{}),fin:true};const d={type:'result',id:game.id,v:mio,tag:tagMio()};if(host())receive(d,{id:me()});else tx(d);render()}
+  const tagMio=()=>{try{return o.etiqueta?String(o.etiqueta()).slice(0,20):''}catch(e){return ''}};
+  function progreso(n,max){if(!juego())return;prog[me()]={n:+n||0,max:+max||1,tag:tagMio()};const t=Date.now();if(t-lastProg>140){lastProg=t;tx({type:'prog',id:game.id,n:prog[me()].n,max:prog[me()].max,tag:prog[me()].tag})}renderList()}
 
   function orden(){const r=game.results;return game.people.map(p=>({p,v:Object.hasOwn(r,p.id)?r[p.id]:undefined,pr:prog[p.id]}))
     .sort((a,b)=>{const av=a.v==null?null:a.v,bv=b.v==null?null:b.v;if(av!==null&&bv!==null)return alto?bv-av:av-bv;if(av!==null)return -1;if(bv!==null)return 1;
@@ -71,7 +72,7 @@ window.Carrera=function(o){
       const pct=f.v!==undefined&&f.v!==null?100:f.pr?Math.min(100,100*f.pr.n/f.pr.max):0;
       const val=f.v!==undefined?fmt(f.v):f.pr?(o.vivo?o.vivo(f.pr.n):f.pr.n):'';
       const rk=f.v!=null?filas.findIndex(x=>x.v===f.v):i,pos=game.closed&&f.v!=null&&rk<3?med[rk]:(rk+1);
-      return `<li style="--pc:${esc(c)}"><span class="cr-pos" style="${game.closed&&f.v!=null&&rk<3?'background:#fff;font-size:1.3rem':''}">${pos}</span><span>${esc(yo&&online()?'Tú':f.p.name)}</span><span class="cr-v">${esc(val)}</span><span class="cr-bar"><i style="width:${pct}%"></i></span></li>`}).join('')}
+      return `<li style="--pc:${esc(c)}"><span class="cr-pos" style="${game.closed&&f.v!=null&&rk<3?'background:#fff;font-size:1.3rem':''}">${pos}</span><span>${esc(yo&&online()?'Tú':f.p.name)}${f.pr&&f.pr.tag?' <small style="color:#6B7079;font-weight:600">'+esc(f.pr.tag)+'</small>':''}</span><span class="cr-v">${esc(val)}</span><span class="cr-bar"><i style="width:${pct}%"></i></span></li>`}).join('')}
   function render(){
     const t=game?clock()-game.start:0,b=mejor();
     btn.disabled=!host()||juego()||(!!game&&!game.closed);
@@ -109,7 +110,7 @@ window.Carrera=function(o){
       if(d.type==='pong'&&d.to===me()&&de.id===leader&&pending.has(d.t)){const rtt=Date.now()-d.t;pending.delete(d.t);if(rtt<bestRTT){bestRTT=rtt;offset=d.now-(d.t+rtt/2)}}
       if(d.type==='hello'&&host()&&game)publish();
       if(d.type==='state'&&de.id===leader&&d.game)accept(d.game);
-      if(d.type==='prog'&&game&&d.id===game.id&&Number.isFinite(d.n)&&Number.isFinite(d.max)&&d.max>0){prog[de.id]={n:d.n,max:d.max};renderList()}
+      if(d.type==='prog'&&game&&d.id===game.id&&Number.isFinite(d.n)&&Number.isFinite(d.max)&&d.max>0){prog[de.id]={n:d.n,max:d.max,tag:typeof d.tag==='string'?d.tag.slice(0,20):''};renderList()}
       receive(d,de)});
     sala.al('cambio',()=>{const lid=online()?sala.jugadores()[0]?.id:'';
       if(lid!==leaderId){leaderId=lid;offset=0;bestRTT=Infinity;pending.clear();ping();if(game&&!game.closed){game.closed=true;game.aborted=true;cerrado()}}

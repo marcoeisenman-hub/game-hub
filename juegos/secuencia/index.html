@@ -18,7 +18,7 @@ async function mostrar(){const token=++version;bloquear();nivel++;lado=nivel>=6?
 function terminar(mensaje){version++;bloquear();estado.textContent=mensaje+' Llegaste al nivel '+alcanzado+'.';c.terminar(alcanzado)}
 function tocar(i){if(!acepta||!c.jugando)return;nota(i);if(i!==secuencia[entrada]){terminar('¡Esa no era!');return}
  const b=tablero.children[i],token=version;b.classList.add('luz');setTimeout(()=>{if(token===version)b.classList.remove('luz')},140);entrada++;estado.textContent='Tu turno: '+entrada+' de '+secuencia.length;
- if(entrada===secuencia.length){alcanzado=nivel;c.progreso(alcanzado,20);bloquear();estado.textContent='¡Nivel '+nivel+' superado!';setTimeout(()=>{if(token===version&&c.jugando)mostrar()},550)}
+ if(entrada===secuencia.length){alcanzado=nivel;c.progreso(alcanzado,20);bloquear();b.classList.add('luz');setTimeout(()=>{if(token===version)b.classList.remove('luz')},300);estado.textContent='¡Nivel '+nivel+' superado!';setTimeout(()=>{if(token===version&&c.jugando)mostrar()},550)}
 }
 const c=Carrera({app:'secuencia',el:document.querySelector('#carrera'),limite:120000,mejor:'alto',formato:v=>'nivel '+v,vivo:v=>'nivel '+v,
  alEmpezar(rand){version++;nivel=0;alcanzado=0;planes=[];let s=[];for(let n=1;n<=100;n++){if(n===6)s=s.map(i=>Math.floor(i/3)*4+i%3);s=[...s,Math.floor(rand()*(n>=6?16:9))];planes.push(s)}c.progreso(0,20);mostrar()},
