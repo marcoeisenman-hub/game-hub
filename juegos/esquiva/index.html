@@ -1,0 +1,50 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Esquiva — game.hub</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/estilo.css"><style>*{box-sizing:border-box}main{max-width:640px;margin:76px auto 24px;padding:0 16px;user-select:none}h1{font-size:48px;letter-spacing:-.04em;margin:0}p{line-height:1.5}canvas{display:block;width:100%;height:min(58svh,600px);min-height:300px;border:3px solid #15171C;border-radius:16px;touch-action:none;background:#FFF5D6}.meta{display:flex;justify-content:space-between;font-weight:900;margin:12px 0}#marca{font-size:25px}button{touch-action:manipulation}</style></head><body><a class="volver" href="/">← game.hub</a><main><h1>Esquiva</h1><p>Sobrevive al caos. Lluvia, espirales, cazadores, láseres y muros se mezclan cada vez más rápido. Un golpe = fin.</p><div id="carrera"></div><div class="meta"><span id="marca">0</span><span id="fase">Mouse / dedo / WASD o flechas</span></div><canvas id="campo" aria-label="Esquiva: área de juego" tabindex="0"></canvas><p id="estado" role="status">Pulsa Empezar. Mouse / dedo / WASD o flechas</p></main><script src="/carrera.js"></script><script>
+ 'use strict';
+const canvas=document.querySelector('#campo'),g=canvas.getContext('2d'),marca=document.querySelector('#marca'),estado=document.querySelector('#estado'),fase=document.querySelector('#fase');
+const W=480,H=600,keys=new Set();let active=false,frame=0,last=0,acc=0,t=0,shake=0,parts=[];
+function resize(){const r=canvas.getBoundingClientRect(),d=devicePixelRatio||1;canvas.width=Math.round(r.width*d);canvas.height=Math.round(r.height*d);draw()}
+function circle(x,y,r,color){g.fillStyle=color;g.strokeStyle='#15171C';g.lineWidth=2;g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fill();g.stroke()}
+function rect(x,y,w,h,color){g.fillStyle=color;g.strokeStyle='#15171C';g.lineWidth=2;g.fillRect(x,y,w,h);g.strokeRect(x,y,w,h)}
+function burst(x,y,color,n=22){shake=10;for(let i=0;i<n;i++){const a=i*2.399963;parts.push({x,y,vx:Math.cos(a)*(70+i*5),vy:Math.sin(a)*(70+i*5),life:.65,color})}}
+function effects(dt){shake=Math.max(0,shake-dt*22);for(const p of parts){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt}parts=parts.filter(p=>p.life>0)}
+function backdrop(){g.setTransform(canvas.width/W,0,0,canvas.height/H,0,0);g.clearRect(0,0,W,H);g.fillStyle='#FFF5D6';g.fillRect(0,0,W,H);g.translate(Math.sin(t*97)*shake,Math.cos(t*113)*shake)}
+function sparks(){for(const p of parts){g.globalAlpha=Math.max(0,p.life/.65);rect(p.x,p.y,5,5,p.color)}g.globalAlpha=1}
+function loop(now){const dt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;acc+=dt;while(acc>=1/120){if(active)update(1/120);effects(1/120);acc-=1/120}draw();if(active||parts.length)frame=requestAnimationFrame(loop)}
+function begin(){cancelAnimationFrame(frame);active=true;t=0;parts=[];shake=0;acc=0;keys.clear();last=performance.now();canvas.focus({preventScroll:true});frame=requestAnimationFrame(loop)}
+addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;const k=e.key.toLowerCase();if(['arrowleft','arrowright','arrowup','arrowdown','w','a','s','d'].includes(k)&&active){e.preventDefault();keys.add(k)}});
+addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));addEventListener('blur',()=>{keys.clear();release()});
+canvas.addEventListener('pointercancel',release);canvas.addEventListener('pointerup',release);canvas.addEventListener('lostpointercapture',release);addEventListener('resize',resize);
+
+let player={x:240,y:490,vx:0,vy:0},target=null,bullets=[],lasers=[],walls=[],coins=[],schedule=[],next=0,bonus=0,report=0,aim=false,emitters=[];
+function release(){aim=false;target=null}
+function point(e){const r=canvas.getBoundingClientRect();target={x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height-(e.pointerType==='touch'?52:0)}}
+canvas.addEventListener('pointerdown',e=>{if(!active||e.button>0)return;e.preventDefault();aim=true;point(e);canvas.setPointerCapture(e.pointerId)});
+canvas.addEventListener('pointermove',e=>{if(active&&(aim||e.pointerType==='mouse')){point(e)}});
+function shot(x,y,a,s,r=7,bounce=0){bullets.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r,bounce,life:12})}
+function wave(e){const level=1+t/30,speed=105+Math.min(180,t*2.1);fase.textContent=['LLUVIA','ESPIRAL','TE CAZAN','LÁSER','BUSCA EL HUECO','REBOTES'][e.kind];
+ if(e.kind===0)for(let i=0;i<9;i++)shot((i+e.u)*W/9,-15,Math.PI/2+(e.v-.5)*.5,speed,6);
+ if(e.kind===1)emitters.push({age:0,a:e.u*6.28,speed:speed*.8});
+ if(e.kind===2){const x=e.u*W,y=-12,a=Math.atan2(player.y-y,player.x-x);for(let i=-2;i<=2;i++)shot(x,y,a+i*.13,speed*1.25)}
+ if(e.kind===3)lasers.push({vertical:e.v>.5,pos:55+e.u*(e.v>.5?W-110:H-110),age:0});
+ if(e.kind===4)walls.push({y:-25,gap:65+e.u*(W-130),width:Math.max(82,145-t*.4),speed:speed*.7});
+ if(e.kind===5)for(let i=0;i<3;i++)shot(30+e.u*(W-60),-15,Math.PI/3+i*.52,speed*.8,11,4);
+ if(e.coin)coins.push({x:35+e.v*(W-70),y:-20,age:0});
+}
+function finish(completo=false){if(!active)return;active=false;release();burst(player.x,player.y,'#E63946',40);const ms=Math.round(t*1000)+bonus;marca.textContent=(ms/1000).toFixed(1)+' s';estado.textContent=(completo?'¡Sobreviviste al caos! ':'¡BOOM! ')+t.toFixed(1)+' s + '+bonus/1000+' s en monedas.';c.progreso(ms,60000);c.terminar(ms)}
+function update(dt){t+=dt;while(next<schedule.length&&schedule[next].at<=t)wave(schedule[next++]);
+ let dx=(keys.has('arrowright')||keys.has('d')?1:0)-(keys.has('arrowleft')||keys.has('a')?1:0),dy=(keys.has('arrowdown')||keys.has('s')?1:0)-(keys.has('arrowup')||keys.has('w')?1:0);
+ const len=Math.hypot(dx,dy)||1;let vx=dx/len*290,vy=dy/len*290;if(target&&!dx&&!dy){vx=Math.max(-360,Math.min(360,(target.x-player.x)*9));vy=Math.max(-360,Math.min(360,(target.y-player.y)*9))}
+ player.vx+=(vx-player.vx)*(1-Math.exp(-15*dt));player.vy+=(vy-player.vy)*(1-Math.exp(-15*dt));player.x=Math.max(9,Math.min(W-9,player.x+player.vx*dt));player.y=Math.max(9,Math.min(H-9,player.y+player.vy*dt));
+ for(const e of emitters){e.age+=dt;if(e.age>=.9&&!e.fired){e.fired=true;for(let i=0;i<12;i++)shot(W/2,H/2,e.a+i*Math.PI/6,e.speed,6)}}emitters=emitters.filter(e=>e.age<1);
+ let hit=false;for(const b of bullets){b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(b.bounce>0){if(b.x<b.r||b.x>W-b.r){b.vx*=-1;b.bounce--;b.x=Math.max(b.r,Math.min(W-b.r,b.x))}if(b.y>H-b.r){b.vy*=-1;b.bounce--;b.y=H-b.r}}if(Math.hypot(b.x-player.x,b.y-player.y)<b.r+7)hit=true}bullets=bullets.filter(b=>b.life>0&&b.y<H+30&&b.x>-40&&b.x<W+40);
+ for(const l of lasers){l.age+=dt;if(l.age>=1.15&&l.age<1.48&&Math.abs((l.vertical?player.x:player.y)-l.pos)<18)hit=true}lasers=lasers.filter(l=>l.age<1.6);
+ for(const w of walls){w.y+=w.speed*dt;if(Math.abs(player.y-w.y)<17&&Math.abs(player.x-w.gap)>w.width/2-8)hit=true}walls=walls.filter(w=>w.y<H+30);
+ for(const coin of coins){coin.y+=85*dt;coin.age+=dt;if(Math.hypot(coin.x-player.x,coin.y-player.y)<20){coin.age=99;bonus+=1000;burst(coin.x,coin.y,'#F5B700',12)}}coins=coins.filter(o=>o.age<9);
+ if(hit){finish();return}if(t-report>.15){report=t;const ms=Math.round(t*1000)+bonus;marca.textContent=(ms/1000).toFixed(1)+' s';c.progreso(ms,60000)}
+}
+function draw(){backdrop();for(const e of emitters){g.globalAlpha=.35+.6*Math.abs(Math.sin(e.age*22));circle(W/2,H/2,28,'#F5B700');g.globalAlpha=1;g.fillStyle='#15171C';g.font='bold 24px sans-serif';g.textAlign='center';g.fillText('!',W/2,H/2+8)}for(const w of walls){rect(0,w.y-9,w.gap-w.width/2,18,'#6C4BD8');rect(w.gap+w.width/2,w.y-9,W-w.gap-w.width/2,18,'#6C4BD8')}
+ for(const l of lasers){g.strokeStyle=l.age<1.15?'#E63946':'#15171C';g.lineWidth=l.age<1.15?3:22;g.setLineDash(l.age<1.15?[10,10]:[]);g.globalAlpha=l.age<1.15?(.4+.6*Math.abs(Math.sin(l.age*22))):1;g.beginPath();g.moveTo(l.vertical?l.pos:0,l.vertical?0:l.pos);g.lineTo(l.vertical?l.pos:W,l.vertical?H:l.pos);g.stroke();g.globalAlpha=1;g.setLineDash([])}
+ for(const b of bullets)circle(b.x,b.y,b.r,b.bounce?'#F28C28':'#E63946');for(const o of coins)circle(o.x,o.y,11,'#F5B700');if(active||!t){circle(player.x,player.y,9,'#2D6CDF');circle(player.x,player.y,3,'#fff')}sparks()}
+const c=Carrera({app:'esquiva',el:document.querySelector('#carrera'),limite:180000,mejor:'alto',formato:v=>(v/1000).toFixed(1)+' s',vivo:v=>(v/1000).toFixed(1)+' s',alEmpezar(rand){emitters=[];bullets=[];walls=[];lasers=[];coins=[];next=0;bonus=0;report=0;target=null;player={x:240,y:490,vx:0,vy:0};schedule=[];let at=1.1;while(at<181){schedule.push({at,kind:Math.floor(rand()*Math.min(6,2+Math.floor(at/5))),u:rand(),v:rand(),coin:rand()<.13});at+=Math.max(.32,1.1-at*.006)}estado.textContent='Un golpe y termina. Las monedas suman 1 s.';begin();c.progreso(0,60000)},alAcabarTiempo(){finish(true)},alCerrar(){active=false;release()}});resize();
+
+</script><script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script></body></html>

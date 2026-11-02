@@ -1,0 +1,116 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Hoyo — game.hub</title><link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="game.hub"><link rel="stylesheet" href="/estilo.css">
+<style>
+body{background:#fff}
+main{max-width:560px;margin:64px auto 30px;padding:0 14px}
+h1{font-size:clamp(32px,7vw,52px);letter-spacing:-.05em;margin:0}
+.sub{color:var(--mut);margin:2px 0 0}
+.hud{display:flex;justify-content:space-between;font-weight:800;margin:8px 2px}
+.hud b{font-size:1.2rem}
+.marco{position:relative;border:2px solid var(--ink);border-radius:18px;overflow:hidden;background:#3FA34D;width:min(100%,400px,calc((100svh - 70px) * 360 / 560));margin:auto}
+canvas{display:block;width:100%;touch-action:none;cursor:crosshair}
+.aviso{position:absolute;left:0;right:0;top:42%;text-align:center;font:900 clamp(28px,9vw,44px) "Schibsted Grotesk",sans-serif;color:#fff;text-shadow:0 3px 0 #15171C;pointer-events:none}
+.nota{color:var(--mut);font-size:.9rem}
+</style></head><body><a class="volver" href="/">← game.hub</a>
+<main>
+  <h1>Hoyo</h1><p class="sub">Minigolf de 6 hoyos. Arrastra hacia atrás y suelta para tirar. Gana el que use menos golpes.</p>
+  <div id="carrera"></div>
+  <div class="hud"><span>Hoyo <b id="h">–</b>/6</span><span>Golpes: <b id="g">0</b></span><span>Total: <b id="t">0</b></span></div>
+  <div class="marco"><canvas id="cv"></canvas><div class="aviso" id="aviso"></div></div>
+  <p class="nota">Mientras más lejos arrastres, más fuerte. La arena frena, el agua te devuelve (+1 golpe) y los rebotadores te lanzan. Máximo 8 golpes por hoyo.</p>
+</main>
+<script src="/carrera.js"></script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d');
+const W=360,H=560,BR=7,CR=11,WT=14,MAXG=8;
+// hoyos diseñados a mano (siempre se pueden jugar); el orden, espejo y velocidades salen de la semilla
+const HOYOS=[
+ {tee:[180,480],cup:[180,100],muros:[[100,280,160,18]],arena:[],agua:[],bump:[],mov:[]},
+ {tee:[70,490],cup:[290,90],muros:[[0,300,240,18]],arena:[[200,110,146,80]],agua:[],bump:[],mov:[]},
+ {tee:[180,500],cup:[180,90],muros:[[0,380,250,16],[110,230,250,16]],arena:[],agua:[[14,110,80,90]],bump:[],mov:[]},
+ {tee:[180,500],cup:[180,90],muros:[],arena:[],agua:[],bump:[[90,200,18],[270,200,18],[180,380,16]],mov:[[0,290,120,16,'x']]},
+ {tee:[180,500],cup:[290,100],muros:[[40,160,200,16]],arena:[],agua:[[14,260,136,60],[210,260,136,60]],bump:[],mov:[]},
+ {tee:[180,510],cup:[180,80],muros:[],arena:[[14,440,90,60]],agua:[],bump:[[100,180,16],[180,260,18],[260,180,16],[140,380,14],[240,400,14]],mov:[]},
+ {tee:[300,500],cup:[60,90],muros:[[0,200,140,16],[220,200,140,16],[0,370,140,16],[220,370,140,16]],arena:[],agua:[],bump:[],mov:[[0,285,90,16,'x']]},
+ {tee:[180,500],cup:[180,95],muros:[[60,330,80,16],[220,330,80,16]],arena:[[14,150,332,110]],agua:[],bump:[[180,420,14]],mov:[]},
+ {tee:[60,500],cup:[300,90],muros:[[120,140,16,300]],arena:[],agua:[[220,250,126,70]],bump:[[230,170,16]],mov:[[136,460,210,16,'y']]},
+];
+let pasando=false,rand=Math.random,plan=[],hi=0,hoyo=null,b=null,golpes=0,total=0,arrastre=null,quieto=null,activo=false,t0=0,parts=[],fin=false;
+function preparar(){const ord=[...HOYOS.keys()];for(let i=ord.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[ord[i],ord[j]]=[ord[j],ord[i]]}
+  plan=ord.slice(0,6).map(k=>({k,esp:rand()<.5,vel:.7+rand()*.9,fase:rand()*6.28}))}
+function cargar(i){hi=i;const P=plan[i],B=HOYOS[P.k],m=x=>P.esp?W-x:x,mr=(x,w)=>P.esp?W-x-w:x;
+  hoyo={tee:[m(B.tee[0]),B.tee[1]],cup:[m(B.cup[0]),B.cup[1]],
+    muros:[[0,0,W,WT],[0,H-WT,W,WT],[0,0,WT,H],[W-WT,0,WT,H],...B.muros.map(([x,y,w,h])=>[mr(x,w),y,w,h])],
+    arena:B.arena.map(([x,y,w,h])=>[mr(x,w),y,w,h]),agua:B.agua.map(([x,y,w,h])=>[mr(x,w),y,w,h]),
+    bump:B.bump.map(([x,y,r])=>[m(x),y,r]),mov:B.mov.map(([x,y,w,h,ax])=>({x0:mr(x,w),y0:y,x:mr(x,w),y,w,h,ax,vel:P.vel,fase:P.fase}))};
+  b={x:hoyo.tee[0],y:hoyo.tee[1],vx:0,vy:0,dentro:false};quieto=[b.x,b.y];golpes=0;pasando=false;hud();aviso('Hoyo '+(i+1),900)}
+function hud(){$('h').textContent=hoyo?hi+1:'–';$('g').textContent=golpes;$('t').textContent=total}
+let avisoT=0;function aviso(t,ms){$('aviso').textContent=t;clearTimeout(avisoT);avisoT=setTimeout(()=>$('aviso').textContent='',ms)}
+const dentro=(x,y,[rx,ry,rw,rh])=>x>=rx&&x<=rx+rw&&y>=ry&&y<=ry+rh;
+function choqueRect(rx,ry,rw,rh,mvx,mvy){const cx=Math.max(rx,Math.min(b.x,rx+rw)),cy=Math.max(ry,Math.min(b.y,ry+rh));let dx=b.x-cx,dy=b.y-cy,d=Math.hypot(dx,dy);
+  if(d>=BR)return;if(d===0){dx=b.x<rx+rw/2?-1:1;dy=0;d=1}const nx=dx/d,ny=dy/d;b.x=cx+nx*BR;b.y=cy+ny*BR;
+  const rvx=b.vx-(mvx||0),rvy=b.vy-(mvy||0),dot=rvx*nx+rvy*ny;if(dot<0){b.vx-=1.75*dot*nx;b.vy-=1.75*dot*ny;b.vx*=.92;b.vy*=.92;if(Math.abs(dot)>120)chispas(cx,cy,'#fff',5)}}
+function chispas(x,y,c,n){for(let k=0;k<n;k++){const a=Math.random()*6.28,s=40+Math.random()*120;parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:.5,c})}}
+function paso(dt,t){
+  for(const o of hoyo.mov){const off=Math.sin(t*o.vel*1.6+o.fase)*0.5+0.5,prevx=o.x,prevy=o.y;
+    if(o.ax==='x'){o.x=WT+off*(W-2*WT-o.w)}else{o.y=o.y0-off*180}o.vx=(o.x-prevx)/dt;o.vy=(o.y-prevy)/dt}
+  if(b.dentro)return;
+  const sp=Math.hypot(b.vx,b.vy);if(sp>0){const enArena=hoyo.arena.some(r=>dentro(b.x,b.y,r));const k=Math.exp(-(enArena?3.6:.9)*dt),dec=(enArena?60:34)*dt;
+    const ns=Math.max(0,sp*k-dec);b.vx*=ns/sp;b.vy*=ns/sp}
+  b.x+=b.vx*dt;b.y+=b.vy*dt;
+  for(const r of hoyo.muros)choqueRect(...r);
+  for(const o of hoyo.mov)choqueRect(o.x,o.y,o.w,o.h,o.vx,o.vy);
+  for(const [x,y,r] of hoyo.bump){const dx=b.x-x,dy=b.y-y,d=Math.hypot(dx,dy);if(d<r+BR&&d>0){const nx=dx/d,ny=dy/d;b.x=x+nx*(r+BR);b.y=y+ny*(r+BR);const dot=b.vx*nx+b.vy*ny;if(dot<0){b.vx-=2*dot*nx;b.vy-=2*dot*ny;b.vx*=1.25;b.vy*=1.25;const s=Math.hypot(b.vx,b.vy);if(s<260){b.vx*=260/s;b.vy*=260/s}chispas(x+nx*r,y+ny*r,'#F5B700',8)}}}
+  if(hoyo.agua.some(r=>dentro(b.x,b.y,r))){chispas(b.x,b.y,'#9FD3F5',14);b.x=quieto[0];b.y=quieto[1];b.vx=b.vy=0;golpes++;hud();aviso('¡Al agua! +1',900)}
+  const dc=Math.hypot(b.x-hoyo.cup[0],b.y-hoyo.cup[1]),s2=Math.hypot(b.vx,b.vy);
+  if(dc<CR&&s2<420){b.dentro=true;b.x=hoyo.cup[0];b.y=hoyo.cup[1];b.vx=b.vy=0;embocar();return}
+  else if(dc<CR+4&&s2<60){const k=40*dt/(dc||1);b.vx+=(hoyo.cup[0]-b.x)*k;b.vy+=(hoyo.cup[1]-b.y)*k}
+  if(Math.hypot(b.vx,b.vy)<5){b.vx=b.vy=0;quieto=[b.x,b.y]}}
+function embocar(){total+=golpes;hud();chispas(hoyo.cup[0],hoyo.cup[1],'#fff',24);aviso(golpes===1?'¡HOYO EN UNO!':golpes<=2?'¡Birdie!':golpes===3?'Par':'¡Adentro!',1100);c.progreso(hi+1,6);
+  setTimeout(()=>{if(!activo)return;if(hi+1<plan.length)cargar(hi+1);else terminar()},1200)}
+function terminar(){if(fin)return;fin=true;activo=false;aviso('Total: '+total,3000);c.terminar(total)}
+function pos(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height]}
+const parado=()=>b&&!b.dentro&&b.vx===0&&b.vy===0;
+cv.addEventListener('pointerdown',e=>{if(!activo||!parado())return;e.preventDefault();cv.setPointerCapture(e.pointerId);const p=pos(e);arrastre={x0:p[0],y0:p[1],x:p[0],y:p[1]}});
+cv.addEventListener('pointermove',e=>{if(!arrastre)return;const p=pos(e);arrastre.x=p[0];arrastre.y=p[1]});
+cv.addEventListener('pointerup',e=>{if(!arrastre)return;const dx=arrastre.x0-arrastre.x,dy=arrastre.y0-arrastre.y,d=Math.hypot(dx,dy);arrastre=null;
+  if(d<8||!activo||!parado())return;const f=Math.min(1,d/150)*950;b.vx=dx/d*f;b.vy=dy/d*f;golpes++;hud();
+});
+cv.addEventListener('pointercancel',()=>arrastre=null);
+
+function tam(){const w=cv.clientWidth,dpr=Math.min(2,devicePixelRatio||1);cv.style.height=(w*H/W)+'px';cv.width=Math.round(w*dpr);cv.height=Math.round(w*H/W*dpr)}
+addEventListener('resize',tam);
+let last=0;
+function frame(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;
+  if(hoyo){let r=dt;const tt=t/1000;while(r>0){const s=Math.min(r,1/240);paso(s,tt);r-=s}
+    if(activo&&!pasando&&!b.dentro&&golpes>=MAXG&&parado()){pasando=true;total+=MAXG+1;hud();aviso('Máximo de golpes (+1)',900);c.progreso(hi+1,6);setTimeout(()=>{if(!activo)return;hi+1<plan.length?cargar(hi+1):terminar()},900)}}
+  const k=cv.width/W;ctx.setTransform(k,0,0,k,0,0);
+  ctx.fillStyle='#3FA34D';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#46AD54';for(let y=0;y<H;y+=40)ctx.fillRect(0,y,W,20);
+  if(hoyo){
+    for(const [x,y,w,h] of hoyo.arena){ctx.fillStyle='#E8D29A';rr(x,y,w,h,14);ctx.fill();ctx.strokeStyle='#15171C';ctx.lineWidth=2;ctx.stroke()}
+    for(const [x,y,w,h] of hoyo.agua){ctx.fillStyle='#2F8FD6';rr(x,y,w,h,10);ctx.fill();ctx.strokeStyle='#15171C';ctx.lineWidth=2;ctx.stroke();ctx.strokeStyle='#ffffff66';for(let yy=y+14;yy<y+h;yy+=16){ctx.beginPath();ctx.moveTo(x+8,yy+Math.sin(t/300+yy)*2);ctx.lineTo(x+w-8,yy+Math.sin(t/300+yy+1)*2);ctx.stroke()}}
+    ctx.fillStyle='#15171C';ctx.beginPath();ctx.arc(hoyo.cup[0],hoyo.cup[1],CR,0,7);ctx.fill();
+    ctx.strokeStyle='#15171C';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(hoyo.cup[0],hoyo.cup[1]);ctx.lineTo(hoyo.cup[0],hoyo.cup[1]-42);ctx.stroke();
+    ctx.fillStyle='#E63946';ctx.beginPath();ctx.moveTo(hoyo.cup[0],hoyo.cup[1]-42);ctx.lineTo(hoyo.cup[0]+22,hoyo.cup[1]-35);ctx.lineTo(hoyo.cup[0],hoyo.cup[1]-28);ctx.fill();ctx.stroke();
+    for(const [x,y,w,h] of hoyo.muros){ctx.fillStyle='#8A5A34';ctx.fillRect(x,y,w,h);ctx.strokeStyle='#15171C';ctx.lineWidth=2;ctx.strokeRect(x+1,y+1,w-2,h-2)}
+    for(const o of hoyo.mov){ctx.fillStyle='#6C4BD8';rr(o.x,o.y,o.w,o.h,5);ctx.fill();ctx.strokeStyle='#15171C';ctx.lineWidth=2;ctx.stroke()}
+    for(const [x,y,r] of hoyo.bump){ctx.fillStyle='#F5B700';ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.strokeStyle='#15171C';ctx.lineWidth=2.5;ctx.stroke();ctx.fillStyle='#E63946';ctx.beginPath();ctx.arc(x,y,r*.45,0,7);ctx.fill()}
+    if(arrastre&&parado()){const dx=arrastre.x0-arrastre.x,dy=arrastre.y0-arrastre.y,d=Math.hypot(dx,dy);if(d>8){const f=Math.min(1,d/150);
+      ctx.fillStyle=f>.85?'#E63946':f>.5?'#F5B700':'#fff';for(let i=1;i<=7;i++){const q=i*f*16;ctx.globalAlpha=1-i/9;ctx.beginPath();ctx.arc(b.x+dx/d*q,b.y+dy/d*q,3.2,0,7);ctx.fill()}ctx.globalAlpha=1}}
+    if(!b.dentro){ctx.fillStyle='#00000033';ctx.beginPath();ctx.arc(b.x+2,b.y+3,BR,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(b.x,b.y,BR,0,7);ctx.fill();ctx.strokeStyle='#15171C';ctx.lineWidth=2;ctx.stroke()}
+  }
+  for(const q of parts){q.x+=q.vx*dt;q.y+=q.vy*dt;q.t-=dt;ctx.globalAlpha=Math.max(0,q.t*2);ctx.fillStyle=q.c;ctx.fillRect(q.x-2,q.y-2,4,4)}ctx.globalAlpha=1;parts=parts.filter(q=>q.t>0);
+  requestAnimationFrame(frame)}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,r):ctx.rect(x,y,w,h)}
+tam();requestAnimationFrame(frame);
+const c=Carrera({app:'hoyo',el:$('carrera'),limite:300000,mejor:'bajo',formato:v=>v+' golpes',vivo:v=>'hoyo '+v,
+  alEmpezar:r=>{rand=r;document.querySelector('.hud').scrollIntoView({behavior:'smooth',block:'start'});preparar();total=0;fin=false;activo=true;cargar(0);c.progreso(0,6)},
+  alAcabarTiempo:()=>{if(!fin){total+=(plan.length-hi)*MAXG;activo=false;fin=true;c.terminar(total)}},
+  alCerrar:()=>{activo=false}});
+</script>
+<script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script>
+</body></html>

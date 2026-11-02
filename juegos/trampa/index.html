@@ -10,6 +10,9 @@ h1{font-size:clamp(34px,8vw,54px);letter-spacing:-.05em;margin:0}
 .carta{position:relative;margin-top:14px;border:2px solid var(--ink);border-radius:22px;background:#F2F3F5;padding:18px 16px 26px;text-align:center;overflow:hidden}
 .regla{display:inline-block;font-weight:900;font-size:1rem;padding:6px 14px;border-radius:99px;background:var(--ink);color:#fff;letter-spacing:.02em}
 .regla.pal{background:#F5B700;color:var(--ink)}
+.regla.no{background:#E63946}
+.palabra.baila{transform:rotate(var(--rot));animation:baila 1.2s ease-in-out infinite alternate}
+@keyframes baila{to{transform:rotate(calc(var(--rot) * -1)) scale(1.06)}}
 .palabra{font-weight:900;font-size:clamp(56px,17vw,96px);letter-spacing:-.04em;line-height:1.1;margin-top:14px;min-height:1.1em}
 .pts{position:absolute;top:12px;right:14px;font-weight:900;font-size:1.2rem;background:#fff;border-radius:99px;padding:2px 12px;border:2px solid var(--ink)}
 .carta.bien{animation:bien .3s}.carta.mal{animation:mal .35s}
@@ -26,7 +29,7 @@ h1{font-size:clamp(34px,8vw,54px);letter-spacing:-.05em;margin:0}
   <div id="carrera"></div>
   <section class="carta" id="carta"><span class="pts" id="pts">0</span><span class="regla" id="regla">¿De qué COLOR está?</span><div class="palabra" id="pal" style="color:#2D6CDF">ROJO</div></section>
   <div class="ops" id="ops"></div>
-  <p class="nota">Con teclado: teclas 1 a 4. Bien: +1. Mal: −1. Desde los 10 puntos, a veces te van a pedir lo que dice la <b>palabra</b>: fíjate en la etiqueta de arriba.</p>
+  <p class="nota">Con teclado: teclas 1 a 4. Bien: +1. Mal: −1. Se pone más tramposo: desde 6 los botones cambian de color, desde 10 a veces piden la <b>palabra</b>, desde 14 todo se mueve y desde 20 a veces tienes que tocar uno que <b>NO</b> sea el color. Fíjate en la etiqueta de arriba.</p>
 </main>
 <script src="/carrera.js"></script>
 <script>
@@ -36,19 +39,22 @@ const COL=[['ROJO','#E63946'],['AZUL','#2D6CDF'],['VERDE','#1E9E6A'],['AMARILLO'
 let rand=Math.random,puntos=0,n=0,actual=null;
 function nueva(){n++;const k=Math.min(6,4+Math.floor(puntos/8));
   const w=Math.floor(rand()*k);let t=Math.floor(rand()*(k-1));if(t>=w)t++;
-  const modo=puntos>=10&&rand()<.35?'pal':'col';
+  const r1=rand(),r2=rand(),r3=rand();
+  const modo=puntos>=20&&r1<.2?'no':puntos>=10&&r1<.5?'pal':'col';
   // 4 opciones: siempre incluye la tinta y la palabra
   const resto=[...Array(k).keys()].filter(i=>i!==w&&i!==t);
   for(let i=resto.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[resto[i],resto[j]]=[resto[j],resto[i]]}
   const ops=[w,t,...resto].slice(0,4);for(let i=ops.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[ops[i],ops[j]]=[ops[j],ops[i]]}
-  actual={w,t,modo,ok:modo==='col'?t:w};
+  actual={w,t,modo,ok:modo==='col'?t:modo==='pal'?w:-1};
   $('pal').textContent=COL[w][0];$('pal').style.color=COL[t][1];
-  $('regla').textContent=modo==='col'?'¿De qué COLOR está?':'¿Qué dice la PALABRA?';$('regla').className='regla'+(modo==='pal'?' pal':'');
-  $('ops').innerHTML=ops.map(i=>`<button type="button" data-i="${i}">${COL[i][0].charAt(0)+COL[i][0].slice(1).toLowerCase()}</button>`).join('');
+  $('regla').textContent=modo==='col'?'¿De qué COLOR está?':modo==='pal'?'¿Qué dice la PALABRA?':'Toca uno que NO sea el color';$('regla').className='regla'+(modo==='pal'?' pal':modo==='no'?' no':'');
+  $('carta').style.background=puntos>=14?['#FDE2E4','#DCE8FB','#DDF3E6','#FFF3C4','#E8E1FB','#FFE5CC'][Math.floor(r2*6)]:'';
+  $('pal').classList.toggle('baila',puntos>=14);$('pal').style.setProperty('--rot',(r3*16-8).toFixed(1)+'deg');
+  $('ops').innerHTML=ops.map(i=>`<button type="button" data-i="${i}" style="${puntos>=6?'color:'+COL[(i+1+Math.floor(rand()*(k-1)))%k][1]:''}">${COL[i][0].charAt(0)+COL[i][0].slice(1).toLowerCase()}</button>`).join('');
   $('pts').textContent=puntos}
 function flash(c){const p=$('carta');p.classList.remove('bien','mal');void p.offsetWidth;p.classList.add(c)}
 function responder(e){const b=e.target.closest('button'),teclado=e.type==='keydown';if(!b||b.disabled||!c.jugando||!actual||!b.dataset.i)return;e.preventDefault();
-  if(+b.dataset.i===actual.ok){puntos++;flash('bien')}else{puntos=Math.max(0,puntos-1);flash('mal')}
+  if(actual.modo==='no'?+b.dataset.i!==actual.t:+b.dataset.i===actual.ok){puntos++;flash('bien')}else{puntos=Math.max(0,puntos-1);flash('mal')}
   c.progreso(puntos,40);nueva();if(teclado){const f=$('ops').querySelector('button');if(f)f.focus()}}
 addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(/^[1-4]$/.test(e.key)){const b=$('ops').children[+e.key-1];if(b)responder({target:b,type:'keydown',preventDefault(){}})}});
 $('ops').addEventListener('pointerdown',responder);

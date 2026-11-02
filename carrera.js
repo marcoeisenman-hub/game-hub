@@ -46,7 +46,8 @@ window.Carrera=function(o){
   function publish(){tx({type:'state',game});render()}
   function accept(g){if(!g||typeof g!=='object'||!Array.isArray(g.people)||!Number.isFinite(g.start)||!Number.isFinite(g.seed))return;
     const nuevo=!game||game.id!==g.id;const antes=game&&game.closed;game=g;if(!game.results||typeof game.results!=='object')game.results={};
-    if(nuevo){prog={};mio=undefined;empezo=null;acabo=false}
+    if(nuevo){prog={};mio=undefined;empezo=null;acabo=false;
+      if(!g.closed&&g.people.some(p=>p.id===me()))setTimeout(()=>{const t=o.enfocar||box.parentElement.querySelector('canvas')||box.nextElementSibling;if(t&&t.getBoundingClientRect){const r=t.getBoundingClientRect();if(r.bottom>innerHeight||r.top<0)t.scrollIntoView({behavior:'smooth',block:r.height>innerHeight*.8?'start':'center'})}},50)}
     if(game.closed&&!antes&&!nuevo)cerrado();else if(game.closed&&nuevo)cerrado();render()}
   function cerrado(){if(o.alCerrar)try{o.alCerrar(game)}catch(e){console.error(e)}}
   function start(){if(!host()||(game&&!game.closed))return;
