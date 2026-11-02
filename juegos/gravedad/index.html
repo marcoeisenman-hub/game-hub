@@ -79,9 +79,10 @@ document.addEventListener('keydown',e=>{if(e.code!=='Space'||e.target.closest('i
 document.addEventListener('visibilitychange',()=>{paused=document.hidden;last=0;$('estado').textContent=paused?'Partida en pausa.':'';});
 window.addEventListener('resize',resize);hud();resize();requestAnimationFrame(frame);
 const caja=$('carrera');
-const c=Carrera({app:'gravedad',el:caja,limite:240000,mejor:'alto',formato:v=>v+' m',vivo:v=>v+' m',
+const c=Carrera({app:'gravedad',maxValor:200000,el:caja,limite:240000,mejor:'alto',formato:v=>v+' m',vivo:v=>v+' m',
   alEmpezar:r=>{rnd=r;enCarrera=true;start();lastProg=-1},
-  alAcabarTiempo:()=>{if(mode==='playing')end()}});
+  alAcabarTiempo:()=>{if(mode==='playing')end()},
+  alCerrar:g=>{if(g&&g.aborted&&mode==='playing'&&enCarrera){enCarrera=false;mode='over';$('titulo').textContent='Carrera cancelada';$('resumen').textContent='Cambió el líder.';$('capa').hidden=false}}});
 setInterval(()=>{caja.hidden=!c.online;if(c.online&&mode!=='playing'&&!$('capa').hidden){$('titulo').textContent=mode==='over'?'Fin del túnel':'Modo carrera';$('accion').hidden=true;if(mode==='ready')$('resumen').textContent='El líder empieza la carrera arriba. Todos tienen el mismo túnel.'}else $('accion').hidden=false},300);
 })();
 </script>

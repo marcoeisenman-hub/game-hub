@@ -57,7 +57,9 @@ window.Carrera=function(o){
     if(clock()>game.start+LIM+5000)for(const p of game.people)if(!Object.hasOwn(game.results,p.id))game.results[p.id]=null;
     if(game.people.every(p=>Object.hasOwn(game.results,p.id))){game.closed=true;cerrado()}}
   function receive(d,de){if(d.type!=='result'||!host()||!game||game.closed||d.id!==game.id||!game.people.some(p=>p.id===de.id)||Object.hasOwn(game.results,de.id))return;
-    if(d.v!==null&&!(Number.isFinite(d.v)&&d.v>=0&&d.v<1e9))return;game.results[de.id]=d.v;if(typeof d.tag==='string'&&d.tag){if(!game.tags||typeof game.tags!=='object')game.tags={};game.tags[de.id]=d.tag.slice(0,20)}reconcile();publish()}
+    if(d.v!==null&&!(Number.isFinite(d.v)&&d.v>=(o.minValor||0)&&d.v<=(o.maxValor||1e9)))return;
+    // no se aceptan resultados antes de la salida (salvo 'no terminó')
+    if(d.v!==null&&de.id!==me()&&clock()<game.start+300)return;game.results[de.id]=d.v;if(typeof d.tag==='string'&&d.tag){if(!game.tags||typeof game.tags!=='object')game.tags={};game.tags[de.id]=d.tag.slice(0,20)}reconcile();publish()}
 
   function terminar(v){if(!juego()||mio!==undefined)return;mio=(v==null||!Number.isFinite(+v))?null:+v;acabo=true;guardar(mio);
     prog[me()]={...(prog[me()]||{}),fin:true};const d={type:'result',id:game.id,v:mio,tag:tagMio()};if(host())receive(d,{id:me()});else tx(d);render()}
@@ -84,7 +86,7 @@ window.Carrera=function(o){
     else if(!juego())s='Entras en la siguiente partida.';
     else if(t<0)s='Prepárate…';
     else if(acabo)s='Esperando a los demás…';
-    else{s='¡Ya!';sub='Quedan '+Math.max(0,Math.ceil((LIM-t)/1000))+' s'}
+    else{s='¡Ya!';sub=o.sinReloj?'':'Quedan '+Math.max(0,Math.ceil((LIM-t)/1000))+' s'}
     stEl.innerHTML=esc(s)+(sub?'<small>'+esc(sub)+'</small>':'');renderList()}
 
   function tick(){

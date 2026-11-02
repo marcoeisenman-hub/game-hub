@@ -1,0 +1,183 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Garabato — game.hub</title><link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="game.hub"><link rel="stylesheet" href="/estilo.css">
+<style>
+body{background:#FFF6E5}
+main{max-width:720px;margin:62px auto 40px;padding:0 14px}
+h1{font-size:clamp(34px,8vw,56px);letter-spacing:-.05em;margin:0}
+.sub{color:var(--mut);margin:2px 0 12px}
+.caja{background:#fff;border:2px solid var(--ink);border-radius:20px;padding:16px;box-shadow:0 5px 0 var(--ink);margin-bottom:14px}
+.fila{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.paso{font-weight:900;font-size:1.1rem}
+.reloj{font:900 1.3rem "Schibsted Grotesk",sans-serif;background:var(--ink);color:#fff;border-radius:99px;padding:3px 14px;min-width:64px;text-align:center}
+.reloj.poco{background:#E63946;animation:lat .5s infinite alternate}
+@keyframes lat{to{transform:scale(1.08)}}
+.prompt{font-size:clamp(1.3rem,5vw,1.8rem);font-weight:900;letter-spacing:-.02em;background:#F5B700;border:2px solid var(--ink);border-radius:14px;padding:10px 14px;margin:6px 0 12px}
+.prompt small{display:block;font-size:.8rem;font-weight:700;color:#5b4a00}
+textarea,input[type=text]{width:100%;font:700 1.15rem "Schibsted Grotesk",sans-serif;border:2px solid var(--ink);border-radius:12px;padding:12px;resize:none}
+.btn.grande{font-size:1.1rem;padding:13px 22px}
+.btn.amar{background:#F5B700;color:var(--ink);border:2px solid var(--ink)}
+.lienzo{position:relative;border:2px solid var(--ink);border-radius:14px;overflow:hidden;background:#fff;touch-action:none}
+.lienzo canvas{display:block;width:100%;aspect-ratio:4/3;touch-action:none;cursor:crosshair}
+.herr{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.herr .col{width:30px;height:30px;border-radius:50%;border:2px solid var(--ink);cursor:pointer;padding:0}
+.herr .col[aria-pressed=true]{outline:3px solid var(--ink);outline-offset:2px}
+.herr .tam,.herr .acc{font:800 .9rem "Schibsted Grotesk",sans-serif;border:2px solid var(--ink);background:#fff;border-radius:10px;padding:5px 10px;cursor:pointer}
+.herr .tam[aria-pressed=true]{background:var(--ink);color:#fff}
+.jugs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.jugs span{display:inline-flex;gap:6px;align-items:center;border:2px solid var(--ink);border-radius:99px;padding:3px 10px;font-weight:800;font-size:.85rem;background:#fff}
+.jugs span.listo{background:#C9F0DC}
+.jugs i{width:11px;height:11px;border-radius:50%;background:var(--pc)}
+.cadena{display:grid;gap:12px}
+.item{border:2px solid var(--ink);border-radius:16px;background:#fff;padding:12px;animation:entra .4s}
+.item .quien{font-weight:800;font-size:.85rem;color:var(--mut);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.item .quien i{width:11px;height:11px;border-radius:50%;background:var(--pc)}
+.item .txt{font-size:1.5rem;font-weight:900;letter-spacing:-.02em}
+.item canvas{width:min(100%,520px);margin:auto;aspect-ratio:4/3;border-radius:10px;border:1px solid #ddd;display:block}
+@keyframes entra{from{transform:translateY(16px) scale(.97);opacity:0}}
+.reac{display:flex;gap:8px;justify-content:center;margin-top:10px}
+.reac button{font-size:1.7rem;background:#fff;border:2px solid var(--ink);border-radius:14px;padding:4px 12px;cursor:pointer}
+.flota{position:fixed;font-size:2.4rem;pointer-events:none;animation:flota 1.6s ease-out forwards;z-index:80}
+@keyframes flota{to{transform:translateY(-220px) rotate(20deg);opacity:0}}
+.grande-t{font:900 clamp(1.6rem,6vw,2.4rem) "Schibsted Grotesk",sans-serif;letter-spacing:-.03em;margin:0 0 6px}
+.mut{color:var(--mut)}
+.como{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.como div{border:2px solid var(--ink);border-radius:14px;padding:10px;background:#fff;font-weight:700;font-size:.9rem;text-align:center}
+.como b{display:block;font-size:1.8rem}
+body.jugando .am-peer,body.jugando .am-edge{display:none!important}
+</style></head><body><a class="volver" href="/">← game.hub</a>
+<main>
+  <h1>Garabato</h1><p class="sub">Teléfono descompuesto con dibujos. Escribe algo, el siguiente lo dibuja, el otro adivina el dibujo… y al final ven el desastre.</p>
+  <div id="app"></div>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id),app=$('app'),APP='garabato';
+const esc=t=>String(t).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const COL=['#15171C','#FFFFFF','#E63946','#F28C28','#F5B700','#1E9E6A','#2D6CDF','#6C4BD8','#E84A8A','#8A5A34','#9AA0A8','#7FD3F7'];
+const TAM=[4,10,22];const LW=800,LH=600;
+const T_ESCRIBIR=45000,T_DIBUJAR=90000,T_ADIVINAR=45000;
+const IDEAS=['Un raspao derritiéndose en el Canal','Mi profe bailando reguetón','Un gato jugando FIFA','Un diablo rojo con alas','Messi comiendo patacones','Un tiburón en el metro','Mi perro haciendo la tarea','Una piña con lentes de sol','El wifi del colegio muriéndose','Un dinosaurio en el Casco Viejo','Cristiano en la luna','Un mono robándose un celular','La abuela haciendo parkour','Una empanada superhéroe','Un pulpo tocando batería','Un fantasma en el súper','Mi cerebro en un examen de mate','Un pingüino en la playa','Una vaca en patineta','El sol con gripe','Un astronauta pescando','Un sapo con tenis caros','Una hamburguesa enamorada','Un robot llorando en la lluvia','Un elefante en bicicleta','Un perezoso corriendo una maratón','Un helado de chicha','Un tucán DJ','Un volcán estornudando','Una pizza en el gimnasio','Un ninja en el kiosko','Shrek en una parada de bus','Un pollo jugando básquet','Una nube que llora arcoíris','Un zombie en la fila del banco','Un cohete hecho de plátanos','Un caracol con turbo','Un unicornio en el tranque','Batman vendiendo raspados','Una abeja con audífonos'];
+let claveAnt='',sala=null,G=null,yoEntregue=-1,faltaLocal=0,ultimoK=-1,borrador='';
+const online=()=>!!(sala&&sala.activo),lider=()=>online()&&sala.lider(),yo=()=>online()?sala.yo.id:'';
+const tx=d=>{if(online())sala.enviar({...d,app:APP})};
+function miIdx(){return G?G.ps.findIndex(p=>p.id===yo()):-1}
+function tipoPaso(k){return k===0?'escribir':k%2?'dibujar':'adivinar'}
+function tiempoPaso(k){const t=tipoPaso(k);return t==='escribir'?T_ESCRIBIR:t==='dibujar'?T_DIBUJAR:T_ADIVINAR}
+function cadenaDe(idx,k){const N=G.ps.length;return((idx-k)%N+N)%N}
+function nombre(id){const p=G&&G.ps.find(q=>q.id===id);return p?(p.id===yo()?'Tú':p.name):'Alguien'}
+
+/* ---------- líder ---------- */
+function empezar(){if(!lider())return;const js=sala.jugadores().map(j=>({id:j.id,name:j.name,color:j.color})).slice(0,10);if(js.length<2)return;
+  const N=js.length,pasos=N<4?4:Math.min(N,8);
+  G={id:Math.random().toString(36).slice(2,9),ps:js,pasos,k:0,cad:Array.from({length:N},()=>[]),fin:null,rev:null};abrirPaso(0)}
+let pasoTimer=0;
+function abrirPaso(k){G.k=k;G.limite=Date.now()+tiempoPaso(k);publicar();clearTimeout(pasoTimer);pasoTimer=setTimeout(()=>cerrarPaso(true),tiempoPaso(k)+3000)}
+function quienHace(c,k){return G.ps[(c+k)%G.ps.length]}
+function recibir(d,de){if(!G||G.fin||d.id!==G.id||d.k!==G.k)return;const idx=G.ps.findIndex(p=>p.id===de.id);if(idx<0)return;const c=cadenaDe(idx,G.k);if(G.cad[c][G.k])return;
+  const t=tipoPaso(G.k);let v;
+  if(t==='dibujar'){if(!Array.isArray(d.v))return;v=d.v.slice(0,400).filter(s=>s&&Array.isArray(s.p)).map(s=>({c:Math.max(0,Math.min(COL.length-1,s.c|0)),w:Math.max(0,Math.min(2,s.w|0)),p:s.p.slice(0,1200).map(n=>Math.max(-5,Math.min(1005,n|0)))}))}
+  else{v=String(d.v||'').trim().slice(0,90)||'(no escribió nada)'}
+  G.cad[c][G.k]={t:t==='dibujar'?'d':'t',a:de.id,v};
+  if(G.cad.every(ch=>ch[G.k]))cerrarPaso(false);else publicar()}
+function cerrarPaso(porTiempo){if(!G||G.fin)return;clearTimeout(pasoTimer);const t=tipoPaso(G.k);
+  G.cad.forEach((ch,c)=>{if(!ch[G.k])ch[G.k]={t:t==='dibujar'?'d':'t',a:quienHace(c,G.k).id,v:t==='dibujar'?[]:'(se le acabó el tiempo)'}});
+  if(G.k+1<G.pasos)abrirPaso(G.k+1);else{G.fin=true;G.rev={c:0,i:0};publicar()}}
+function publicar(){if(!G)return;const d={type:'estado',G:{...G,falta:G.limite?Math.max(0,G.limite-Date.now()):0}};tx(d);aplicarEstado(d.G,true)}
+function siguienteRev(){if(!lider()||!G||!G.fin)return;const r=G.rev;if(r.i+1<G.pasos)r.i++;else if(r.c+1<G.cad.length){r.c++;r.i=0}else r.c=G.cad.length;publicar()}
+
+/* ---------- todos ---------- */
+function aplicarEstado(g,propio){if(!g||!Array.isArray(g.ps)||!Array.isArray(g.cad))return;
+  const clave=g.id+':'+g.k,nuevoPaso=clave!==claveAnt;claveAnt=clave;G=g;if(nuevoPaso){faltaLocal=performance.now()+(+g.falta||0);borrador='';trazos=[];}
+  if(G.id!==ultimoK){ultimoK=G.id;yoEntregue=-1}
+  render(nuevoPaso)}
+function entregar(){if(!G||G.fin)return;const k=G.k;if(yoEntregue===k)return;const t=tipoPaso(k);let v;
+  if(t==='dibujar')v=trazos.map(s=>({c:s.c,w:s.w,p:s.p}));else{const el=$('texto');v=(el?el.value:borrador).trim();if(!v){if(el){el.focus();el.placeholder='¡Escribe algo!'}return}}
+  yoEntregue=k;const d={type:'entrega',id:G.id,k,v};if(lider())recibir(d,{id:yo()});else tx(d);render(true)}
+
+/* ---------- dibujo ---------- */
+let trazos=[],colSel=0,tamSel=1,lienzo=null,lctx=null,dibujando=null;
+function pintarTrazos(ctx,ts,w,h,hasta){ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);const k=w/LW;ctx.lineCap='round';ctx.lineJoin='round';let n=0;
+  for(const s of ts){ctx.strokeStyle=COL[s.c]||'#000';ctx.lineWidth=TAM[s.w]*k;ctx.beginPath();const p=s.p;
+    if(p.length===2){ctx.fillStyle=COL[s.c];ctx.beginPath();ctx.arc(p[0]*k,p[1]*k,TAM[s.w]*k/2,0,7);ctx.fill();if(hasta!=null&&++n>=hasta)return false;continue}
+    for(let i=0;i<p.length;i+=2){i?ctx.lineTo(p[i]*k,p[i+1]*k):ctx.moveTo(p[i]*k,p[i+1]*k);if(hasta!=null&&++n>=hasta){ctx.stroke();return false}}ctx.stroke()}return true}
+function redibujar(){if(!lienzo)return;const r=lienzo.getBoundingClientRect(),dpr=Math.min(2,devicePixelRatio||1);if(lienzo.width!==Math.round(r.width*dpr)){lienzo.width=Math.round(r.width*dpr);lienzo.height=Math.round(r.width*.75*dpr)}pintarTrazos(lctx,trazos,lienzo.width,lienzo.height)}
+function posL(e){const r=lienzo.getBoundingClientRect();return[Math.round((e.clientX-r.left)/r.width*LW),Math.round((e.clientY-r.top)/r.height*LH)]}
+function montarLienzo(){lienzo=$('lienzo');if(!lienzo)return;lctx=lienzo.getContext('2d');redibujar();
+  lienzo.onpointerdown=e=>{if(yoEntregue===G.k)return;e.preventDefault();lienzo.setPointerCapture(e.pointerId);const [x,y]=posL(e);dibujando={c:colSel,w:tamSel,p:[x,y]};trazos.push(dibujando);redibujar()};
+  lienzo.onpointermove=e=>{if(!dibujando)return;const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];for(const ev of evs){const [x,y]=posL(ev),p=dibujando.p;if(Math.hypot(x-p[p.length-2],y-p[p.length-1])>=3)p.push(x,y)}redibujar()};
+  lienzo.onpointerup=lienzo.onpointercancel=()=>{dibujando=null}}
+addEventListener('resize',()=>{redibujar();document.querySelectorAll('canvas[data-rep]').forEach(dibujarItem)});
+
+/* ---------- pantallas ---------- */
+function chips(){if(!G)return'';const k=G.k;return '<div class="jugs">'+G.ps.map((p,idx)=>{const c=cadenaDe(idx,k),ok=G.fin||!!G.cad[c][k];return`<span class="${ok?'listo':''}" style="--pc:${esc(p.color)}"><i></i>${esc(p.id===yo()?'Tú':p.name)}${ok?' ✓':''}</span>`}).join('')+'</div>'}
+function render(fuerte){document.body.classList.toggle('jugando',!!G&&!G.fin);
+  if(!online()){app.innerHTML=`<div class="caja"><p class="grande-t">Se juega con amigos 🎨</p><p class="mut">Garabato necesita una sala de 2 o más personas (mejor 4+). Crea una sala en la portada, manda el link y entren todos a Garabato.</p>${como()}<a class="btn grande" href="/#multiplayer">Crear sala</a></div>`;return}
+  if(!G||(G.fin&&G.rev&&G.rev.c>=G.cad.length&&false)){const js=sala.jugadores();
+    app.innerHTML=`<div class="caja"><p class="grande-t">${js.length<2?'Esperando amigos…':'¡Listos para garabatear!'}</p>${como()}<div class="jugs">${js.map(j=>`<span style="--pc:${esc(j.color)}"><i></i>${esc(j.yo?'Tú':j.name)}</span>`).join('')}</div>
+      ${lider()?`<button class="btn grande" id="go" ${js.length<2?'disabled':''}>Empezar</button>`:'<p class="mut"><b>El líder</b> empieza cuando estén todos.</p>'}</div>`;
+    const go=$('go');if(go)go.onclick=empezar;return}
+  if(G.fin)return renderRev(fuerte);
+  const idx=miIdx();
+  if(idx<0){app.innerHTML=`<div class="caja"><p class="grande-t">Partida en curso</p><p class="mut">Entraste tarde: juegas en la próxima.</p>${chips()}</div>`;return}
+  const k=G.k,t=tipoPaso(k),c=cadenaDe(idx,k),prev=k>0?G.cad[c][k-1]:null;
+  if(!fuerte&&yoEntregue!==k){const ch=app.querySelector('.jugs');if(ch)ch.outerHTML=chips();return}
+  const cab=`<div class="top"><span class="paso">Paso ${k+1} de ${G.pasos}</span><span class="reloj" id="reloj">--</span></div>`;
+  if(yoEntregue===k){app.innerHTML=`<div class="caja">${cab}<p class="grande-t">¡Listo! ✓</p><p class="mut">Esperando a los demás…</p>${chips()}</div>`;return}
+  if(t==='escribir'){app.innerHTML=`<div class="caja">${cab}<p class="grande-t">Escribe algo para dibujar</p><p class="mut">Algo gracioso o raro. El siguiente lo va a tener que dibujar.</p>
+      <textarea id="texto" rows="2" maxlength="90" placeholder="Ej: ${esc(IDEAS[Math.floor(Math.random()*IDEAS.length)])}"></textarea>
+      <div class="fila" style="margin-top:10px"><button class="btn amar" id="idea" type="button">🎲 Dame una idea</button><button class="btn grande" id="listo" type="button">Listo</button></div>${chips()}</div>`;
+    $('idea').onclick=()=>{$('texto').value=IDEAS[Math.floor(Math.random()*IDEAS.length)]};}
+  else if(t==='dibujar'){app.innerHTML=`<div class="caja">${cab}<div class="prompt"><small>Dibuja esto (sin letras 😉):</small>${esc(prev?prev.v:'')}</div>
+      <div class="lienzo"><canvas id="lienzo"></canvas></div>
+      <div class="herr">${COL.map((c,i)=>`<button class="col" type="button" data-c="${i}" style="background:${c}" aria-label="Color" aria-pressed="${i===colSel}"></button>`).join('')}
+        ${TAM.map((_,i)=>`<button class="tam" type="button" data-t="${i}" aria-pressed="${i===tamSel}">${['Fino','Medio','Grueso'][i]}</button>`).join('')}
+        <button class="acc" id="deshacer" type="button">↶ Deshacer</button><button class="acc" id="borrar" type="button">🗑️</button></div>
+      <div class="fila" style="margin-top:12px"><button class="btn grande" id="listo" type="button">Listo</button></div>${chips()}</div>`;
+    app.querySelectorAll('.col').forEach(b=>b.onclick=()=>{colSel=+b.dataset.c;app.querySelectorAll('.col').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+    app.querySelectorAll('.tam').forEach(b=>b.onclick=()=>{tamSel=+b.dataset.t;app.querySelectorAll('.tam').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+    $('deshacer').onclick=()=>{trazos.pop();redibujar()};$('borrar').onclick=()=>{trazos=[];redibujar()};montarLienzo()}
+  else{app.innerHTML=`<div class="caja">${cab}<p class="grande-t">¿Qué es este dibujo?</p><div class="lienzo"><canvas data-rep="${c},${k-1}"></canvas></div>
+      <input type="text" id="texto" maxlength="90" placeholder="Escribe lo que crees que es" style="margin-top:10px" autocomplete="off">
+      <div class="fila" style="margin-top:10px"><button class="btn grande" id="listo" type="button">Listo</button></div>${chips()}</div>`;
+    app.querySelectorAll('canvas[data-rep]').forEach(dibujarItem);$('texto').onkeydown=e=>{if(e.key==='Enter')entregar()}}
+  $('listo').onclick=entregar;tickReloj()}
+function como(){return '<div class="como"><div><b>✍️</b>Escribes una frase loca</div><div><b>🎨</b>Otro la dibuja</div><div><b>🤔</b>Otro adivina el dibujo</div></div>'}
+function dibujarItem(cv){const [c,i]=cv.dataset.rep.split(',').map(Number);const it=G&&G.cad[c]&&G.cad[c][i];if(!it)return;const r=cv.getBoundingClientRect(),dpr=Math.min(2,devicePixelRatio||1);
+  cv.width=Math.round((r.width||300)*dpr);cv.height=Math.round((r.width||300)*.75*dpr);const ctx=cv.getContext('2d');
+  if(cv.dataset.anim){let n=0;const total=it.v.reduce((a,s)=>a+s.p.length/2,0),pasoN=Math.max(1,Math.ceil(total/90));const f=()=>{n+=pasoN;const fin=pintarTrazos(ctx,it.v,cv.width,cv.height,n);if(!fin&&cv.isConnected)requestAnimationFrame(f)};f()}
+  else pintarTrazos(ctx,it.v,cv.width,cv.height)}
+function renderRev(fuerte){const r=G.rev;
+  if(r.c>=G.cad.length){app.innerHTML=`<div class="caja"><p class="grande-t">¡Eso fue todo! 🎉</p><p class="mut">¿Cuál cadena terminó más rara?</p>${lider()?'<button class="btn grande" id="otra">Otra partida</button>':'<p class="mut">El líder puede empezar otra.</p>'}</div>`;const o=$('otra');if(o)o.onclick=()=>{G=null;empezar()};return}
+  const ch=G.cad[r.c],ini=G.ps[r.c];
+  let html=`<div class="caja"><div class="top"><span class="paso">Cadena de ${esc(ini.id===yo()?'ti':ini.name)} (${r.c+1}/${G.cad.length})</span></div><div class="cadena" id="cad">`;
+  for(let i=0;i<=r.i;i++){const it=ch[i];if(!it)continue;const p=G.ps.find(q=>q.id===it.a)||{color:'#999'};
+    html+=`<div class="item" ${i<r.i?'style="animation:none"':''}><div class="quien" style="--pc:${esc(p.color)}"><i></i>${esc(nombre(it.a))} ${it.a===yo()?(it.t==='d'?'dibujaste:':i===0?'escribiste:':'adivinaste:'):(it.t==='d'?'dibujó:':i===0?'escribió:':'adivinó:')}</div>${it.t==='d'?`<canvas data-rep="${r.c},${i}" ${i===r.i?'data-anim="1"':''}></canvas>`:`<div class="txt">${esc(it.v)}</div>`}</div>`}
+  html+=`</div><div class="reac">${['😂','💀','🔥','👏','🤨'].map(e=>`<button type="button" data-e="${e}">${e}</button>`).join('')}</div>
+    <div class="fila" style="margin-top:12px;justify-content:center">${lider()?'<button class="btn grande" id="sig">Siguiente ➜</button>':'<span class="mut">El líder va pasando…</span>'}</div></div>`;
+  app.innerHTML=html;app.querySelectorAll('canvas[data-rep]').forEach(dibujarItem);
+  app.querySelectorAll('.reac button').forEach(b=>b.onclick=()=>{flotar(b.dataset.e);tx({type:'reac',e:b.dataset.e})});
+  const s=$('sig');if(s)s.onclick=siguienteRev;const ult=app.querySelector('.item:last-child');if(ult&&fuerte)ult.scrollIntoView({behavior:'smooth',block:'center'})}
+function flotar(e){if(!['😂','💀','🔥','👏','🤨'].includes(e))return;const d=document.createElement('div');d.className='flota';d.textContent=e;d.style.left=(10+Math.random()*80)+'vw';d.style.top='75vh';document.body.append(d);setTimeout(()=>d.remove(),1700)}
+function tickReloj(){const el=$('reloj');if(!el||!G||G.fin)return;const f=Math.max(0,faltaLocal-performance.now()),s=Math.ceil(f/1000);el.textContent=s+' s';el.classList.toggle('poco',s<=10);
+  if(f<=0&&yoEntregue!==G.k){const t=tipoPaso(G.k);if(t==='dibujar'||($('texto')&&$('texto').value.trim()))entregar();else if($('texto')){$('texto').value='(no escribió nada)';entregar()}}}
+setInterval(tickReloj,250);
+
+/* ---------- sala ---------- */
+let jefeAnt='';
+function conSala(fn){window.RatitoSala?fn(window.RatitoSala):addEventListener('ratitosala',()=>fn(window.RatitoSala),{once:true})}
+conSala(api=>{sala=api;
+  sala.al('mensaje',(d,de)=>{if(!d||d.app!==APP)return;const jefe=sala.jugadores()[0]?.id;
+    if(d.type==='entrega'&&lider())recibir(d,de);
+    if(d.type==='hola'&&lider()&&G)publicar();
+    if(d.type==='reac')flotar(d.e);
+    if(d.type==='estado'&&de.id===jefe&&!lider())aplicarEstado(d.G)});
+  sala.al('cambio',()=>{const j=online()?sala.jugadores()[0]?.id:'';if(j!==jefeAnt){jefeAnt=j;if(G&&!G.fin&&!lider()){/* espera estado del nuevo líder */}if(G&&lider()&&!G.fin){abrirPaso(G.k)}}
+    if(!G||G.fin)render(false);else render(false)});
+  tx({type:'hola'});render(true)});
+setTimeout(()=>render(true),50);
+</script>
+<script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script>
+</body></html>

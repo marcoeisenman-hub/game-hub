@@ -15,7 +15,7 @@ $('teclas').innerHTML=['7','8','9','4','5','6','1','2','3','C','0','⌫','OK'].m
 $('teclas').addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.disabled)tecla(b.dataset.k)});
 addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,[contenteditable=true]'))return;let k=/^[0-9]$/.test(e.key)?e.key:e.key==='Enter'?'OK':e.key==='Backspace'?'⌫':e.key==='Escape'?'C':null;if(k&&acepta&&c.jugando){e.preventDefault();if(!e.repeat)tecla(k)}});
 function finalizar(txt){version++;clearTimeout(timer);bloquear();$('estado').textContent=txt+' Total: '+total+' pts.';c.terminar(total)}
-const c=Carrera({app:'cuantos',el:$('carrera'),limite:60000,mejor:'alto',formato:v=>v+' pts',
+const c=Carrera({app:'cuantos',maxValor:1000,el:$('carrera'),limite:60000,mejor:'alto',formato:v=>v+' pts',
  alEmpezar(rand){version++;clearTimeout(timer);indice=0;total=0;$('puntos').textContent='0 pts';let previo=7;planes=Array.from({length:10},(_,i)=>{const minimo=previo+1,maximo=Math.min(120-(9-i),30+i*10);const real=minimo+Math.floor(rand()*(maximo-minimo+1));previo=real;const celdas=Array.from({length:130},(_,j)=>j);for(let j=celdas.length-1;j>0;j--){const k=Math.floor(rand()*(j+1));[celdas[j],celdas[k]]=[celdas[k],celdas[j]]}return{real,figuras:celdas.slice(0,real).map(pos=>({x:4+(pos%13)*7.65+(rand()-.5)*1.5,y:6+Math.floor(pos/13)*9.6+(rand()-.5)*2,tam:10+Math.floor(rand()*5),color:colores[Math.floor(rand()*colores.length)],cuadro:rand()<.35}))}});c.progreso(0,1000);siguiente()},
  alAcabarTiempo(){finalizar('¡Tiempo!')},alCerrar(){version++;clearTimeout(timer);bloquear()}
 });bloquear();

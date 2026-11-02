@@ -28,7 +28,7 @@ body.jugando .am-peer,body.jugando .am-edge{display:none!important}
 </style></head><body><a class="volver" href="/">← game.hub</a>
 <main>
   <h1>Estela</h1><p class="sub">Tu moto deja una pared de luz. Encierra a los demás y no choques con nada. El primero en ganar 3 rondas gana.</p>
-  <div class="barra"><span id="st"><b>¿Listo?</b></span><span><label><input type="checkbox" id="bots" checked> Con bots</label> <button class="btn" id="go" type="button">Empezar</button></span></div>
+  <div class="barra"><span id="st"><b>¿Listo?</b></span><span><label><input type="checkbox" id="bots" checked> <span id="botsT">Con bots</span></label> <button class="btn" id="go" type="button">Empezar</button></span></div>
   <div class="jug" id="jug"></div>
   <div class="marco"><canvas id="cv" aria-label="Tablero de Estela. Flechas o WASD para girar; en celular desliza el dedo o usa los botones."></canvas></div>
   <div class="giros"><button type="button" id="izq" aria-label="Girar a la izquierda">⟲</button><button type="button" id="der" aria-label="Girar a la derecha">⟳</button></div>
@@ -90,6 +90,10 @@ function ronda(d){if(!d||!Array.isArray(d.ps)||!d.ps.length)return;
   R.ps.forEach((p,i)=>{if(p.x>=0&&p.y>=0&&p.x<GW&&p.y<GH)R.grid[p.y*GW+p.x]=i+1});
   if(d.marc&&typeof d.marc==='object')marc=d.marc;campeon=null;parts=[];
   const m=R.ps.find(p=>p.id===yo());miDir=m?[m.dx,m.dy]:null;pintaJug()}
+let pedido=0;function pedir(){const t=Date.now();if(t-pedido<1000)return;pedido=t;tx({type:'pedir'})}
+function snapshot(d){if(!Array.isArray(d.ps)||!Array.isArray(d.g))return;ronda({id:d.id,ps:d.ps,marc:d.marc});R.n=d.n|0;R.start=performance.now()+Math.min(3000,+d.falta||0);
+  const g=new Uint8Array(GW*GH);let k=0;for(let i=0;i+1<d.g.length&&k<g.length;i+=2){g.fill(d.g[i]|0,k,Math.min(g.length,k+(d.g[i+1]|0)));k+=d.g[i+1]|0}R.grid=g;
+  d.ps.forEach((p,i)=>{if(R.ps[i])R.ps[i].vivo=p.vivo!==false});if(d.fin)R.fin=d.fin;campeon=d.camp||null;pintaJug()}
 function aplicar(d){if(!R||!Array.isArray(d))return;R.ps.forEach((p,i)=>{if(!p.vivo)return;const x=d[i*5]|0,y=d[i*5+1]|0,v=d[i*5+2];p.dx=d[i*5+3]|0;p.dy=d[i*5+4]|0;
     if(v){p.x=x;p.y=y;if(x>=0&&y>=0&&x<GW&&y<GH)R.grid[y*GW+x]=i+1}else{p.vivo=false;boom(p);if(p.id===yo())shake=14;else shake=Math.max(shake,5)}});pintaJug()}
 function fin(f){if(!R||f.id!==R.id)return;R.fin=f;if(f.marc&&typeof f.marc==='object')marc=f.marc;campeon=f.camp||null;pintaJug()}
@@ -102,7 +106,7 @@ function estado(){let s,sub='';const now=performance.now();
   else if(now<R.start)s='Prepárate…';else{const m=R.ps.find(p=>p.id===yo());s=m?(m.vivo?'¡No choques!':'Te chocaste… mira quién gana (en cámara rápida si ya no queda nadie)'):'Mirando la ronda'}
   document.body.classList.toggle('jugando',!!R&&!R.fin);
   $('st').innerHTML='<b>'+esc(s)+'</b>'+(sub?'<small>'+esc(sub)+'</small>':'');
-  $('go').disabled=!lider()||(R&&!R.fin&&true)||(R&&R.fin&&!campeon&&!R.fin.abort&&true);$('go').textContent=lider()?(campeon?'Otra partida':'Empezar'):'El líder empieza';$('bots').disabled=!lider()}
+  $('go').disabled=!lider()||(R&&!R.fin&&true)||(R&&R.fin&&!campeon&&!R.fin.abort&&true);$('go').textContent=lider()?(campeon?'Otra partida':'Empezar'):'El líder empieza';if(!online()){$('bots').checked=true;$('bots').disabled=true;$('botsT').textContent='Solo: contra bots'}else{$('bots').disabled=!lider()||(R&&!R.fin);$('botsT').textContent='Con bots'}}
 
 /* ---------- controles ---------- */
 function girar(dx,dy){if(!R||R.fin)return;const m=R.ps.find(p=>p.id===yo());if(!m||!m.vivo)return;
@@ -151,9 +155,12 @@ function conSala(fn){window.RatitoSala?fn(window.RatitoSala):addEventListener('r
 conSala(api=>{sala=api;
   sala.al('mensaje',(d,de)=>{if(!d||d.app!==APP)return;const jefe=sala.jugadores()[0]?.id;
     if(d.type==='giro'&&lider()&&R&&!R.fin&&d.id===R.id){const p=R.ps.find(q=>q.id===de.id&&!q.bot);if(p&&p.cola.length<3&&Math.abs(d.dx|0)+Math.abs(d.dy|0)===1)p.cola.push([d.dx|0,d.dy|0])}
+    if(d.type==='pedir'&&lider()&&R){const g=[];let v=R.grid[0],n=0;for(let i=0;i<R.grid.length;i++){if(R.grid[i]===v&&n<255)n++;else{g.push(v,n);v=R.grid[i];n=1}}g.push(v,n);
+      tx({type:'snap',to:de.id,id:R.id,n:R.n,ps:R.ps.map(p=>({id:p.id,name:p.name,color:p.color,x:p.x,y:p.y,dx:p.dx,dy:p.dy,bot:p.bot,vivo:p.vivo})),g,marc,fin:R.fin,camp:campeon,falta:Math.max(0,R.start-performance.now())})}
     if(de.id!==jefe)return;
     if(d.type==='ronda'&&!lider())ronda(d);
-    if(d.type==='t'&&!lider()&&R&&d.id===R.id&&d.n===R.n+1){R.n=d.n;aplicar(d.d)}
+    if(d.type==='t'&&!lider()){if(R&&d.id===R.id&&d.n===R.n+1){R.n=d.n;aplicar(d.d)}else if(!(R&&d.id===R.id&&d.n<=R.n))pedir()}
+    if(d.type==='snap'&&!lider()&&d.to===yo())snapshot(d)
     if(d.type==='fin'&&!lider())fin(d)});
   sala.al('cambio',()=>{const lid=online()?sala.jugadores()[0]?.id:'';if(lid!==leaderId){leaderId=lid;if(R&&!R.fin){clearTimeout(timer);R.fin={gan:null,id:R.id,abort:true};}}estado()});
   estado()});

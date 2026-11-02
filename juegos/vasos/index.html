@@ -19,7 +19,7 @@ document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target
 function elegir(i){if(!acepta||!c.jugando)return;bloquear();vasos[i].classList.add('arriba');if(i!==pelota){vasos[pelota].classList.add('arriba');finalizar('¡Ese no era! La pelota estaba en el vaso '+(orden.indexOf(pelota)+1)+'.');return}
  superadas++;$('marca').textContent=superadas+(superadas===1?' ronda':' rondas');c.progreso(superadas,15);$('estado').textContent='¡Acertaste!';const token=version;setTimeout(()=>{if(token===version&&c.jugando)siguiente()},700)}
 function finalizar(texto){version++;bloquear();if(vasos[pelota])vasos[pelota].classList.add('arriba');$('estado').textContent=texto+' Superaste '+superadas+(superadas===1?' ronda.':' rondas.');c.terminar(superadas)}
-const c=Carrera({app:'vasos',el:$('carrera'),limite:90000,mejor:'alto',formato:v=>v+(v===1?' ronda':' rondas'),
+const c=Carrera({app:'vasos',maxValor:100,el:$('carrera'),limite:90000,mejor:'alto',formato:v=>v+(v===1?' ronda':' rondas'),
  alEmpezar(rand){version++;ronda=0;superadas=0;$('marca').textContent='0 rondas';planes=Array.from({length:100},(_,i)=>{const n=i>=8?5:i>=4?4:3;return{n,pelota:Math.floor(rand()*n),vel:Math.max(100,360-i*24),swaps:Array.from({length:6+i*2},()=>{const a=Math.floor(rand()*n),b=(a+1+Math.floor(rand()*(n-1)))%n;const falso=rand()<.3&&i>=2;return[a,b,falso]})}});c.progreso(0,15);siguiente()},
  alAcabarTiempo(){finalizar('¡Tiempo!')},alCerrar(){version++;bloquear()}
 });

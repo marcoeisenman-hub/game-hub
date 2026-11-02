@@ -80,14 +80,14 @@ function tecla(k){if(!c.jugando||!actual)return;
 const T=['7','8','9','4','5','6','1','2','3','C','0','⌫'];
 $('teclas').innerHTML=T.map(k=>`<button type="button" data-k="${k}" class="${k==='C'||k==='⌫'?'b':''}" aria-label="${k==='⌫'?'Borrar':k==='C'?'Limpiar':k}">${k}</button>`).join('');
 $('teclas').addEventListener('pointerdown',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;e.preventDefault();tecla(b.dataset.k)});
-addEventListener('keydown',e=>{if(/^[0-9]$/.test(e.key))tecla(e.key);else if(e.key==='Backspace')tecla('⌫')});
+addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(e.repeat)return;if(/^[0-9]$/.test(e.key))tecla(e.key);else if(e.key==='Backspace')tecla('⌫')});
 function botones(){const on=c.jugando;for(const b of $('teclas').children)b.disabled=!on;for(const b of $('chipsN').children)b.disabled=on;$('edad').disabled=on}
 function ponNivel(v,guardar){NV=v;for(const b of $('chipsN').children)b.setAttribute('aria-pressed',+b.dataset.n===v);$('nivelTxt').textContent='Nivel '+v+' · '+NIV[v].nom+': '+NIV[v].txt+' Puedes cambiarlo cuando quieras.';if(guardar)try{localStorage.setItem('gamehubCalculoNivel',v)}catch(e){}}
 $('chipsN').innerHTML=NIV.slice(1).map((L,i)=>`<button type="button" data-n="${i+1}">${i+1} · ${L.nom}</button>`).join('');
 $('chipsN').onclick=e=>{const b=e.target.closest('button');if(!b||b.disabled)return;ponNivel(+b.dataset.n,true)};
 $('edad').oninput=()=>{const e=Math.round(+$('edad').value);if(e>=5&&e<=99){try{localStorage.setItem('gamehubCalculoEdad',e)}catch(x){}ponNivel(nivelDeEdad(e),true)}};
 ponNivel(NV,false);
-const c=Carrera({app:'calculo',el:$('carrera'),etiqueta:()=>'nivel '+NV,limite:45000,mejor:'alto',formato:v=>v+(v===1?' buena':' buenas'),
+const c=Carrera({app:'calculo',maxValor:150,el:$('carrera'),etiqueta:()=>'nivel '+NV,limite:45000,mejor:'alto',formato:v=>v+(v===1?' buena':' buenas'),
   alEmpezar:r=>{rand=r;puntos=0;n=0;nueva();c.progreso(0,30)},
   alAcabarTiempo:()=>{c.terminar(puntos);$('op').textContent='¡Tiempo!';escrito='';pinta()},
   alCerrar:()=>{}});

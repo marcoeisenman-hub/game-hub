@@ -7,7 +7,7 @@ let nivel=0,alcanzado=0,lado=3,secuencia=[],planes=[],entrada=0,acepta=false,ver
 sonido.addEventListener('click',()=>{mudo=!mudo;sonido.textContent='Sonido: '+(mudo?'no':'sí');sonido.setAttribute('aria-pressed',String(!mudo));if(!mudo){const Audio=window.AudioContext||window.webkitAudioContext;if(Audio&&!audio)audio=new Audio();if(audio)audio.resume().catch(()=>{})}});
 function nota(i){if(mudo||!audio)return;const t=audio.currentTime,o=audio.createOscillator(),g=audio.createGain();o.frequency.value=220*Math.pow(2,i/12);g.gain.setValueAtTime(.045,t);g.gain.exponentialRampToValueAtTime(.001,t+.14);o.connect(g);g.connect(audio.destination);o.start(t);o.stop(t+.15)}
 function bloquear(){acepta=false;tablero.querySelectorAll('button').forEach(b=>{b.disabled=true;b.classList.remove('luz')})}
-function construir(){tablero.replaceChildren();tablero.style.setProperty('--lado',lado);for(let i=0;i<lado*lado;i++){const b=document.createElement('button');b.type='button';b.className='baldosa';b.style.setProperty('--color',colores[i%colores.length]);b.innerHTML='<span>'+(i+1)+'</span>';b.setAttribute('aria-label','Baldosa '+(i+1));b.disabled=true;
+function construir(){tablero.replaceChildren();tablero.style.setProperty('--lado',lado);for(let i=0;i<lado*lado;i++){const b=document.createElement('button');b.type='button';b.className='baldosa';b.style.setProperty('--color',colores[i%colores.length]);b.innerHTML='';b.setAttribute('aria-label','Baldosa '+(i+1));b.disabled=true;
  b.addEventListener('pointerdown',e=>{e.preventDefault();if(e.button<=0)tocar(i)});b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();if(!e.repeat)tocar(i)}});tablero.append(b)}}
 const pausa=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function mostrar(){const token=++version;bloquear();nivel++;lado=nivel>=6?4:3;secuencia=planes[nivel-1];construir();nivelEl.textContent='Nivel '+nivel;estado.textContent=nivel===6?'¡Tablero ampliado! Mira: ahora va más rápido.':'Mira y memoriza…';
@@ -20,7 +20,7 @@ function tocar(i){if(!acepta||!c.jugando)return;nota(i);if(i!==secuencia[entrada
  const b=tablero.children[i],token=version;b.classList.add('luz');setTimeout(()=>{if(token===version)b.classList.remove('luz')},140);entrada++;estado.textContent='Tu turno: '+entrada+' de '+secuencia.length;
  if(entrada===secuencia.length){alcanzado=nivel;c.progreso(alcanzado,20);bloquear();b.classList.add('luz');setTimeout(()=>{if(token===version)b.classList.remove('luz')},300);estado.textContent='¡Nivel '+nivel+' superado!';setTimeout(()=>{if(token===version&&c.jugando)mostrar()},550)}
 }
-const c=Carrera({app:'secuencia',el:document.querySelector('#carrera'),limite:120000,mejor:'alto',formato:v=>'nivel '+v,vivo:v=>'nivel '+v,
+const c=Carrera({app:'secuencia',maxValor:100,el:document.querySelector('#carrera'),limite:120000,mejor:'alto',formato:v=>'nivel '+v,vivo:v=>'nivel '+v,
  alEmpezar(rand){version++;nivel=0;alcanzado=0;planes=[];let s=[];for(let n=1;n<=100;n++){if(n===6)s=s.map(i=>Math.floor(i/3)*4+i%3);s=[...s,Math.floor(rand()*(n>=6?16:9))];planes.push(s)}c.progreso(0,20);mostrar()},
  alAcabarTiempo(){terminar('¡Tiempo!')},alCerrar(){version++;bloquear();estado.textContent='Partida cerrada. Completaste '+alcanzado+' niveles.'}
 });construir();

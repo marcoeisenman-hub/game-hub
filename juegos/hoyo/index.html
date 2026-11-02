@@ -15,11 +15,11 @@ canvas{display:block;width:100%;touch-action:none;cursor:crosshair}
 .nota{color:var(--mut);font-size:.9rem}
 </style></head><body><a class="volver" href="/">← game.hub</a>
 <main>
-  <h1>Hoyo</h1><p class="sub">Minigolf de 6 hoyos. Arrastra hacia atrás y suelta para tirar. Gana el que use menos golpes.</p>
+  <h1>Hoyo</h1><p class="sub">Minigolf de 6 hoyos. Toca en cualquier parte, jala hacia atrás y suelta. Gana el que use menos golpes.</p>
   <div id="carrera"></div>
   <div class="hud"><span>Hoyo <b id="h">–</b>/6</span><span>Golpes: <b id="g">0</b></span><span>Total: <b id="t">0</b></span></div>
   <div class="marco"><canvas id="cv"></canvas><div class="aviso" id="aviso"></div></div>
-  <p class="nota">Mientras más lejos arrastres, más fuerte. La arena frena, el agua te devuelve (+1 golpe) y los rebotadores te lanzan. Máximo 8 golpes por hoyo.</p>
+  <p class="nota">Toca en cualquier parte de la cancha, jala hacia atrás y suelta: mientras más jalas, más fuerte. La arena frena, el agua te devuelve (+1 golpe) y los rebotadores te lanzan. Máximo 8 golpes por hoyo.</p>
 </main>
 <script src="/carrera.js"></script>
 <script>
@@ -28,20 +28,20 @@ const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d');
 const W=360,H=560,BR=7,CR=11,WT=14,MAXG=8;
 // hoyos diseñados a mano (siempre se pueden jugar); el orden, espejo y velocidades salen de la semilla
 const HOYOS=[
- {tee:[180,480],cup:[180,100],muros:[[100,280,160,18]],arena:[],agua:[],bump:[],mov:[]},
- {tee:[70,490],cup:[290,90],muros:[[0,300,240,18]],arena:[[200,110,146,80]],agua:[],bump:[],mov:[]},
- {tee:[180,500],cup:[180,90],muros:[[0,380,250,16],[110,230,250,16]],arena:[],agua:[[14,110,80,90]],bump:[],mov:[]},
- {tee:[180,500],cup:[180,90],muros:[],arena:[],agua:[],bump:[[90,200,18],[270,200,18],[180,380,16]],mov:[[0,290,120,16,'x']]},
- {tee:[180,500],cup:[290,100],muros:[[40,160,200,16]],arena:[],agua:[[14,260,136,60],[210,260,136,60]],bump:[],mov:[]},
- {tee:[180,510],cup:[180,80],muros:[],arena:[[14,440,90,60]],agua:[],bump:[[100,180,16],[180,260,18],[260,180,16],[140,380,14],[240,400,14]],mov:[]},
- {tee:[300,500],cup:[60,90],muros:[[0,200,140,16],[220,200,140,16],[0,370,140,16],[220,370,140,16]],arena:[],agua:[],bump:[],mov:[[0,285,90,16,'x']]},
- {tee:[180,500],cup:[180,95],muros:[[60,330,80,16],[220,330,80,16]],arena:[[14,150,332,110]],agua:[],bump:[[180,420,14]],mov:[]},
- {tee:[60,500],cup:[300,90],muros:[[120,140,16,300]],arena:[],agua:[[220,250,126,70]],bump:[[230,170,16]],mov:[[136,460,210,16,'y']]},
+ {tee:[180,430],cup:[180,100],muros:[[100,280,160,18]],arena:[],agua:[],bump:[],mov:[]},
+ {tee:[70,430],cup:[290,90],muros:[[0,300,240,18]],arena:[[200,110,146,80]],agua:[],bump:[],mov:[]},
+ {tee:[180,430],cup:[180,90],muros:[[0,380,250,16],[110,230,250,16]],arena:[],agua:[[14,110,80,90]],bump:[],mov:[]},
+ {tee:[180,430],cup:[180,90],muros:[],arena:[],agua:[],bump:[[90,200,18],[270,200,18],[180,380,16]],mov:[[0,290,120,16,'x']]},
+ {tee:[180,430],cup:[290,100],muros:[[40,160,200,16]],arena:[],agua:[[14,260,136,60],[210,260,136,60]],bump:[],mov:[]},
+ {tee:[180,430],cup:[180,80],muros:[],arena:[[14,440,90,60]],agua:[],bump:[[100,180,16],[180,260,18],[260,180,16],[140,380,14],[240,400,14]],mov:[]},
+ {tee:[300,430],cup:[60,90],muros:[[0,200,140,16],[220,200,140,16],[0,370,140,16],[220,370,140,16]],arena:[],agua:[],bump:[],mov:[[0,285,90,16,'x']]},
+ {tee:[180,430],cup:[180,95],muros:[[60,330,80,16],[220,330,80,16]],arena:[[14,150,332,110]],agua:[],bump:[[180,370,14]],mov:[]},
+ {tee:[60,430],cup:[300,90],muros:[[120,140,16,300]],arena:[],agua:[[220,250,126,70]],bump:[[230,170,16]],mov:[[136,460,210,16,'y']]},
 ];
 let pasando=false,rand=Math.random,plan=[],hi=0,hoyo=null,b=null,golpes=0,total=0,arrastre=null,quieto=null,activo=false,t0=0,parts=[],fin=false;
 function preparar(){const ord=[...HOYOS.keys()];for(let i=ord.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[ord[i],ord[j]]=[ord[j],ord[i]]}
   plan=ord.slice(0,6).map(k=>({k,esp:rand()<.5,vel:.7+rand()*.9,fase:rand()*6.28}))}
-function cargar(i){hi=i;const P=plan[i],B=HOYOS[P.k],m=x=>P.esp?W-x:x,mr=(x,w)=>P.esp?W-x-w:x;
+function cargar(i){hi=i;t0=performance.now()-(plan[i]?plan[i].fase*300:0);const P=plan[i],B=HOYOS[P.k],m=x=>P.esp?W-x:x,mr=(x,w)=>P.esp?W-x-w:x;
   hoyo={tee:[m(B.tee[0]),B.tee[1]],cup:[m(B.cup[0]),B.cup[1]],
     muros:[[0,0,W,WT],[0,H-WT,W,WT],[0,0,WT,H],[W-WT,0,WT,H],...B.muros.map(([x,y,w,h])=>[mr(x,w),y,w,h])],
     arena:B.arena.map(([x,y,w,h])=>[mr(x,w),y,w,h]),agua:B.agua.map(([x,y,w,h])=>[mr(x,w),y,w,h]),
@@ -77,7 +77,7 @@ const parado=()=>b&&!b.dentro&&b.vx===0&&b.vy===0;
 cv.addEventListener('pointerdown',e=>{if(!activo||!parado())return;e.preventDefault();cv.setPointerCapture(e.pointerId);const p=pos(e);arrastre={x0:p[0],y0:p[1],x:p[0],y:p[1]}});
 cv.addEventListener('pointermove',e=>{if(!arrastre)return;const p=pos(e);arrastre.x=p[0];arrastre.y=p[1]});
 cv.addEventListener('pointerup',e=>{if(!arrastre)return;const dx=arrastre.x0-arrastre.x,dy=arrastre.y0-arrastre.y,d=Math.hypot(dx,dy);arrastre=null;
-  if(d<8||!activo||!parado())return;const f=Math.min(1,d/150)*950;b.vx=dx/d*f;b.vy=dy/d*f;golpes++;hud();
+  if(d<8||!activo||!parado())return;const f=Math.min(1,d/110)*950;b.vx=dx/d*f;b.vy=dy/d*f;golpes++;hud();
 });
 cv.addEventListener('pointercancel',()=>arrastre=null);
 
@@ -85,7 +85,7 @@ function tam(){const w=cv.clientWidth,dpr=Math.min(2,devicePixelRatio||1);cv.sty
 addEventListener('resize',tam);
 let last=0;
 function frame(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;
-  if(hoyo){let r=dt;const tt=t/1000;while(r>0){const s=Math.min(r,1/240);paso(s,tt);r-=s}
+  if(hoyo){let r=dt;const tt=(t-t0)/1000;while(r>0){const s=Math.min(r,1/240);paso(s,tt);r-=s}
     if(activo&&!pasando&&!b.dentro&&golpes>=MAXG&&parado()){pasando=true;total+=MAXG+1;hud();aviso('Máximo de golpes (+1)',900);c.progreso(hi+1,6);setTimeout(()=>{if(!activo)return;hi+1<plan.length?cargar(hi+1):terminar()},900)}}
   const k=cv.width/W;ctx.setTransform(k,0,0,k,0,0);
   ctx.fillStyle='#3FA34D';ctx.fillRect(0,0,W,H);
@@ -99,7 +99,7 @@ function frame(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;
     for(const [x,y,w,h] of hoyo.muros){ctx.fillStyle='#8A5A34';ctx.fillRect(x,y,w,h);ctx.strokeStyle='#15171C';ctx.lineWidth=2;ctx.strokeRect(x+1,y+1,w-2,h-2)}
     for(const o of hoyo.mov){ctx.fillStyle='#6C4BD8';rr(o.x,o.y,o.w,o.h,5);ctx.fill();ctx.strokeStyle='#15171C';ctx.lineWidth=2;ctx.stroke()}
     for(const [x,y,r] of hoyo.bump){ctx.fillStyle='#F5B700';ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.strokeStyle='#15171C';ctx.lineWidth=2.5;ctx.stroke();ctx.fillStyle='#E63946';ctx.beginPath();ctx.arc(x,y,r*.45,0,7);ctx.fill()}
-    if(arrastre&&parado()){const dx=arrastre.x0-arrastre.x,dy=arrastre.y0-arrastre.y,d=Math.hypot(dx,dy);if(d>8){const f=Math.min(1,d/150);
+    if(arrastre&&parado()){const dx=arrastre.x0-arrastre.x,dy=arrastre.y0-arrastre.y,d=Math.hypot(dx,dy);if(d>8){const f=Math.min(1,d/110);
       ctx.fillStyle=f>.85?'#E63946':f>.5?'#F5B700':'#fff';for(let i=1;i<=7;i++){const q=i*f*16;ctx.globalAlpha=1-i/9;ctx.beginPath();ctx.arc(b.x+dx/d*q,b.y+dy/d*q,3.2,0,7);ctx.fill()}ctx.globalAlpha=1}}
     if(!b.dentro){ctx.fillStyle='#00000033';ctx.beginPath();ctx.arc(b.x+2,b.y+3,BR,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(b.x,b.y,BR,0,7);ctx.fill();ctx.strokeStyle='#15171C';ctx.lineWidth=2;ctx.stroke()}
   }
@@ -107,7 +107,7 @@ function frame(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;
   requestAnimationFrame(frame)}
 function rr(x,y,w,h,r){ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,r):ctx.rect(x,y,w,h)}
 tam();requestAnimationFrame(frame);
-const c=Carrera({app:'hoyo',el:$('carrera'),limite:300000,mejor:'bajo',formato:v=>v+' golpes',vivo:v=>'hoyo '+v,
+const c=Carrera({app:'hoyo',minValor:6,maxValor:60,el:$('carrera'),limite:300000,mejor:'bajo',formato:v=>v+' golpes',vivo:v=>'hoyo '+v,
   alEmpezar:r=>{rand=r;document.querySelector('.hud').scrollIntoView({behavior:'smooth',block:'start'});preparar();total=0;fin=false;activo=true;cargar(0);c.progreso(0,6)},
   alAcabarTiempo:()=>{if(!fin){total+=(plan.length-hi-(b&&(b.dentro||pasando)?1:0))*MAXG;activo=false;fin=true;c.terminar(total)}},
   alCerrar:()=>{activo=false}});

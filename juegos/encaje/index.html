@@ -126,7 +126,8 @@ function mover(e){if(!arr)return;const {fa,w,h,cp,subir}=arr;const gx=e.clientX-
   if(dentro){const cs=[];arr.p.f.forEach((fila,j)=>fila.forEach((v,i)=>{const X=x+i,Y=y+j;if(v&&X>=0&&Y>=0&&X<N&&Y<N)cs.push(Y*N+X)}));pintar({cs,ok:arr.ok,k:arr.p.k})}else pintar();
   const g=document.getElementById('guardar').getBoundingClientRect();arr.alGuardar=arr.i!=='g'&&!guardada&&e.clientX>g.left&&e.clientX<g.right&&e.clientY>g.top-20&&e.clientY<g.bottom+20}
 document.addEventListener('pointermove',e=>{if(arr){e.preventDefault();mover(e)}},{passive:false});
-function soltar(){if(!arr)return;const a=arr;arr=null;a.fa.remove();
+function soltar(e){if(!arr)return;const a=arr;arr=null;a.fa.remove();
+  if(e&&e.type==='pointercancel'){a.ok=false;a.alGuardar=false}
   if(a.ok){if(a.i==='g')guardada=null;else piezas[+a.i]=null;colocar(a.p,a.x,a.y)}
   else if(a.alGuardar){guardada=a.p;piezas[+a.i]=null;if(piezas.every(p=>!p))bandeja();pintar();const q=[...piezas,guardada].filter(Boolean);if(!q.some(p=>cabeAlgo(p.f)))fin()}
   else pintar();

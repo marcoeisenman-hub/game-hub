@@ -56,11 +56,11 @@ function flash(c){const p=$('carta');p.classList.remove('bien','mal');void p.off
 function responder(e){const b=e.target.closest('button'),teclado=e.type==='keydown';if(!b||b.disabled||!c.jugando||!actual||!b.dataset.i)return;e.preventDefault();
   if(actual.modo==='no'?+b.dataset.i!==actual.t:+b.dataset.i===actual.ok){puntos++;flash('bien')}else{puntos=Math.max(0,puntos-1);flash('mal')}
   c.progreso(puntos,40);nueva();if(teclado){const f=$('ops').querySelector('button');if(f)f.focus()}}
-addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(/^[1-4]$/.test(e.key)){const b=$('ops').children[+e.key-1];if(b)responder({target:b,type:'keydown',preventDefault(){}})}});
+addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(e.repeat)return;if(/^[1-4]$/.test(e.key)){const b=$('ops').children[+e.key-1];if(b)responder({target:b,type:'keydown',preventDefault(){}})}});
 $('ops').addEventListener('pointerdown',responder);
-$('ops').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')responder(e)});
+$('ops').addEventListener('keydown',e=>{if(!e.repeat&&(e.key==='Enter'||e.key===' '))responder(e)});
 function botones(){for(const b of $('ops').children)b.disabled=!c.jugando}
-const c=Carrera({app:'trampa',el:$('carrera'),limite:35000,mejor:'alto',formato:v=>v+' pts',vivo:v=>v+' pts',
+const c=Carrera({app:'trampa',maxValor:150,el:$('carrera'),limite:35000,mejor:'alto',formato:v=>v+' pts',vivo:v=>v+' pts',
   alEmpezar:r=>{rand=r;puntos=0;n=0;nueva();c.progreso(0,40)},
   alAcabarTiempo:()=>{c.terminar(puntos);$('pal').textContent='¡Tiempo!';$('pal').style.color='#15171C'}});
 setInterval(botones,150);

@@ -10,8 +10,8 @@ h1{font-size:clamp(34px,8vw,54px);letter-spacing:-.05em;margin:0}
 .mesa{position:relative;margin-top:14px;border:2px solid var(--ink);border-radius:22px;background:#E84A8A;padding:20px 12px;text-align:center}
 .pts{position:absolute;top:10px;right:12px;font-weight:900;font-size:1.1rem;background:#fff;border-radius:99px;padding:2px 12px;border:2px solid var(--ink)}
 .pista{color:#fff;font-weight:800;min-height:1.4em;margin-top:22px}
-.fila{display:flex;justify-content:center;gap:6px;flex-wrap:nowrap;margin-top:12px;min-height:58px}
-.fila b,.fila button{width:min(52px,calc((min(100vw,560px) - 92px) / var(--n,6) - 6px));height:clamp(44px,13vw,58px);display:grid;place-items:center;border-radius:12px;border:2px solid var(--ink);font:900 clamp(22px,6.5vw,30px) "Schibsted Grotesk",system-ui,sans-serif;text-transform:uppercase}
+.fila{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:12px;min-height:58px}
+.fila b,.fila button{width:min(52px,calc((min(100vw,560px) - 92px) / min(var(--n,6),7) - 6px));height:clamp(44px,13vw,58px);display:grid;place-items:center;border-radius:12px;border:2px solid var(--ink);font:900 clamp(22px,6.5vw,30px) "Schibsted Grotesk",system-ui,sans-serif;text-transform:uppercase}
 .fila b{background:#fff;color:var(--ink)}
 .fila b.vacia{background:#ffffff55;border-style:dashed}
 .fila button{background:#F5B700;color:var(--ink);box-shadow:0 4px 0 var(--ink);cursor:pointer;touch-action:manipulation;padding:0}
@@ -56,14 +56,14 @@ function flash(c){const p=$('mesa');p.classList.remove('bien','mal');void p.offs
 $('letras').addEventListener('pointerdown',e=>{const b=e.target.closest('button[data-i]');if(!b||!c.jugando||Date.now()<bloq)return;e.preventDefault();const i=+b.dataset.i;if(usadas[i])return;
   usadas[i]=true;orden.push(i);pinta();
   if(orden.length===letras.length){const w=orden.map(k=>letras[k]).join('');
-    if(w===palabra){puntos++;c.progreso(puntos,15);flash('bien');bloq=Date.now()+250;setTimeout(nueva,250)}
+    if(w===palabra){puntos++;c.progreso(puntos,15);flash('bien');bloq=Date.now()+250;setTimeout(()=>{if(c.jugando)nueva()},250)}
     else{flash('mal');setTimeout(()=>{usadas=letras.map(()=>false);orden=[];pinta()},350)}}});
 $('borrar').onclick=()=>{if(!c.jugando||!orden.length||Date.now()<bloq)return;usadas[orden.pop()]=false;pinta()};
 $('saltar').onclick=()=>{if(!c.jugando||Date.now()<bloq)return;bloq=Date.now()+3000;$('pista').textContent='Era: '+palabra.toUpperCase()+' · espera 3 s';setTimeout(()=>{if(c.jugando)nueva()},3000)};
-addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(!c.jugando||Date.now()<bloq)return;if(e.key==='Backspace'){$('borrar').onclick();return}
+addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(e.repeat||!c.jugando||Date.now()<bloq)return;if(e.key==='Backspace'){$('borrar').onclick();return}
   const k=e.key.toLowerCase();if(k.length!==1)return;const i=letras.findIndex((l,j)=>!usadas[j]&&sinTilde(l)===sinTilde(k));if(i>=0)$('letras').querySelector(`[data-i="${i}"]`).dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))});
 setInterval(()=>{const on=c.jugando;$('borrar').disabled=$('saltar').disabled=!on},200);
-const c=Carrera({app:'revuelto',el:$('carrera'),limite:60000,mejor:'alto',formato:v=>v+(v===1?' palabra':' palabras'),vivo:v=>v+'',
+const c=Carrera({app:'revuelto',maxValor:60,el:$('carrera'),limite:60000,mejor:'alto',formato:v=>v+(v===1?' palabra':' palabras'),vivo:v=>v+'',
   alEmpezar:r=>{rand=r;puntos=0;n=0;bloq=0;nueva();c.progreso(0,15)},
   alAcabarTiempo:()=>{c.terminar(puntos);$('pista').textContent='¡Tiempo! Era: '+palabra.toUpperCase()}});
 </script>

@@ -175,7 +175,7 @@ const badge=document.createElement('div');badge.style.cssText='position:fixed;ri
 function conSala(fn){window.RatitoSala?fn(RatitoSala):addEventListener('ratitosala',()=>fn(RatitoSala),{once:true})}
 conSala(S0=>{sala=S0;
   sala.al('mensaje',(d,de)=>{if(!d||typeof d!=='object')return;
-    if(d.st&&!sala.lider())recibirEstado(d);
+    if(d.st&&!sala.lider()){if(de&&de.id===sala.jugadores()[0]?.id)recibirEstado(d)}
     else if(d.cmd&&sala.lider()){
       if(d.cmd==='lanzar'&&[d.x,d.y,d.vx,d.vy].every(fin)&&bodies.length<60){const p=planet(d.x+CX(),d.y+CY(),d.vx,d.vy,Math.max(0,Math.min(3,d.k|0)));bodies.push(p)}
       else if(['preset','binary','clear'].includes(d.cmd))({preset,binary,clear:reset})[d.cmd]();

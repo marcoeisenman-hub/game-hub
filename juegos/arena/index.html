@@ -251,11 +251,11 @@ const badge=document.createElement('div');badge.style.cssText='position:fixed;ri
 function conSala(fn){window.RatitoSala?fn(RatitoSala):addEventListener('ratitosala',()=>fn(RatitoSala),{once:true})}
 let estabaEnSala=false;
 conSala(S0=>{sala=S0;
-  sala.al('mensaje',d=>{if(!d||typeof d!=='object')return;
+  sala.al('mensaje',(d,de)=>{if(!d||typeof d!=='object')return;
     if(Array.isArray(d.p)){const m=d.m|0,b=Math.max(1,Math.min(16,d.b|0));if(m<0||m>12)return;for(const q of d.p.slice(0,400))if(Array.isArray(q)&&Number.isInteger(q[0])&&Number.isInteger(q[1]))paint(q[0],q[1],m,b,true)}
     if(d.clear){type.fill(0);life.fill(0);vel.fill(0)}
     if(typeof d.pause==='boolean'&&!d.snap)setPause(d.pause);
-    if(d.snap&&!sala.lider())aplicarSnap(d)});
+    if(d.snap&&!sala.lider()&&de&&de.id===sala.jugadores()[0]?.id)aplicarSnap(d)});
   sala.al('cambio',()=>{const en=enSala();if(en!==estabaEnSala){estabaEnSala=en;resize()}
     const o=sala.jugadores().filter(j=>!j.yo);badge.hidden=!en||!o.length;badge.textContent='Jugando con: '+o.map(j=>j.name).join(', ')});
 });
