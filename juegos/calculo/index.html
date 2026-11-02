@@ -34,7 +34,7 @@ h1{font-size:clamp(34px,8vw,54px);letter-spacing:-.05em;margin:0}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-let rand=Math.random,actual=null,escrito='',puntos=0,n=0;
+let rand=Math.random,actual=null,escrito='',puntos=0,n=0,borrarT=0;
 const ent=(a,b)=>a+Math.floor(rand()*(b-a+1));
 function nueva(){n++;const nivel=Math.min(6,Math.floor(n/4));let a,b,s,r;
   const tipo=nivel<1?ent(0,1):nivel<2?ent(0,2):ent(0,3);
@@ -42,7 +42,7 @@ function nueva(){n++;const nivel=Math.min(6,Math.floor(n/4));let a,b,s,r;
   else if(tipo===1){a=ent(3,[12,20,40,60,90,120,200][nivel]);b=ent(1,a-1);s='−';r=a-b}
   else if(tipo===2){a=ent(2,[5,7,9,10,12,13,15][nivel]);b=ent(2,[5,7,9,10,12,13,15][nivel]);s='×';r=a*b}
   else{b=ent(2,[5,7,9,10,12,12,15][nivel]);r=ent(2,[5,7,9,10,12,13,15][nivel]);a=b*r;s='÷'}
-  actual={txt:a+' '+s+' '+b,r};$('op').textContent=actual.txt;escrito='';pinta()}
+  clearTimeout(borrarT);actual={txt:a+' '+s+' '+b,r};$('op').textContent=actual.txt;escrito='';pinta()}
 function pinta(){$('resp').textContent=escrito;$('resp').classList.toggle('vacio',!escrito);$('pts').textContent=puntos}
 function flash(c){const p=$('piz');p.classList.remove('bien','mal');void p.offsetWidth;p.classList.add(c)}
 function tecla(k){if(!c.jugando||!actual)return;
@@ -51,7 +51,7 @@ function tecla(k){if(!c.jugando||!actual)return;
   if(escrito.length>=4)return;escrito+=k;pinta();
   const meta=String(actual.r);
   if(escrito===meta){puntos++;c.progreso(puntos,30);flash('bien');nueva()}
-  else if(escrito.length>=meta.length){flash('mal');setTimeout(()=>{escrito='';pinta()},250)}}
+  else if(escrito.length>=meta.length){flash('mal');clearTimeout(borrarT);const yo=actual;borrarT=setTimeout(()=>{if(actual===yo){escrito='';pinta()}},250)}}
 const T=['7','8','9','4','5','6','1','2','3','C','0','⌫'];
 $('teclas').innerHTML=T.map(k=>`<button type="button" data-k="${k}" class="${k==='C'||k==='⌫'?'b':''}" aria-label="${k==='⌫'?'Borrar':k==='C'?'Limpiar':k}">${k}</button>`).join('');
 $('teclas').addEventListener('pointerdown',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;e.preventDefault();tecla(b.dataset.k)});

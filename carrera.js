@@ -70,15 +70,15 @@ window.Carrera=function(o){
     list.innerHTML=filas.map((f,i)=>{const c=f.p.color||'#2D6CDF',yo=f.p.id===me();
       const pct=f.v!==undefined&&f.v!==null?100:f.pr?Math.min(100,100*f.pr.n/f.pr.max):0;
       const val=f.v!==undefined?fmt(f.v):f.pr?(o.vivo?o.vivo(f.pr.n):f.pr.n):'';
-      const pos=game.closed&&f.v!=null&&i<3?med[i]:(i+1);
-      return `<li style="--pc:${esc(c)}"><span class="cr-pos" style="${game.closed&&f.v!=null&&i<3?'background:#fff;font-size:1.3rem':''}">${pos}</span><span>${esc(yo&&online()?'Tú':f.p.name)}</span><span class="cr-v">${esc(val)}</span><span class="cr-bar"><i style="width:${pct}%"></i></span></li>`}).join('')}
+      const rk=f.v!=null?filas.findIndex(x=>x.v===f.v):i,pos=game.closed&&f.v!=null&&rk<3?med[rk]:(rk+1);
+      return `<li style="--pc:${esc(c)}"><span class="cr-pos" style="${game.closed&&f.v!=null&&rk<3?'background:#fff;font-size:1.3rem':''}">${pos}</span><span>${esc(yo&&online()?'Tú':f.p.name)}</span><span class="cr-v">${esc(val)}</span><span class="cr-bar"><i style="width:${pct}%"></i></span></li>`}).join('')}
   function render(){
     const t=game?clock()-game.start:0,b=mejor();
     btn.disabled=!host()||juego()||(!!game&&!game.closed);
     btn.textContent=!host()?'El líder inicia':game&&game.closed?'Otra vez':'Empezar';
     let s,sub='';
     if(!game){s=online()?(host()?'Tú eres el líder: dale a Empezar cuando estén todos.':'Esperando a que el líder empiece…'):'¿Listo?';sub=b!==null?'Tu récord: '+fmt(b):(online()?'Todos juegan lo mismo al mismo tiempo.':'')}
-    else if(game.closed){const f=orden(),w=f[0];s=game.aborted?'Cambió la sala. Empiecen otra.':online()&&game.people.length>1?(w&&w.v!=null?(w.p.id===me()?'¡Ganaste!':'Ganó '+w.p.name):'Nadie terminó'):(mio!=null?'Tu resultado: '+fmt(mio):'Se acabó');sub=b!==null?'Tu récord: '+fmt(b):''}
+    else if(game.closed){const f=orden(),w=f[0],emp=w&&w.v!=null?f.filter(x=>x.v===w.v):[];s=game.aborted?'Cambió la sala. Empiecen otra.':online()&&game.people.length>1?(!emp.length?'Nadie terminó':emp.length>1?(emp.some(x=>x.p.id===me())?'¡Empate! Tú y '+(emp.length-1)+' más':'Empate entre '+emp.map(x=>x.p.name).join(' y ')):(w.p.id===me()?'¡Ganaste!':'Ganó '+w.p.name)):(mio!=null?'Tu resultado: '+fmt(mio):'Se acabó');sub=b!==null?'Tu récord: '+fmt(b):''}
     else if(!juego())s='Entras en la siguiente partida.';
     else if(t<0)s='Prepárate…';
     else if(acabo)s='Esperando a los demás…';

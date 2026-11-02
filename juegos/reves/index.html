@@ -119,9 +119,9 @@ function recortar(buf){/* quita el silencio del principio y del final */
   for(let ch=0;ch<buf.numberOfChannels;ch++)r.getChannelData(ch).set(buf.getChannelData(ch).subarray(a,b));return r}
 function parar(){if(fuente){try{fuente.onended=null;fuente.stop()}catch(e){}fuente=null}cancelAnimationFrame(raf);redibujar()}
 let raf=0,dibujos={};
-function tocar(buf,canvas,alReves){parar();const c=ac(),s=c.createBufferSource();s.buffer=buf;const v=+$('vel').value;s.playbackRate.value=v;s.connect(c.destination);
+function tocar(buf,canvas){parar();dibujos[canvas.id]=buf;const c=ac(),s=c.createBufferSource();s.buffer=buf;const v=+$('vel').value;s.playbackRate.value=v;s.connect(c.destination);
   const t0=c.currentTime,dur=buf.duration/v;s.start();fuente=s;s.onended=()=>{fuente=null;cancelAnimationFrame(raf);redibujar()};
-  const paso=()=>{const p=Math.min(1,(c.currentTime-t0)/dur);dibujar(canvas,dibujos[canvas.id],alReves?1-p:p);if(p<1)raf=requestAnimationFrame(paso)};paso()}
+  const paso=()=>{const p=Math.min(1,(c.currentTime-t0)/dur);dibujar(canvas,buf,p);if(p<1)raf=requestAnimationFrame(paso)};paso()}
 function dibujar(cv,buf,cabeza){if(!buf)return;cv.hidden=false;const w=cv.clientWidth*devicePixelRatio,h=cv.clientHeight*devicePixelRatio;cv.width=w;cv.height=h;
   const g=cv.getContext('2d'),d=buf.getChannelData(0),barras=Math.floor(w/(5*devicePixelRatio)),paso=d.length/barras;let m=0;
   const v=[];for(let i=0;i<barras;i++){let s=0;for(let j=Math.floor(i*paso);j<(i+1)*paso;j+=4)s=Math.max(s,Math.abs(d[j]||0));v.push(s);m=Math.max(m,s)}
@@ -150,17 +150,17 @@ async function grabar(btn,barra,alTerminar){
 }
 function listo1(buf){orig=buf;origRev=reves(buf);imit=imitRev=null;dibujos={c1:origRev};delete dibujos.c2;$('c2').hidden=true;$('t2').firstChild.style.width='0';
   $('n1').disabled=$('r1').disabled=false;$('p1').classList.add('hecho');$('p2').classList.remove('off');$('p2').classList.remove('hecho');$('p3').classList.add('off');redibujar();
-  tocar(origRev,$('c1'),false)}
+  tocar(origRev,$('c1'))}
 $('g1').onclick=()=>grabar($('g1'),$('t1'),listo1);
 $('f1').onchange=async e=>{const f=e.target.files[0];if(!f)return;error();
   try{let buf=await ac().decodeAudioData(await f.arrayBuffer());if(buf.duration>MAX*2){const c=ac(),n=Math.floor(buf.sampleRate*MAX*2),r=c.createBuffer(buf.numberOfChannels,n,buf.sampleRate);for(let ch=0;ch<buf.numberOfChannels;ch++)r.getChannelData(ch).set(buf.getChannelData(ch).subarray(0,n));buf=r}
   listo1(recortar(buf))}catch(x){error('Ese archivo no se pudo abrir. Prueba con un mp3, m4a o wav.')}e.target.value=''};
-$('n1').onclick=$('n1b').onclick=()=>tocar(orig,$('c1'),true);
-$('r1').onclick=$('r1b').onclick=()=>tocar(origRev,$('c1'),false);
+$('n1').onclick=$('n1b').onclick=()=>tocar(orig,$('c1'));
+$('r1').onclick=$('r1b').onclick=()=>tocar(origRev,$('c1'));
 $('g2').onclick=()=>grabar($('g2'),$('t2'),buf=>{imit=buf;imitRev=reves(buf);dibujos.c2=imitRev;redibujar();
-  $('p2').classList.add('hecho');$('p3').classList.remove('off');mostrarNota(parecido(orig,imitRev));tocar(imitRev,$('c2'),false);
+  $('p2').classList.add('hecho');$('p3').classList.remove('off');mostrarNota(parecido(orig,imitRev));tocar(imitRev,$('c2'));
   $('p3').scrollIntoView({behavior:'smooth',block:'center'})});
-$('r2').onclick=()=>imitRev&&tocar(imitRev,$('c2'),false);
+$('r2').onclick=()=>imitRev&&tocar(imitRev,$('c2'));
 $('otra').onclick=()=>{vuelta++;if(rec&&rec.state==='recording')rec.stop();parar();orig=origRev=imit=imitRev=null;dibujos={};['c1','c2'].forEach(c=>$(c).hidden=true);['t1','t2'].forEach(t=>$(t).firstChild.style.width='0');
   $('n1').disabled=$('r1').disabled=true;['p1','p2','p3'].forEach(p=>$(p).classList.remove('hecho'));$('p2').classList.add('off');$('p3').classList.add('off');scrollTo({top:0,behavior:'smooth'})};
 
