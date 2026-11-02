@@ -47,9 +47,11 @@ function nueva(){n++;const k=Math.min(6,4+Math.floor(puntos/8));
   $('ops').innerHTML=ops.map(i=>`<button type="button" data-i="${i}">${COL[i][0].charAt(0)+COL[i][0].slice(1).toLowerCase()}</button>`).join('');
   $('pts').textContent=puntos}
 function flash(c){const p=$('carta');p.classList.remove('bien','mal');void p.offsetWidth;p.classList.add(c)}
-$('ops').addEventListener('pointerdown',e=>{const b=e.target.closest('button');if(!b||b.disabled||!c.jugando||!actual)return;e.preventDefault();
+function responder(e){const b=e.target.closest('button');if(!b||b.disabled||!c.jugando||!actual||!b.dataset.i)return;e.preventDefault();
   if(+b.dataset.i===actual.ok){puntos++;flash('bien')}else{puntos=Math.max(0,puntos-1);flash('mal')}
-  c.progreso(puntos,40);nueva()});
+  c.progreso(puntos,40);nueva()}
+$('ops').addEventListener('pointerdown',responder);
+$('ops').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')responder(e)});
 function botones(){for(const b of $('ops').children)b.disabled=!c.jugando}
 const c=Carrera({app:'trampa',el:$('carrera'),limite:35000,mejor:'alto',formato:v=>v+' pts',vivo:v=>v+' pts',
   alEmpezar:r=>{rand=r;puntos=0;n=0;nueva();c.progreso(0,40)},

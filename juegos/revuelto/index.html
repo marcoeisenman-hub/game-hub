@@ -56,9 +56,9 @@ function flash(c){const p=$('mesa');p.classList.remove('bien','mal');void p.offs
 $('letras').addEventListener('pointerdown',e=>{const b=e.target.closest('button[data-i]');if(!b||!c.jugando||Date.now()<bloq)return;e.preventDefault();const i=+b.dataset.i;if(usadas[i])return;
   usadas[i]=true;orden.push(i);pinta();
   if(orden.length===letras.length){const w=orden.map(k=>letras[k]).join('');
-    if(w===palabra){puntos++;c.progreso(puntos,15);flash('bien');setTimeout(nueva,250)}
+    if(w===palabra){puntos++;c.progreso(puntos,15);flash('bien');bloq=Date.now()+250;setTimeout(nueva,250)}
     else{flash('mal');setTimeout(()=>{usadas=letras.map(()=>false);orden=[];pinta()},350)}}});
-$('borrar').onclick=()=>{if(!c.jugando||!orden.length)return;usadas[orden.pop()]=false;pinta()};
+$('borrar').onclick=()=>{if(!c.jugando||!orden.length||Date.now()<bloq)return;usadas[orden.pop()]=false;pinta()};
 $('saltar').onclick=()=>{if(!c.jugando||Date.now()<bloq)return;bloq=Date.now()+3000;$('pista').textContent='Era: '+palabra.toUpperCase()+' · espera 3 s';setTimeout(()=>{if(c.jugando)nueva()},3000)};
 addEventListener('keydown',e=>{if(!c.jugando||Date.now()<bloq)return;if(e.key==='Backspace'){$('borrar').onclick();return}
   const k=e.key.toLowerCase();if(k.length!==1)return;const i=letras.findIndex((l,j)=>!usadas[j]&&sinTilde(l)===sinTilde(k));if(i>=0)$('letras').querySelector(`[data-i="${i}"]`).dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))});
