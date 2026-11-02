@@ -50,6 +50,11 @@ h1 i:hover{transform:translateY(-.12em) rotate(-6deg)}
 .sala input:focus{outline:0;border-color:#fff}
 .sala .btn.sec{background:transparent;color:#fff;border:2px solid #3A3E46}
 .sala.on{background:#1E9E6A}
+.enSalaYa{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.enSalaYa:empty{display:none}
+.enSalaYa a{display:inline-flex;align-items:center;gap:6px;background:#fff;color:#15171C;text-decoration:none;font-weight:700;font-size:.85rem;padding:5px 10px;border-radius:99px}
+.enSalaYa i,.card .aqui i{width:10px;height:10px;border-radius:50%;background:var(--pc)}
+.card .aqui{position:absolute;top:10px;left:10px;z-index:2;display:flex;flex-direction:column;gap:4px}
+.card .aqui span{display:inline-flex;align-items:center;gap:6px;background:#fff;color:#15171C;border:2px solid #15171C;font-weight:700;font-size:.8rem;padding:3px 9px;border-radius:99px}
 .sala.on p{color:#DDF3E9}
 .sala.aviso{animation:aviso .5s}
 @keyframes aviso{25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
@@ -143,7 +148,7 @@ footer{margin-top:54px;color:var(--mut);font-size:.9rem}
   </nav>
 
   <section class="sala" id="sala" aria-live="polite">
-    <div><h2 id="salaT">Necesitas una sala</h2><p id="salaP">Los juegos de aquí se juegan con amigos. Crea una sala y mándales el link, o escribe el código que te pasaron.</p></div>
+    <div><h2 id="salaT">Necesitas una sala</h2><p id="salaP">Los juegos de aquí se juegan con amigos. Crea una sala y mándales el link, o escribe el código que te pasaron.</p><div class="enSalaYa" id="salaAmigos"></div></div>
     <div class="acc" id="salaAcc">
       <button class="btn" id="crear" type="button">Crear sala</button>
       <form id="unir"><input id="codigo" maxlength="8" placeholder="Código" aria-label="Código de la sala" autocomplete="off"><button class="btn sec" type="submit">Unirme</button></form>
@@ -238,6 +243,15 @@ function pintarSala(){
     document.getElementById('salaT').textContent='Necesitas una sala';document.getElementById('salaP').textContent=salaPTxt;
     document.getElementById('salaAcc').innerHTML=salaHTML;conectarBotones()}
 }
+function esc(t){return String(t).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';')}
+function pintarAmigos(){const s=sala(),box=document.getElementById('salaAmigos');
+  const l=s&&s.codigo&&s.amigos?s.amigos():[];
+  box.innerHTML=l.map(a=>{const nom=esc(a.name||'Amigo');const sitio=a.page==='/'?'en la portada':'en '+esc(a.donde);
+    return a.page&&a.page!=='/'?`<a href="${esc(a.page)}" style="--pc:${esc(a.color)}"><i></i>${nom} está ${sitio} →</a>`:`<a href="#" onclick="return false" style="--pc:${esc(a.color)}"><i></i>${nom} está ${sitio}</a>`}).join('');
+  cards.forEach(c=>{let b=c.querySelector('.aqui');const h=new URL(c.href).pathname;const quien=l.filter(a=>a.page===h);
+    if(!quien.length){if(b)b.remove();return}
+    if(!b){b=document.createElement('div');b.className='aqui';c.append(b)}
+    b.innerHTML=quien.map(a=>`<span style="--pc:${esc(a.color)}"><i></i>${esc(a.name||'Amigo')} está aquí</span>`).join('')})}
 function filtro(f){modo=f;tabs.forEach(t=>t.setAttribute('aria-selected',t.dataset.f===f));cards.forEach(c=>c.hidden=f==='mp'&&!c.hasAttribute('data-mp'));
   todo.classList.toggle('mp',f==='mp');history.replaceState(null,'',f==='mp'?'#multiplayer':location.pathname+location.search)}
 tabs.forEach(t=>t.onclick=()=>filtro(t.dataset.f));
@@ -252,7 +266,7 @@ function conectarBotones(){
 conectarBotones();
 cards.forEach(c=>c.addEventListener('click',e=>{if(modo==='mp'&&c.hasAttribute('data-mp')&&!enSala()){e.preventDefault();avisar();document.getElementById('sala').scrollIntoView({behavior:'smooth',block:'center'})}}));
 let enganchado=false;
-function enganchar(){if(enganchado||!window.RatitoSala)return;enganchado=true;RatitoSala.al('cambio',pintarSala);pintarSala()}
+function enganchar(){if(enganchado||!window.RatitoSala)return;enganchado=true;RatitoSala.al('cambio',()=>{pintarSala();pintarAmigos()});RatitoSala.al('amigos',pintarAmigos);pintarSala();pintarAmigos()}
 addEventListener('ratitosala',enganchar);enganchar();
 
 /* juego al azar: entre los que se pueden jugar ahora */

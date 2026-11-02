@@ -77,7 +77,7 @@ function list(){btn.hidden=!code;if(!code)panel.hidden=true;
   const n=Object.keys(people).length;
   btn.innerHTML=code?`Amigos <b>${n+1}</b>`:'Jugar con amigos';
   if(code)status(n?`En la sala: ${n+1} personas. Ya están jugando juntos.`:'Esperando a tus amigos… mándales el link.');
-  changed();
+  changed();emit('amigos');
 }
 function getP(m){
   let p=people[m.id];
@@ -154,7 +154,7 @@ addEventListener('pagehide',()=>{if(code)send({t:'bye'})});
 
 
 /* ---------- API para los juegos: window.RatitoSala ---------- */
-const handlers={mensaje:[],cambio:[]};
+const handlers={mensaje:[],cambio:[],amigos:[]};
 function emit(ev,...a){for(const f of handlers[ev])try{f(...a)}catch(e){console.error(e)}}
 function info(id){const p=id===me.id?me:people[id];return{id,name:p?clean(p.name):'Amigo',color:color(id),yo:id===me.id}}
 function jugadores(){const list=[{...info(me.id),since:SINCE+OFF}];for(const p of Object.values(people))if(p.page===PAGE)list.push({...info(p.id),since:p.since==null?0:p.since});
@@ -168,6 +168,7 @@ window.RatitoSala={
   crear(){$('am-new').click();panel.hidden=false},
   get yo(){return info(me.id)},
   jugadores,
+  amigos(){return Object.values(people).filter(p=>p.name||p.page).map(p=>({...info(p.id),page:p.page,donde:PAGES[p.page]||'otra página'}))},
   lider(){return jugadores()[0].id===me.id},
   enviar(d){if(code)send({t:'g',d})},
   al(ev,fn){if(handlers[ev])handlers[ev].push(fn)},
