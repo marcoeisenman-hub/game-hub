@@ -77,8 +77,9 @@ small.ayuda{display:block;color:var(--mut);margin-top:22px}
     <p>Dale a <b>Oír al revés</b>: va a sonar como otro idioma. No tiene que tener sentido: tú solo copia esos sonidos tal cual, como cuando cantas una canción en un idioma que no sabes. Por ejemplo, «hola» al revés suena más o menos como «aloj».</p>
     <p><b>Tip:</b> pon la velocidad en <b>Lenta</b> (arriba) y escúchala varias veces antes de grabarte.</p>
     <div class="fila">
-      <button class="btn sec" id="r1b" type="button"><svg viewBox="0 0 12 12"><path d="M10 1L1 6l9 5z" fill="currentColor"/></svg>Oír al revés</button>
+      <button class="btn sec" id="r1b" type="button"><svg viewBox="0 0 12 12"><path d="M10 1L1 6l9 5z" fill="currentColor"/></svg>Oír lo que tienes que copiar</button>
       <button class="btn grabar" id="g2" type="button"><b></b><span>Grabar imitación</span></button>
+      <button class="btn sec" id="i2" type="button" disabled><svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z" fill="currentColor"/></svg>Oír mi imitación</button>
     </div>
     <div class="tiempo" id="t2"><i></i></div>
     <canvas id="c2" hidden></canvas>
@@ -149,7 +150,7 @@ async function grabar(btn,barra,alTerminar){
     catch(e){error('No se pudo leer la grabación. Intenta otra vez.')}};
   rec.start();
 }
-function listo1(buf){orig=buf;origRev=reves(buf);imit=imitRev=null;dibujos={c1:origRev};delete dibujos.c2;$('c2').hidden=true;$('t2').firstChild.style.width='0';
+function listo1(buf){orig=buf;origRev=reves(buf);imit=imitRev=null;$('i2').disabled=true;dibujos={c1:origRev};delete dibujos.c2;$('c2').hidden=true;$('t2').firstChild.style.width='0';
   $('n1').disabled=$('r1').disabled=false;$('p1').classList.add('hecho');$('p2').classList.remove('off');$('p2').classList.remove('hecho');$('p3').classList.add('off');redibujar();
   tocar(origRev,$('c1'))}
 $('g1').onclick=()=>grabar($('g1'),$('t1'),listo1);
@@ -158,11 +159,12 @@ $('f1').onchange=async e=>{const f=e.target.files[0];if(!f)return;error();
   listo1(recortar(buf))}catch(x){error('Ese archivo no se pudo abrir. Prueba con un mp3, m4a o wav.')}e.target.value=''};
 $('n1').onclick=$('n1b').onclick=()=>tocar(orig,$('c1'));
 $('r1').onclick=$('r1b').onclick=()=>tocar(origRev,$('c1'));
-$('g2').onclick=()=>grabar($('g2'),$('t2'),buf=>{imit=buf;imitRev=reves(buf);dibujos.c2=imitRev;redibujar();
+$('g2').onclick=()=>grabar($('g2'),$('t2'),buf=>{imit=buf;$('i2').disabled=false;imitRev=reves(buf);dibujos.c2=imitRev;redibujar();
   $('p2').classList.add('hecho');$('p3').classList.remove('off');mostrarNota(parecido(orig,imitRev));tocar(imitRev,$('c2'));
   $('p3').scrollIntoView({behavior:'smooth',block:'center'})});
 $('r2').onclick=()=>imitRev&&tocar(imitRev,$('c2'));
-$('otra').onclick=()=>{vuelta++;if(rec&&rec.state==='recording')rec.stop();parar();orig=origRev=imit=imitRev=null;dibujos={};['c1','c2'].forEach(c=>$(c).hidden=true);['t1','t2'].forEach(t=>$(t).firstChild.style.width='0');
+$('i2').onclick=()=>imit&&tocar(imit,$('c2'));
+$('otra').onclick=()=>{vuelta++;if(rec&&rec.state==='recording')rec.stop();parar();orig=origRev=imit=imitRev=null;$('i2').disabled=true;dibujos={};['c1','c2'].forEach(c=>$(c).hidden=true);['t1','t2'].forEach(t=>$(t).firstChild.style.width='0');
   $('n1').disabled=$('r1').disabled=true;['p1','p2','p3'].forEach(p=>$(p).classList.remove('hecho'));$('p2').classList.add('off');$('p3').classList.add('off');scrollTo({top:0,behavior:'smooth'})};
 
 /* parecido: compara la forma del volumen y el "brillo" del sonido, estirando las dos al mismo largo */
