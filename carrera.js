@@ -56,7 +56,7 @@ window.Carrera=function(o){
     if(clock()>game.start+LIM+5000)for(const p of game.people)if(!Object.hasOwn(game.results,p.id))game.results[p.id]=null;
     if(game.people.every(p=>Object.hasOwn(game.results,p.id))){game.closed=true;cerrado()}}
   function receive(d,de){if(d.type!=='result'||!host()||!game||game.closed||d.id!==game.id||!game.people.some(p=>p.id===de.id)||Object.hasOwn(game.results,de.id))return;
-    if(d.v!==null&&!(Number.isFinite(d.v)&&d.v>=0&&d.v<1e9))return;game.results[de.id]=d.v;reconcile();publish()}
+    if(d.v!==null&&!(Number.isFinite(d.v)&&d.v>=0&&d.v<1e9))return;game.results[de.id]=d.v;if(typeof d.tag==='string'&&d.tag){if(!game.tags||typeof game.tags!=='object')game.tags={};game.tags[de.id]=d.tag.slice(0,20)}reconcile();publish()}
 
   function terminar(v){if(!juego()||mio!==undefined)return;mio=(v==null||!Number.isFinite(+v))?null:+v;acabo=true;guardar(mio);
     prog[me()]={...(prog[me()]||{}),fin:true};const d={type:'result',id:game.id,v:mio,tag:tagMio()};if(host())receive(d,{id:me()});else tx(d);render()}
@@ -72,7 +72,7 @@ window.Carrera=function(o){
       const pct=f.v!==undefined&&f.v!==null?100:f.pr?Math.min(100,100*f.pr.n/f.pr.max):0;
       const val=f.v!==undefined?fmt(f.v):f.pr?(o.vivo?o.vivo(f.pr.n):f.pr.n):'';
       const rk=f.v!=null?filas.findIndex(x=>x.v===f.v):i,pos=game.closed&&f.v!=null&&rk<3?med[rk]:(rk+1);
-      return `<li style="--pc:${esc(c)}"><span class="cr-pos" style="${game.closed&&f.v!=null&&rk<3?'background:#fff;font-size:1.3rem':''}">${pos}</span><span>${esc(yo&&online()?'Tú':f.p.name)}${f.pr&&f.pr.tag?' <small style="color:#6B7079;font-weight:600">'+esc(f.pr.tag)+'</small>':''}</span><span class="cr-v">${esc(val)}</span><span class="cr-bar"><i style="width:${pct}%"></i></span></li>`}).join('')}
+      return `<li style="--pc:${esc(c)}"><span class="cr-pos" style="${game.closed&&f.v!=null&&rk<3?'background:#fff;font-size:1.3rem':''}">${pos}</span><span>${esc(yo&&online()?'Tú':f.p.name)}${(()=>{const tg=(f.pr&&f.pr.tag)||(game.tags&&typeof game.tags[f.p.id]==='string'?game.tags[f.p.id]:'');return tg?' <small style="color:#6B7079;font-weight:600">'+esc(tg)+'</small>':''})()}</span><span class="cr-v">${esc(val)}</span><span class="cr-bar"><i style="width:${pct}%"></i></span></li>`}).join('')}
   function render(){
     const t=game?clock()-game.start:0,b=mejor();
     btn.disabled=!host()||juego()||(!!game&&!game.closed);
