@@ -22,9 +22,23 @@ h1{font-size:clamp(34px,8vw,54px);letter-spacing:-.05em;margin:0}
 .teclas button:disabled{opacity:.35;box-shadow:none;transform:none}
 .teclas .b{background:#F5B700}
 .nota{color:var(--mut);font-size:.9rem}
+.nivel{border:2px solid var(--ink);border-radius:18px;padding:12px 14px;margin-top:14px;background:#F4F1FF}
+.nivel .fila{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.nivel label{font-weight:800}
+.nivel input{font:800 1.1rem "Schibsted Grotesk",sans-serif;width:5ch;padding:6px 8px;border:2px solid var(--ink);border-radius:10px;text-align:center}
+.chipsN{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.chipsN button{font:800 .9rem "Schibsted Grotesk",sans-serif;border:2px solid var(--ink);background:#fff;border-radius:99px;padding:6px 12px;cursor:pointer}
+.chipsN button[aria-pressed=true]{background:#6C4BD8;color:#fff}
+.chipsN button:disabled{opacity:.5;cursor:default}
+.nivel small{display:block;color:var(--mut);margin-top:8px}
 </style></head><body><a class="volver" href="/">← game.hub</a>
 <main>
   <h1>Cálculo</h1><p class="sub">45 segundos. Resuelve todas las que puedas.</p>
+  <section class="nivel" id="nivelBox">
+    <div class="fila"><label for="edad">¿Cuántos años tienes?</label><input id="edad" type="number" inputmode="numeric" min="5" max="99" placeholder="13"></div>
+    <div class="chipsN" id="chipsN"></div>
+    <small id="nivelTxt"></small>
+  </section>
   <div id="carrera"></div>
   <section class="pizarra" id="piz"><span class="pts" id="pts">0</span><div class="cuenta" id="op">7 × 8</div><div class="resp vacio" id="resp"></div></section>
   <div class="teclas" id="teclas"></div>
@@ -36,12 +50,22 @@ h1{font-size:clamp(34px,8vw,54px);letter-spacing:-.05em;margin:0}
 const $=id=>document.getElementById(id);
 let rand=Math.random,actual=null,escrito='',puntos=0,n=0,borrarT=0;
 const ent=(a,b)=>a+Math.floor(rand()*(b-a+1));
-function nueva(){n++;const nivel=Math.min(6,Math.floor(n/4));let a,b,s,r;
-  const tipo=nivel<1?ent(0,1):nivel<2?ent(0,2):ent(0,3);
-  if(tipo===0){a=ent(2,[9,15,30,50,80,99,150][nivel]);b=ent(2,[9,15,30,50,80,99,150][nivel]);s='+';r=a+b}
-  else if(tipo===1){a=ent(3,[12,20,40,60,90,120,200][nivel]);b=ent(1,a-1);s='−';r=a-b}
-  else if(tipo===2){a=ent(2,[5,7,9,10,12,13,15][nivel]);b=ent(2,[5,7,9,10,12,13,15][nivel]);s='×';r=a*b}
-  else{b=ent(2,[5,7,9,10,12,12,15][nivel]);r=ent(2,[5,7,9,10,12,13,15][nivel]);a=b*r;s='÷'}
+/* niveles: suma/resta hasta, tabla de multiplicar hasta, qué operaciones */
+const NIV=[null,
+  {nom:'Fácil',txt:'Sumas y restas hasta 20.',sum:20,mul:0,ops:2},
+  {nom:'Básico',txt:'Sumas y restas hasta 50, tablas del 2 al 5.',sum:50,mul:5,ops:3},
+  {nom:'Medio',txt:'Sumas y restas hasta 100, tablas hasta el 10 y divisiones.',sum:100,mul:10,ops:4},
+  {nom:'Difícil',txt:'Números hasta 250, tablas hasta el 12 y divisiones.',sum:250,mul:12,ops:4},
+  {nom:'Experto',txt:'Números hasta 999, dos cifras × una cifra y divisiones grandes.',sum:999,mul:15,ops:4}];
+const nivelDeEdad=e=>e<=7?1:e<=9?2:e<=11?3:e<=14?4:5;
+let NV=3;try{const g=+localStorage.getItem('gamehubCalculoNivel');if(g>=1&&g<=5)NV=g;const ed=localStorage.getItem('gamehubCalculoEdad');if(ed)document.getElementById('edad').value=ed}catch(e){}
+function nueva(){n++;const L=NIV[NV],f=Math.min(1,.55+n*.04);const S=Math.max(10,Math.round(L.sum*f)),M=L.mul?Math.max(3,Math.round(L.mul*f)):0;let a,b,s,r;
+  const tipo=Math.floor(rand()*L.ops),x=rand(),y=rand();
+  const en=(lo,hi,u)=>lo+Math.floor(u*(hi-lo+1));
+  if(tipo===0){a=en(1,S-1,x);b=en(1,Math.max(1,S-a),y);s='+';r=a+b}
+  else if(tipo===1){a=en(2,S,x);b=en(1,a-1,y);s='−';r=a-b}
+  else if(tipo===2){if(NV===5&&x<.4){a=en(12,99,y);b=en(2,9,x*2.5)}else{a=en(2,M,x);b=en(2,M,y)}s='×';r=a*b}
+  else{b=en(2,M,x);r=en(2,M,y);a=b*r;s='÷'}
   clearTimeout(borrarT);actual={txt:a+' '+s+' '+b,r};$('op').textContent=actual.txt;escrito='';pinta()}
 function pinta(){$('resp').textContent=escrito;$('resp').classList.toggle('vacio',!escrito);$('pts').textContent=puntos}
 function flash(c){const p=$('piz');p.classList.remove('bien','mal');void p.offsetWidth;p.classList.add(c)}
@@ -56,7 +80,12 @@ const T=['7','8','9','4','5','6','1','2','3','C','0','⌫'];
 $('teclas').innerHTML=T.map(k=>`<button type="button" data-k="${k}" class="${k==='C'||k==='⌫'?'b':''}" aria-label="${k==='⌫'?'Borrar':k==='C'?'Limpiar':k}">${k}</button>`).join('');
 $('teclas').addEventListener('pointerdown',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;e.preventDefault();tecla(b.dataset.k)});
 addEventListener('keydown',e=>{if(/^[0-9]$/.test(e.key))tecla(e.key);else if(e.key==='Backspace')tecla('⌫')});
-function botones(){const on=c.jugando;for(const b of $('teclas').children)b.disabled=!on}
+function botones(){const on=c.jugando;for(const b of $('teclas').children)b.disabled=!on;for(const b of $('chipsN').children)b.disabled=on;$('edad').disabled=on}
+function ponNivel(v,guardar){NV=v;for(const b of $('chipsN').children)b.setAttribute('aria-pressed',+b.dataset.n===v);$('nivelTxt').textContent='Nivel '+v+' · '+NIV[v].nom+': '+NIV[v].txt+' Puedes cambiarlo cuando quieras.';if(guardar)try{localStorage.setItem('gamehubCalculoNivel',v)}catch(e){}}
+$('chipsN').innerHTML=NIV.slice(1).map((L,i)=>`<button type="button" data-n="${i+1}">${i+1} · ${L.nom}</button>`).join('');
+$('chipsN').onclick=e=>{const b=e.target.closest('button');if(!b||b.disabled)return;ponNivel(+b.dataset.n,true)};
+$('edad').oninput=()=>{const e=Math.round(+$('edad').value);if(e>=5&&e<=99){try{localStorage.setItem('gamehubCalculoEdad',e)}catch(x){}ponNivel(nivelDeEdad(e),true)}};
+ponNivel(NV,false);
 const c=Carrera({app:'calculo',el:$('carrera'),limite:45000,mejor:'alto',formato:v=>v+(v===1?' buena':' buenas'),
   alEmpezar:r=>{rand=r;puntos=0;n=0;nueva();c.progreso(0,30)},
   alAcabarTiempo:()=>{c.terminar(puntos);$('op').textContent='¡Tiempo!';escrito='';pinta()},
