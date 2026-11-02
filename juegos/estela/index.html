@@ -97,11 +97,11 @@ function nombre(id){const p=R&&R.ps.find(q=>q.id===id);return p?(p.id===yo()&&on
 function pintaJug(){const ps=R?R.ps:[];$('jug').innerHTML=ps.map(p=>`<span class="${p.vivo?'':'muerto'}" style="--pc:${esc(p.color)}"><i></i>${esc(p.id===yo()?'Tú':p.name)} <em>${'★'.repeat(Math.min(META,marc[p.id]||0))}</em></span>`).join('')}
 function estado(){let s,sub='';const now=performance.now();
   if(!R){s=online()?(lider()?'Tú eres el líder: dale a Empezar.':'Esperando a que el líder empiece…'):'¿Listo?';sub='Gana el primero en llegar a '+META+' rondas.'}
-  else if(R.fin){const w=R.fin.gan;s=campeon?(campeon===yo()?'¡GANASTE LA PARTIDA!':nombre(campeon)+' gana la partida'):w?(w===yo()?'¡Ganaste la ronda!':nombre(w)+' gana la ronda'):'Nadie sobrevivió';sub=campeon?(lider()?'Dale a Empezar para otra partida.':'El líder puede empezar otra.'):'Siguiente ronda en un momento…'}
+  else if(R.fin){const w=R.fin.gan;s=campeon?(campeon===yo()?'¡GANASTE LA PARTIDA!':nombre(campeon)+' gana la partida'):w?(w===yo()?'¡Ganaste la ronda!':nombre(w)+' gana la ronda'):'Nadie sobrevivió';sub=R.fin.abort?'Cambió el líder: '+(lider()?'dale a Empezar.':'el nuevo líder puede empezar.'):campeon?(lider()?'Dale a Empezar para otra partida.':'El líder puede empezar otra.'):'Siguiente ronda en un momento…'}
   else if(now<R.start)s='Prepárate…';else{const m=R.ps.find(p=>p.id===yo());s=m?(m.vivo?'¡No choques!':'Te chocaste… mira cómo termina'):'Mirando la ronda'}
   document.body.classList.toggle('jugando',!!R&&!R.fin);
   $('st').innerHTML='<b>'+esc(s)+'</b>'+(sub?'<small>'+esc(sub)+'</small>':'');
-  $('go').disabled=!lider()||(R&&!R.fin&&true)||(R&&R.fin&&!campeon&&true);$('go').textContent=lider()?(campeon?'Otra partida':'Empezar'):'El líder empieza';$('bots').disabled=!lider()}
+  $('go').disabled=!lider()||(R&&!R.fin&&true)||(R&&R.fin&&!campeon&&!R.fin.abort&&true);$('go').textContent=lider()?(campeon?'Otra partida':'Empezar'):'El líder empieza';$('bots').disabled=!lider()}
 
 /* ---------- controles ---------- */
 function girar(dx,dy){if(!R||R.fin)return;const m=R.ps.find(p=>p.id===yo());if(!m||!m.vivo)return;
@@ -154,7 +154,7 @@ conSala(api=>{sala=api;
     if(d.type==='ronda'&&!lider())ronda(d);
     if(d.type==='t'&&!lider()&&R&&d.id===R.id&&d.n===R.n+1){R.n=d.n;aplicar(d.d)}
     if(d.type==='fin'&&!lider())fin(d)});
-  sala.al('cambio',()=>{const lid=online()?sala.jugadores()[0]?.id:'';if(lid!==leaderId){leaderId=lid;if(R&&!R.fin){clearTimeout(timer);R.fin={gan:null,id:R.id};}}estado()});
+  sala.al('cambio',()=>{const lid=online()?sala.jugadores()[0]?.id:'';if(lid!==leaderId){leaderId=lid;if(R&&!R.fin){clearTimeout(timer);R.fin={gan:null,id:R.id,abort:true};}}estado()});
   estado()});
 </script>
 <script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script>

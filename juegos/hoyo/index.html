@@ -109,7 +109,7 @@ function rr(x,y,w,h,r){ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,r):ct
 tam();requestAnimationFrame(frame);
 const c=Carrera({app:'hoyo',el:$('carrera'),limite:300000,mejor:'bajo',formato:v=>v+' golpes',vivo:v=>'hoyo '+v,
   alEmpezar:r=>{rand=r;document.querySelector('.hud').scrollIntoView({behavior:'smooth',block:'start'});preparar();total=0;fin=false;activo=true;cargar(0);c.progreso(0,6)},
-  alAcabarTiempo:()=>{if(!fin){total+=(plan.length-hi)*MAXG;activo=false;fin=true;c.terminar(total)}},
+  alAcabarTiempo:()=>{if(!fin){total+=(plan.length-hi-(b&&(b.dentro||pasando)?1:0))*MAXG;activo=false;fin=true;c.terminar(total)}},
   alCerrar:()=>{activo=false}});
 </script>
 <script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script>
