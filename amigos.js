@@ -9,7 +9,7 @@ const me={id:rid(10),name:localStorage.getItem('ratitoNombre')||'Amigo '+(10+cry
 let OFF=0; // diferencia con el reloj del anfitrión de la sala: así todos miden la llegada con el mismo reloj
 let SINCE=Date.now(); // cuándo entré a la sala en esta página (reloj propio: todos ordenan igual)
 const PAGE=location.pathname.replace(/index\.html$/,'');
-const PAGES={'/':'la portada','/juegos/vida/':'Tu vida en vivo','/juegos/orbitas/':'Órbitas','/juegos/circulo/':'Círculo perfecto','/juegos/arena/':'Arena','/juegos/reflejos/':'Reflejos','/juegos/mapa/':'¿Dónde queda?','/juegos/aojo/':'A ojo','/juegos/color/':'Mismo color','/juegos/teclazo/':'Teclazo','/juegos/reves/':'Al revés','/juegos/apagon/':'Apagón','/juegos/gravedad/':'Gravedad','/juegos/encaje/':'Encaje','/juegos/pelotazo/':'Pelotazo','/juegos/pulso/':'Pulso'};
+const PAGES={'/':'la portada','/juegos/vida/':'Tu vida en vivo','/juegos/orbitas/':'Órbitas','/juegos/circulo/':'Círculo perfecto','/juegos/arena/':'Arena','/juegos/calculo/':'Cálculo','/juegos/distinto/':'Distinto','/juegos/punteria/':'Puntería','/juegos/secuencia/':'Secuencia','/juegos/reflejos/':'Reflejos','/juegos/mapa/':'¿Dónde queda?','/juegos/aojo/':'A ojo','/juegos/color/':'Mismo color','/juegos/teclazo/':'Teclazo','/juegos/reves/':'Al revés','/juegos/apagon/':'Apagón','/juegos/gravedad/':'Gravedad','/juegos/encaje/':'Encaje','/juegos/pelotazo/':'Pelotazo','/juegos/pulso/':'Pulso'};
 function color(id){const ids=[me.id].concat(Object.keys(people)).sort();const k=Math.max(0,ids.indexOf(id));return COLORS[k%COLORS.length]}
 const clean=s=>String(s||'').replace(/[<>&"]/g,'').slice(0,16)||'Amigo';
 
@@ -66,7 +66,8 @@ $('am-name').oninput=()=>{me.name=clean($('am-name').value.trim());localStorage.
 /* ---------- red ---------- */
 let peer=null,host=false,conns=[],hc=null,code=null,people=Object.create(null),sendT=0,lc=null,retry=0,running=false,gen=0;
 const status=t=>$('am-st').textContent=t;
-function send(m){m.id=me.id;m.name=me.name;m.page=PAGE;m.since=SINCE+OFF;
+function soyCreador(){try{return !!code&&sessionStorage.getItem('ratitoCreador')===code}catch(e){return false}}
+function send(m){m.id=me.id;m.name=me.name;m.page=PAGE;m.since=SINCE+OFF;m.cr=soyCreador()?1:0;
   if(host)conns.forEach(c=>c.open&&c.send(m));else if(hc&&hc.open)hc.send(m)}
 function relay(m,from){conns.forEach(c=>{if(c===from||!c.open)return;if(m.t==='g'){const p=people[c._pid];if(!p||p.page!==m.page)return}c.send(m)})}
 function recolor(){for(const p of Object.values(people)){const c=color(p.id);if(p.c===c)continue;p.c=c;p.el.style.setProperty('--pc',c);p.el.querySelector('path').setAttribute('fill',c);p.el.querySelector('span').style.background=c;p.edge.style.background=c}}
@@ -90,7 +91,7 @@ function getP(m){
   const pg=typeof m.page==='string'?m.page.slice(0,40):'';
   if(pg!==p.page)p.since=null;
   if(Number.isFinite(m.since)&&m.since>0)p.since=m.since;
-  p.name=clean(m.name);p.page=pg;p.seen=Date.now();
+  p.name=clean(m.name);p.page=pg;p.seen=Date.now();p.cr=m.cr===1;
   p.el.querySelector('span').textContent=p.name;list();return p}
 function drop(id){const p=people[id];if(!p)return;p.el.remove();p.edge.remove();delete people[id];list()}
 function onMsg(m,from){
@@ -105,8 +106,8 @@ function onMsg(m,from){
 }
 function wire(c,isHost){
   const wg=gen;
-  c.on('open',()=>{c.send({t:'hi',id:me.id,name:me.name,page:PAGE,since:SINCE+OFF,now:isHost?Date.now()+OFF:undefined});
-    if(isHost)for(const p of Object.values(people))c.send({t:'hi',id:p.id,name:p.name,page:p.page,since:p.since==null?undefined:p.since})});
+  c.on('open',()=>{c.send({t:'hi',id:me.id,name:me.name,page:PAGE,since:SINCE+OFF,cr:soyCreador()?1:0,now:isHost?Date.now()+OFF:undefined});
+    if(isHost)for(const p of Object.values(people))c.send({t:'hi',id:p.id,name:p.name,page:p.page,cr:p.cr?1:0,since:p.since==null?undefined:p.since})});
   c.on('data',m=>{if(!isHost&&m&&m.t==='hi'&&Number.isFinite(m.now)&&!c._off){c._off=1;OFF=m.now-Date.now();send({t:'hi'});changed()}
     if(!isHost&&m&&m.t==='full'){leave();status('La sala está llena (máximo 8 personas). Crea otra sala.');return}onMsg(m,isHost?c:null)});
   c.on('close',()=>{
@@ -147,7 +148,7 @@ function start(c){setTimeout(changed,0);
 function leave(){if(code)send({t:'bye'});gen++;code=null;sessionStorage.removeItem('ratitoSala');
   for(const id of Object.keys(people))drop(id);if(peer)try{peer.destroy()}catch(e){}peer=null;conns=[];hc=null;host=false;
   $('am-off').hidden=false;$('am-on').hidden=true;btn.innerHTML='Jugar con amigos';btn.hidden=true;panel.hidden=true;status('Crea una sala y manda el link: jugarán la misma partida y verán el cursor del otro, en cualquier juego.');changed()}
-$('am-new').onclick=()=>{const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';start(Array.from(crypto.getRandomValues(new Uint8Array(6)),x=>A[x%A.length]).join(''))};
+$('am-new').onclick=()=>{const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789',c=Array.from(crypto.getRandomValues(new Uint8Array(6)),x=>A[x%A.length]).join('');try{sessionStorage.setItem('ratitoCreador',c)}catch(e){}start(c)};
 $('am-leave').onclick=leave;
 $('am-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('am-url').value);$('am-copy').textContent='¡Listo!';setTimeout(()=>$('am-copy').textContent='Copiar',1200)}catch(e){$('am-url').select()}};
 addEventListener('pagehide',()=>{if(code)send({t:'bye'})});
@@ -157,9 +158,10 @@ addEventListener('pagehide',()=>{if(code)send({t:'bye'})});
 const handlers={mensaje:[],cambio:[],amigos:[]};
 function emit(ev,...a){for(const f of handlers[ev])try{f(...a)}catch(e){console.error(e)}}
 function info(id){const p=id===me.id?me:people[id];return{id,name:p?clean(p.name):'Amigo',color:color(id),yo:id===me.id}}
-function jugadores(){const list=[{...info(me.id),since:SINCE+OFF}];for(const p of Object.values(people))if(p.page===PAGE)list.push({...info(p.id),since:p.since==null?0:p.since});
+function jugadores(){const list=[{...info(me.id),since:SINCE+OFF,cr:soyCreador()}];for(const p of Object.values(people))if(p.page===PAGE)list.push({...info(p.id),since:p.since==null?0:p.since,cr:!!p.cr});
   // el líder es el que llegó primero a este juego (así nadie que entra tarde borra la partida)
-  return list.sort((a,b)=>a.since-b.since||(a.id<b.id?-1:a.id>b.id?1:0)).map(({since,...j})=>j)}
+  // el que creó la sala manda siempre; si no está en este juego, el que llegó primero
+  return list.sort((a,b)=>(b.cr-a.cr)||a.since-b.since||(a.id<b.id?-1:a.id>b.id?1:0)).map(({since,cr,...j})=>j)}
 let lastSig='';
 function changed(){const act=!!code&&(host||(hc&&hc.open));const sig=(act?'1':'0')+(code||'')+jugadores().map(j=>j.id+j.name).join(',');if(sig!==lastSig){lastSig=sig;emit('cambio')}}
 window.RatitoSala={

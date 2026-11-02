@@ -1,0 +1,35 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Puntería — game.hub</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest"><meta name="apple-mobile-web-app-title" content="game.hub"><link rel="stylesheet" href="/estilo.css"><style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}body{background:#fff;color:#15171C}main{max-width:720px;margin:80px auto 32px;padding:0 16px;user-select:none;-webkit-user-select:none}h1{font-size:clamp(36px,8vw,58px);letter-spacing:-.04em;margin:0}p{line-height:1.5}button{font:inherit;touch-action:none}.meta{display:flex;justify-content:space-between;gap:12px;align-items:center;font-weight:800;margin:16px 0}#estado{min-height:26px}#campo{height:clamp(260px,48svh,430px);position:relative;border:2px solid #15171C;border-radius:18px;overflow:hidden;touch-action:none;background:#fff;cursor:crosshair}.diana{position:absolute;width:86px;height:86px;border:2px solid #15171C;border-radius:50%;background:var(--color);transform:translate(-50%,-50%);display:grid;place-items:center;pointer-events:none}.medio{width:65%;height:65%;border:2px solid #15171C;border-radius:50%;background:#fff;display:grid;place-items:center}.centro{width:48%;height:48%;border:2px solid #15171C;border-radius:50%;background:var(--color)}.golpe{position:absolute;pointer-events:none;font-weight:900;font-size:28px;color:#15171C;animation:sube .65s ease-out forwards}@keyframes sube{to{transform:translateY(-55px);opacity:0}}#puntos{font-size:28px;color:#2D6CDF}#campo.fallo{background:#fff0f1}</style></head><body><a class="volver" href="/">← game.hub</a><main><h1>Puntería</h1><p>30 segundos. Dianas que se encogen, centros que valen más. Cada quinta oleada trae dos: ¡no dejes escapar ninguna!</p><div id="carrera"></div><div class="meta"><span id="puntos">0 pts</span><span>Centro 3 · anillo 2 · borde 1</span></div><div id="campo" aria-label="Área de puntería"></div><p id="estado" role="status">Tocar el fondo resta 1 punto, hasta un mínimo de 0.</p></main><script src="/carrera.js"></script><script>
+'use strict';
+const campo=document.querySelector('#campo'),marcador=document.querySelector('#puntos'),estado=document.querySelector('#estado');
+const colores=['#2D6CDF','#F5B700','#E63946','#1E9E6A','#6C4BD8','#F28C28','#0FA3B1'];
+let puntos=0,ondas=[],onda=0,dianas=[],inicio=0,frame=0,activo=false;
+function limpiar(){activo=false;cancelAnimationFrame(frame);dianas=[];campo.replaceChildren();campo.classList.remove('fallo')}
+function siguiente(){
+ campo.querySelectorAll('.diana').forEach(e=>e.remove());
+ const datos=ondas[onda++%ondas.length];inicio=performance.now();
+ dianas=datos.map(d=>{const el=document.createElement('div');el.className='diana';el.style.setProperty('--color',d.color);el.innerHTML='<span class="medio"><span class="centro"></span></span>';campo.append(el);const x=46+d.u*(campo.clientWidth-92),y=46+d.v*(campo.clientHeight-92);el.style.left=x+'px';el.style.top=y+'px';return {...d,el,r:43,x,y};});
+ estado.textContent=dianas.length===2?'¡Doble diana! Atrapa las dos.':'Apunta al centro: vale 3.';
+}
+function animar(t){if(!activo||!c.jugando)return;let edad=t-inicio;if(edad>=1150){siguiente();edad=0}
+ const w=campo.clientWidth,h=campo.clientHeight;
+ for(const d of dianas){d.r=43*(1-.65*Math.min(1,edad/1150));d.x=46+d.u*(w-92);d.y=46+d.v*(h-92);d.el.style.left=d.x+'px';d.el.style.top=d.y+'px';d.el.style.width=d.el.style.height=d.r*2+'px'}
+ frame=requestAnimationFrame(animar);
+}
+function golpe(texto,x,y){const e=document.createElement('span');e.className='golpe';e.textContent=texto;e.style.left=Math.max(0,x-15)+'px';e.style.top=y+'px';campo.append(e);e.addEventListener('animationend',()=>e.remove(),{once:true})}
+campo.addEventListener('pointerdown',e=>{e.preventDefault();if(!activo||!c.jugando||e.button>0)return;
+ const rect=campo.getBoundingClientRect(),x=e.clientX-rect.left-campo.clientLeft,y=e.clientY-rect.top-campo.clientTop;
+ const i=dianas.findIndex(d=>Math.hypot(x-d.x,y-d.y)<=d.r);
+ if(i<0){puntos=Math.max(0,puntos-1);golpe('−1',x,y);campo.classList.add('fallo');setTimeout(()=>campo.classList.remove('fallo'),120);c.progreso(puntos,60)}
+ else{const d=dianas[i],dist=Math.hypot(x-d.x,y-d.y)/d.r,ganado=dist<=.3?3:dist<=.65?2:1;puntos+=ganado;golpe('+'+ganado,x,y);d.el.remove();dianas.splice(i,1);c.progreso(puntos,60);if(!dianas.length)siguiente()}
+ marcador.textContent=puntos+' pts';
+});
+const c=Carrera({app:'punteria',el:document.querySelector('#carrera'),limite:30000,mejor:'alto',formato:v=>v+' pts',vivo:v=>v+' pts',
+ alEmpezar(rand){limpiar();puntos=0;onda=0;marcador.textContent='0 pts';
+ // Cada oleada consume siempre los mismos sorteos, independientemente de los aciertos.
+ ondas=Array.from({length:1000},(_,i)=>Array.from({length:i%5===4?2:1},(_,j)=>({u:i%5===4?j*.88+rand()*.12:rand(),v:rand(),color:colores[Math.floor(rand()*colores.length)]})));
+ activo=true;siguiente();frame=requestAnimationFrame(animar);c.progreso(0,60)},
+ alAcabarTiempo(){limpiar();estado.textContent='¡Tiempo! Resultado: '+puntos+' puntos.';c.terminar(puntos)},
+ alCerrar(){limpiar();estado.textContent='Partida cerrada. Resultado: '+puntos+' puntos.'}
+});
+</script><script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script></body></html>
