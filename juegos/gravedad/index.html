@@ -17,7 +17,8 @@ main{max-width:960px;margin:auto;padding:84px 16px 40px}h1{font-size:clamp(2.4re
 <a class="volver" href="/">← game.hub</a>
 <main>
 <h1>Gravedad</h1>
-<p class="sub">El túnel sigue. Tú decides qué lado es abajo.</p>
+<p class="sub">El túnel sigue y cada vez va más rápido. Tú decides qué lado es abajo.</p>
+<div id="carrera" hidden></div>
 <div class="marco">
 <canvas id="juego" tabindex="0" aria-label="Gravedad. Toca o pulsa espacio para invertir la gravedad."></canvas>
 <div class="capa" id="capa"><h2 id="titulo">Toca para empezar</h2><p id="resumen">Un toque cambia la gravedad.</p><button id="accion" type="button">Empezar</button></div>
@@ -26,6 +27,7 @@ main{max-width:960px;margin:auto;padding:84px 16px 40px}h1{font-size:clamp(2.4re
 <p class="ayuda">Clic, toque o espacio: invertir gravedad. Esquiva picos y bloques. Las monedas son opcionales.</p>
 <p id="estado" role="status" class="ayuda"></p>
 </main>
+<script src="/carrera.js"></script>
 <script>
 (() => {
 'use strict';
@@ -33,17 +35,21 @@ const $=id=>document.getElementById(id), canvas=$('juego'),ctx=canvas.getContext
 const W=720,H=450,TOP=66,BOTTOM=402,SIZE=22,X=142,KEY='gamehub-gravedad-record';
 let best=0;
 try{best=Math.max(0,Number(localStorage.getItem(KEY))||0);if(!Number.isFinite(best))best=0;}catch(_){}
-let mode='ready',y=BOTTOM-SIZE,vy=0,gravity=1,distance=0,coins=0,speed=245,spawn=1.8,obstacles=[],tokens=[],trail=[],clock=0,last=0,paused=false;
+let rnd=Math.random,enCarrera=false,lastProg=0,mode='ready',y=BOTTOM-SIZE,vy=0,gravity=1,distance=0,coins=0,speed=245,spawn=1.8,obstacles=[],tokens=[],trail=[],clock=0,last=0,paused=false;
 function hud(){ $('puntos').textContent=Math.floor(distance)+' m';$('monedas').textContent=coins+' monedas';$('record').textContent='Récord: '+best+' m'; }
 function resize(){const dpr=window.devicePixelRatio||1;canvas.width=Math.round(canvas.clientWidth*dpr);canvas.height=Math.round(canvas.clientHeight*dpr);ctx.setTransform(canvas.width/W,0,0,canvas.height/H,0,0);draw();}
-function start(){mode='playing';y=BOTTOM-SIZE;vy=0;gravity=1;distance=0;coins=0;speed=245;spawn=1.8;obstacles=[];tokens=[];trail=[];clock=0;last=0;$('capa').hidden=true;$('estado').textContent='';hud();}
-function input(){if(paused)return;if(mode!=='playing'){start();return;}gravity*=-1;vy=gravity*155;}
-function end(){mode='over';const score=Math.floor(distance),fresh=score>best;if(fresh){best=score;try{localStorage.setItem(KEY,String(best));}catch(_){}}hud();$('titulo').textContent='Fin del túnel';$('resumen').textContent=score+' puntos · '+coins+' monedas'+(fresh?' · Nuevo récord':'');$('accion').textContent='Otra vez';$('capa').hidden=false;}
-function generate(){const side=Math.random()<.5?-1:1,type=Math.random()<.5?'spike':'block',width=type==='spike'?44:36+Math.random()*30,height=type==='spike'?50:52+Math.random()*34;
+function start(){if(!enCarrera)rnd=Math.random;mode='playing';y=BOTTOM-SIZE;vy=0;gravity=1;distance=0;coins=0;speed=245;spawn=1.8;obstacles=[];tokens=[];trail=[];clock=0;last=0;$('capa').hidden=true;$('estado').textContent='';hud();}
+function input(){if(paused)return;if(mode!=='playing'){if(!c.online)start();return;}gravity*=-1;vy=gravity*155;}
+function end(){mode='over';const score=Math.floor(distance),fresh=score>best;if(enCarrera){enCarrera=false;c.terminar(score)}if(fresh){best=score;try{localStorage.setItem(KEY,String(best));}catch(_){}}hud();$('titulo').textContent='Fin del túnel';$('resumen').textContent=score+' puntos · '+coins+' monedas'+(fresh?' · Nuevo récord':'');$('accion').textContent='Otra vez';$('capa').hidden=false;}
+function generate(){const d=distance,ex=Math.min(1,d/1500),side=rnd()<.5?-1:1,type=rnd()<.5?'spike':'block',r1=rnd(),r2=rnd(),pr=rnd(),r3=rnd();
+const width=type==='spike'?44+ex*22:36+r1*30+ex*34,height=type==='spike'?50+ex*62:52+r2*34+ex*72;
 obstacles.push({x:W+32,w:width,h:height,side,type});
+// desde 250 m: a veces sale otro del lado contrario (hay que cambiar rápido)
+const doble=d>250&&pr<Math.min(.55,d/1800);
+if(doble)obstacles.push({x:W+32+width+speed*.72,w:44+ex*22,h:50+ex*62,side:-side,type:'spike'});
 // One hazard per section: the opposite rail always stays open.
 tokens.push({x:W+32+width/2,y:side===1?TOP+SIZE/2+12:BOTTOM-SIZE/2-12,taken:false});
-spawn=1.25+Math.random()*.55;
+spawn=Math.max(.75,1.25-d/1800)+r3*Math.max(.15,.55-d/3000)+(doble?.8:0);
 }
 function hits(o){const left=Math.max(X+3,o.x),right=Math.min(X+SIZE-3,o.x+o.w);if(left>=right)return false;
 const py=y+3,pb=y+SIZE-3;
@@ -51,12 +57,12 @@ if(o.type==='block')return o.side===1?pb>BOTTOM-o.h:py<TOP+o.h;
 const center=o.x+o.w/2,nearest=Math.max(left,Math.min(center,right)),height=o.h*(1-Math.abs(nearest-center)/(o.w/2));
 return o.side===1?pb>BOTTOM-height:py<TOP+height;
 }
-function update(dt){clock+=dt;speed=Math.min(440,245+distance*.15);distance+=speed*dt/12;spawn-=dt;if(spawn<=0)generate();
+function update(dt){clock+=dt;speed=Math.min(720,245+distance*.4);distance+=speed*dt/12;spawn-=dt;if(spawn<=0)generate();
 vy+=gravity*1550*dt;y+=vy*dt;if(y<TOP){y=TOP;vy=0;}if(y>BOTTOM-SIZE){y=BOTTOM-SIZE;vy=0;}
 for(const o of obstacles){o.x-=speed*dt;if(hits(o)){end();return;}}
 for(const t of tokens){t.x-=speed*dt;if(!t.taken&&Math.abs(t.x-(X+SIZE/2))<SIZE/2+8&&Math.abs(t.y-(y+SIZE/2))<SIZE/2+8){t.taken=true;coins++;}}
 obstacles=obstacles.filter(o=>o.x+o.w>-20);tokens=tokens.filter(t=>t.x>-20&&!t.taken);
-trail.push({x:X,y,life:.22});for(const t of trail){t.x-=speed*dt;t.life-=dt;}trail=trail.filter(t=>t.life>0);hud();}
+trail.push({x:X,y,life:.22});for(const t of trail){t.x-=speed*dt;t.life-=dt;}trail=trail.filter(t=>t.life>0);if(enCarrera&&clock-lastProg>.25){lastProg=clock;c.progreso(Math.floor(distance),1500)}hud();}
 function draw(){ctx.fillStyle='#6C4BD8';ctx.fillRect(0,0,W,H);
 ctx.fillStyle='#15171C';ctx.fillRect(0,0,W,TOP);ctx.fillRect(0,BOTTOM,W,H-BOTTOM);
 ctx.fillStyle='#fff';ctx.fillRect(0,TOP-3,W,3);ctx.fillRect(0,BOTTOM,W,3);
@@ -72,6 +78,11 @@ $('accion').addEventListener('click',()=>{input();canvas.focus({preventScroll:tr
 document.addEventListener('keydown',e=>{if(e.code!=='Space'||e.target.closest('input,textarea,select,button,a,[contenteditable]'))return;e.preventDefault();if(!e.repeat)input();});
 document.addEventListener('visibilitychange',()=>{paused=document.hidden;last=0;$('estado').textContent=paused?'Partida en pausa.':'';});
 window.addEventListener('resize',resize);hud();resize();requestAnimationFrame(frame);
+const caja=$('carrera');
+const c=Carrera({app:'gravedad',el:caja,limite:240000,mejor:'alto',formato:v=>v+' m',vivo:v=>v+' m',
+  alEmpezar:r=>{rnd=r;enCarrera=true;start();lastProg=-1},
+  alAcabarTiempo:()=>{if(mode==='playing')end()}});
+setInterval(()=>{caja.hidden=!c.online;if(c.online&&mode!=='playing'&&!$('capa').hidden){$('titulo').textContent=mode==='over'?'Fin del túnel':'Modo carrera';$('accion').hidden=true;if(mode==='ready')$('resumen').textContent='El líder empieza la carrera arriba. Todos tienen el mismo túnel.'}else $('accion').hidden=false},300);
 })();
 </script>
 <script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script>

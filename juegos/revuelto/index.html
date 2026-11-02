@@ -1,0 +1,71 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Revuelto — game.hub</title><link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="game.hub"><link rel="stylesheet" href="/estilo.css">
+<style>
+body{background:#fff}
+main{max-width:560px;margin:70px auto 40px;padding:0 16px}
+h1{font-size:clamp(34px,8vw,54px);letter-spacing:-.05em;margin:0}
+.sub{color:var(--mut);margin:2px 0 0}
+.mesa{position:relative;margin-top:14px;border:2px solid var(--ink);border-radius:22px;background:#E84A8A;padding:20px 12px;text-align:center}
+.pts{position:absolute;top:10px;right:12px;font-weight:900;font-size:1.1rem;background:#fff;border-radius:99px;padding:2px 12px;border:2px solid var(--ink)}
+.pista{color:#fff;font-weight:800;min-height:1.4em;margin-top:22px}
+.fila{display:flex;justify-content:center;gap:6px;flex-wrap:nowrap;margin-top:12px;min-height:58px}
+.fila b,.fila button{width:min(52px,calc((min(100vw,560px) - 92px) / var(--n,6) - 6px));height:clamp(44px,13vw,58px);display:grid;place-items:center;border-radius:12px;border:2px solid var(--ink);font:900 clamp(22px,6.5vw,30px) "Schibsted Grotesk",system-ui,sans-serif;text-transform:uppercase}
+.fila b{background:#fff;color:var(--ink)}
+.fila b.vacia{background:#ffffff55;border-style:dashed}
+.fila button{background:#F5B700;color:var(--ink);box-shadow:0 4px 0 var(--ink);cursor:pointer;touch-action:manipulation;padding:0}
+.fila button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.fila button.usada{visibility:hidden}
+.mesa.bien{animation:bien .35s}.mesa.mal .resp{animation:mal .35s}
+@keyframes bien{0%{background:#1E9E6A}100%{background:#E84A8A}}
+@keyframes mal{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.acc{display:flex;gap:8px;justify-content:center;margin-top:12px}
+.acc button{font:800 1rem "Schibsted Grotesk",sans-serif;border:2px solid var(--ink);background:#fff;border-radius:12px;padding:10px 16px;cursor:pointer;touch-action:manipulation}
+.acc button:disabled{opacity:.4}
+.nota{color:var(--mut);font-size:.9rem}
+</style></head><body><a class="volver" href="/">← game.hub</a>
+<main>
+  <h1>Revuelto</h1><p class="sub">Ordena las letras y forma la palabra. 60 segundos.</p>
+  <div id="carrera"></div>
+  <section class="mesa" id="mesa"><span class="pts" id="pts">0</span>
+    <div class="pista" id="pista">Dale a Empezar</div>
+    <div class="fila resp" id="resp"></div>
+    <div class="fila" id="letras"></div>
+    <div class="acc"><button type="button" id="borrar">⌫ Borrar</button><button type="button" id="saltar">Saltar (−3 s)</button></div>
+  </section>
+  <p class="nota">Toca las letras en orden. Las palabras se ponen más largas cada vez. Saltar te congela 3 segundos.</p>
+</main>
+<script src="/carrera.js"></script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+// [palabra, pista]
+const P4=[['casa','donde vives'],['gato','dice miau'],['perro','mejor amigo'],['mesa','tiene 4 patas'],['luna','sale de noche'],['playa','arena y mar'],['fuego','quema'],['pato','hace cuac'],['silla','para sentarse'],['libro','tiene páginas'],['nube','en el cielo'],['flor','tiene pétalos'],['pez','nada en el agua'],['sopa','se come con cuchara'],['tren','va por rieles'],['mano','tiene 5 dedos'],['rana','salta y croa'],['bola','es redonda'],['taza','para el café'],['rojo','un color'],['leche','blanca, de vaca'],['oso','animal grande y peludo'],['pan','de la panadería'],['sol','estrella cercana'],['nieve','fría y blanca'],['barco','va por el mar'],['queso','amarillo y con huecos'],['reloj','marca la hora'],['lapiz','para escribir'],['piña','fruta con corona']];
+const P6=[['mango','fruta tropical'],['canal','el de Panamá'],['futbol','se juega con balón'],['escuela','donde estudias'],['ventana','se abre para el aire'],['cohete','va al espacio'],['tortuga','lenta con caparazón'],['camisa','ropa con botones'],['planeta','la Tierra es uno'],['musica','se escucha'],['volcan','escupe lava'],['jirafa','cuello largo'],['dinero','para comprar'],['tiburon','pez con dientes'],['amigos','con quienes juegas'],['helado','frío y dulce'],['pelota','para jugar'],['montaña','muy alta'],['puente','cruza un río'],['ciudad','muchas casas juntas'],['guitarra','tiene cuerdas'],['cocina','donde se cocina'],['mochila','llevas tus cuadernos'],['naranja','fruta y color'],['abuela','mamá de tu mamá'],['caballo','relincha'],['bandera','símbolo de un país'],['partido','juego de fútbol'],['chancleta','calzado de playa'],['empanada','frita y rellena']];
+const P8=[['computadora','tiene teclado'],['murcielago','vuela de noche'],['dinosaurio','se extinguió'],['chocolate','dulce marrón'],['mariposa','tiene alas de colores'],['elefante','tiene trompa'],['bicicleta','dos ruedas y pedales'],['astronauta','viaja al espacio'],['videojuego','como este'],['tormenta','lluvia y rayos'],['cocodrilo','reptil con dientes'],['basquetbol','se encesta'],['hamburguesa','pan y carne'],['arcoiris','sale después de llover'],['telefono','para llamar'],['calendario','marca los días'],['panameño','de Panamá'],['refrigeradora','enfría la comida'],['pirata','busca tesoros'],['tiburones','muchos peces con dientes']];
+let rand=Math.random,puntos=0,n=0,palabra='',letras=[],usadas=[],orden=[],bloq=0;
+const sinTilde=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ñ/g,'ñ');
+function elegir(){const k=puntos<4?P4:puntos<9?P6:P8;return k[Math.floor(rand()*k.length)]}
+function nueva(){n++;let [w,h]=elegir();palabra=w.normalize('NFC');let arr=[...palabra];
+  for(let t=0;t<10;t++){for(let i=arr.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]}if(arr.join('')!==palabra)break}
+  letras=arr;usadas=letras.map(()=>false);orden=[];$('pista').textContent='Pista: '+h;pinta()}
+function pinta(){$('resp').style.setProperty('--n',letras.length);$('letras').style.setProperty('--n',letras.length);$('resp').innerHTML=[...palabra].map((_,i)=>orden[i]!=null?`<b>${letras[orden[i]]}</b>`:'<b class="vacia"></b>').join('');
+  $('letras').innerHTML=letras.map((l,i)=>`<button type="button" data-i="${i}" class="${usadas[i]?'usada':''}">${l}</button>`).join('');$('pts').textContent=puntos}
+function flash(c){const p=$('mesa');p.classList.remove('bien','mal');void p.offsetWidth;p.classList.add(c)}
+$('letras').addEventListener('pointerdown',e=>{const b=e.target.closest('button[data-i]');if(!b||!c.jugando||Date.now()<bloq)return;e.preventDefault();const i=+b.dataset.i;if(usadas[i])return;
+  usadas[i]=true;orden.push(i);pinta();
+  if(orden.length===letras.length){const w=orden.map(k=>letras[k]).join('');
+    if(w===palabra){puntos++;c.progreso(puntos,15);flash('bien');setTimeout(nueva,250)}
+    else{flash('mal');setTimeout(()=>{usadas=letras.map(()=>false);orden=[];pinta()},350)}}});
+$('borrar').onclick=()=>{if(!c.jugando||!orden.length)return;usadas[orden.pop()]=false;pinta()};
+$('saltar').onclick=()=>{if(!c.jugando||Date.now()<bloq)return;bloq=Date.now()+3000;$('pista').textContent='Era: '+palabra.toUpperCase()+' · espera 3 s';setTimeout(()=>{if(c.jugando)nueva()},3000)};
+addEventListener('keydown',e=>{if(!c.jugando||Date.now()<bloq)return;if(e.key==='Backspace'){$('borrar').onclick();return}
+  const k=e.key.toLowerCase();if(k.length!==1)return;const i=letras.findIndex((l,j)=>!usadas[j]&&sinTilde(l)===sinTilde(k));if(i>=0)$('letras').querySelector(`[data-i="${i}"]`).dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))});
+setInterval(()=>{const on=c.jugando;$('borrar').disabled=$('saltar').disabled=!on},200);
+const c=Carrera({app:'revuelto',el:$('carrera'),limite:60000,mejor:'alto',formato:v=>v+(v===1?' palabra':' palabras'),vivo:v=>v+'',
+  alEmpezar:r=>{rand=r;puntos=0;n=0;bloq=0;nueva();c.progreso(0,15)},
+  alAcabarTiempo:()=>{c.terminar(puntos);$('pista').textContent='¡Tiempo! Era: '+palabra.toUpperCase()}});
+</script>
+<script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script>
+</body></html>
