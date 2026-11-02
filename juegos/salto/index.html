@@ -43,7 +43,7 @@ const c=Carrera({app:'salto',maxValor:200000,sinReloj:true,el:document.querySele
  // Cada altura garantiza una ruta alcanzable; trampas adicionales nunca reemplazan esa ruta.
  for(let i=1;i<650;i++){const difficulty=Math.min(1,i/110);y-=72+rand()*(38+32*difficulty);x=Math.max(55,Math.min(W-55,x+(rand()-.5)*(180+70*difficulty)));const roll=rand();let type=i<5?0:roll<.19?1:roll<.39?2:roll<.53?3:roll<.64?4:0;if(i%7===0)type=0;const w=102-difficulty*35;platforms.push({base:x,x,y,w,type,phase:rand()*6.28,speed:.7+rand(),range:24+rand()*18,visible:true,dead:false,crumble:0});
  if(type===3)platforms.push({base:x,x,y:y+17,w:w*.75,type:0,visible:true});if(i>8&&rand()<.3+difficulty*.23){const trapX=(x+W/2)%W;platforms.push({base:trapX,x:trapX,y:y-22,w:38+rand()*25,type:5,visible:true})}}
- player={x:240,y:525,vx:0,vy:-650};camera=0;height=0;lava=760;fant={};report=0;direction=0;estado.textContent='Verde: normal · azul: móvil · naranja: se rompe · violeta: intermitente · amarillo: resorte · rojo: pinchos.';begin();c.progreso(0,1500)},alAcabarTiempo:finish,alCerrar(){active=false;release()}});resize();
+ player={x:240,y:525,vx:0,vy:-650};ultFant=0;camera=0;height=0;lava=760;fant={};report=0;direction=0;estado.textContent='Verde: normal · azul: móvil · naranja: se rompe · violeta: intermitente · amarillo: resorte · rojo: pinchos.';begin();c.progreso(0,1500)},alAcabarTiempo:finish,alCerrar(){active=false;release()}});resize();
 
 let sala=null;
 function conSala(fn){window.RatitoSala?fn(window.RatitoSala):addEventListener('ratitosala',()=>fn(window.RatitoSala),{once:true})}
