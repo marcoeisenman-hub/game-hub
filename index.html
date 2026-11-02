@@ -247,7 +247,7 @@ function esc(t){return String(t).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';')
 function pintarAmigos(){const s=sala(),box=document.getElementById('salaAmigos');
   const l=s&&s.codigo&&s.amigos?s.amigos():[];
   box.innerHTML=l.map(a=>{const nom=esc(a.name||'Amigo');const sitio=a.page==='/'?'en la portada':'en '+esc(a.donde);
-    return a.page&&a.page!=='/'?`<a href="${esc(a.page)}" style="--pc:${esc(a.color)}"><i></i>${nom} está ${sitio} →</a>`:`<a href="#" onclick="return false" style="--pc:${esc(a.color)}"><i></i>${nom} está ${sitio}</a>`}).join('');
+    return /^\/juegos\/[a-z]+\/$/.test(a.page)?`<a href="${esc(a.page)}" style="--pc:${esc(a.color)}"><i></i>${nom} está ${sitio} →</a>`:`<a href="#" onclick="return false" style="--pc:${esc(a.color)}"><i></i>${nom} está ${sitio}</a>`}).join('');
   cards.forEach(c=>{let b=c.querySelector('.aqui');const h=new URL(c.href).pathname;const quien=l.filter(a=>a.page===h);
     if(!quien.length){if(b)b.remove();return}
     if(!b){b=document.createElement('div');b.className='aqui';c.append(b)}
