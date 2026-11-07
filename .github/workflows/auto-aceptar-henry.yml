@@ -1,0 +1,18 @@
+# Acepta solo los Pull Requests de Henry hacia main.
+name: Aceptar PR de Henry
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+    branches: [main]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  aceptar:
+    if: github.event.pull_request.user.login == 'henrydayand12' && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --merge --delete-branch
