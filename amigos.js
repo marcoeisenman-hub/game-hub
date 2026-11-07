@@ -1,3 +1,4 @@
+if(location.hostname==="ratito-juegos.vercel.app")location.replace("https://game-hub-juegos.vercel.app"+location.pathname+location.search+location.hash);
 /* game.hub — "Jugar con amigos": cursores en vivo entre amigos (PeerJS, sin servidor propio).
    Cualquiera de la sala puede ser el centro: si el que la creó se va o cambia de juego, otro toma su lugar. */
 (()=>{
