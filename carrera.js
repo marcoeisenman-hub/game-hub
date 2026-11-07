@@ -102,7 +102,7 @@ window.Carrera=function(o){
     else if(t<0)s='Prepárate…';
     else if(acabo)s='Esperando a los demás…';
     else{s='¡Ya!';sub=o.sinReloj?'':'Quedan '+Math.max(0,Math.ceil((LIM-t)/1000))+' s'}
-    if(game&&game.closed&&!game.aborted&&festejado!==game.id&&juego()){festejado=game.id;const f=orden(),w=f[0];
+    if(game&&game.closed&&!game.aborted&&festejado!==game.id&&game.people.some(p=>p.id===me())){festejado=game.id;const f=orden(),w=f[0];
       const gane=online()&&game.people.length>1&&w&&w.v!=null&&w.v===mio&&mio!=null;
       if(gane||record){setTimeout(()=>{confeti(gane?170:110);fanfarria()},150)}else if(mio!=null)tono(392,.25,'triangle',.08)}
     stEl.innerHTML=esc(s)+(game&&game.closed&&record?'<span class="cr-rec">¡Récord!</span>':'')+(sub?'<small>'+esc(sub)+'</small>':'');renderList()}
