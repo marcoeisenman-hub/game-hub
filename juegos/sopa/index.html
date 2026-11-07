@@ -1,0 +1,158 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Sopa de letras — game.hub</title><link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="game.hub"><link rel="stylesheet" href="/estilo.css">
+<style>
+body{background:#FFF7E8}
+main{max-width:560px;margin:66px auto 40px;padding:0 14px}
+h1{font-size:clamp(34px,9vw,56px);letter-spacing:-.05em;margin:0;line-height:1}
+h1 span{color:#E4572E}
+.sub{color:var(--mut);margin:6px 0 0}
+.barra{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px}
+.tema{font-weight:900;background:var(--ink);color:#fff;border-radius:99px;padding:5px 14px;font-size:.95rem}
+.pts{font-weight:900;font-size:1.25rem;font-variant-numeric:tabular-nums}
+.son{border:2px solid var(--ink);background:#fff;border-radius:99px;font:inherit;font-weight:800;padding:4px 12px;cursor:pointer}
+.tablero{position:relative;margin-top:10px;border:3px solid var(--ink);border-radius:22px;background:#fff;box-shadow:0 6px 0 var(--ink);padding:8px;touch-action:none;overflow:hidden}
+.tablero.temblor{animation:temblor .3s}
+@keyframes temblor{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.grid{position:relative;display:grid;z-index:2}
+.grid b{display:grid;place-items:center;aspect-ratio:1;font-weight:900;font-size:clamp(14px,4.6vw,24px);border-radius:50%;transition:transform .15s,color .2s;cursor:pointer}
+.grid b.sel{transform:scale(1.18);color:#fff}
+.grid b.hecha{color:#fff}
+.grid b.pop{animation:pop .5s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes pop{40%{transform:scale(1.5) rotate(-8deg)}100%{transform:scale(1)}}
+svg.capas{position:absolute;inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);z-index:1;pointer-events:none;overflow:visible}
+svg.capas line{stroke-linecap:round;opacity:.9}
+svg.capas line.nueva{animation:raya .35s ease-out both}
+@keyframes raya{from{stroke-dashoffset:var(--l)}to{stroke-dashoffset:0}}
+canvas.fx{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none}
+.palabras{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;justify-content:center}
+.palabras span{font-weight:800;padding:5px 12px;border-radius:99px;background:#fff;border:2px solid var(--ink);transition:.3s}
+.palabras span.ok{background:var(--c);color:#fff;border-color:var(--c);text-decoration:line-through;transform:scale(.95)}
+.globo{position:absolute;z-index:4;font-weight:900;font-size:1.1rem;pointer-events:none;color:#fff;background:var(--ink);border-radius:99px;padding:4px 12px;box-shadow:0 3px 0 #0003;animation:sube 1s ease-out forwards;white-space:nowrap}
+@keyframes sube{from{opacity:1;transform:translate(-50%,0) scale(.6)}30%{transform:translate(-50%,-14px) scale(1.15)}to{opacity:0;transform:translate(-50%,-50px) scale(1)}}
+.nota{color:var(--mut);font-size:.9rem;text-align:center}
+.vacio{display:grid;place-items:center;min-height:300px;color:var(--mut);font-weight:700;text-align:center;padding:20px}
+</style></head><body><a class="volver" href="/">← game.hub</a>
+<main>
+  <h1>Sopa de <span>letras</span></h1>
+  <p class="sub">Encuentra las 8 palabras escondidas. Arrastra el dedo de la primera letra a la última. Pueden ir de lado, de arriba abajo, en diagonal… ¡y al revés!</p>
+  <div id="carrera"></div>
+  <div class="barra"><span class="tema" id="tema">Tema</span><span class="pts" id="pts">0 pts</span></div>
+  <section class="tablero" id="tablero"><div class="vacio" id="vacio">Toca <b>Empezar</b> para ver la sopa.</div><svg class="capas" id="capas"></svg><div class="grid" id="grid"></div><canvas class="fx" id="fx"></canvas></section>
+  <div class="palabras" id="palabras"></div>
+  <p class="nota">Cada palabra: +100. Encuentra dos seguidas rápido para combo. Si las encuentras todas, el tiempo que sobra también suma.</p>
+</main>
+<script src="/carrera.js"></script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const TEMAS={
+  'Panamá':['CANAL','COLON','CHIRIQUI','DARIEN','BOQUETE','POLLERA','SANCOCHO','PATACON','TAMBORITO','GUARO','RAPIDO','DIABLO','CHICHA','PIXVAE','CARIMANOLA','BOCAS','CINTA','ESCLUSA','BARCO','ARRAIJAN'],
+  'Animales':['JAGUAR','TUCAN','PEREZOSO','IGUANA','DELFIN','TIBURON','BALLENA','RANA','AGUILA','MONO','TORTUGA','COCODRILO','PULPO','COLIBRI','CONEJO','LORO','ZORRO','LEON','TIGRE','PANDA'],
+  'Fútbol':['GOL','PORTERO','PENAL','CORNER','ARBITRO','TARJETA','BALON','CANCHA','DEFENSA','DELANTERO','CAPITAN','ESTADIO','PASE','TIRO','FALTA','MUNDIAL','HINCHA','REGATE','CABEZAZO','OFSAID'],
+  'Comida':['ARROZ','POLLO','EMPANADA','HOJALDRE','TORTILLA','MANGO','PIÑA','QUESO','PIZZA','HELADO','SOPA','YUCA','FRIJOL','GALLETA','PAPAYA','LIMON','CHOCOLATE','TOSTADA','HUEVO','PAN'],
+  'Espacio':['PLANETA','ESTRELLA','LUNA','COMETA','COHETE','GALAXIA','MARTE','SATURNO','ORBITA','ASTRONAUTA','METEORO','SOL','NEBULOSA','JUPITER','VENUS','ECLIPSE','ALIEN','TELESCOPIO','NAVE','GRAVEDAD'],
+  'Videojuegos':['NIVEL','JEFE','MANDO','PIXEL','VIDAS','PUNTOS','MONEDA','SALTO','PODER','MAPA','MISION','ARENA','RECORD','COMBO','PAUSA','ESCUDO','PORTAL','CONSOLA','AVATAR','LOGRO']};
+const COLS=['#E4572E','#2D6CDF','#1E9E6A','#6C4BD8','#F28C28','#E8577A','#0FA3B1','#C7A000'];
+const ABC='ABCDEFGHIJLMNOPRSTUVZ';
+const DIRS=[[1,0],[0,1],[1,1],[-1,1],[-1,0],[0,-1],[-1,-1],[1,-1]];
+let N=10,letras=[],palabras=[],hechas=[],rand=Math.random,pts=0,ultimo=0,combo=0,sel=null,t0=0;
+
+/* ---------- sonido ---------- */
+let ac=null;
+function tono(f,d=.08,tipo='triangle',v=.12,cuando=0){if(window.GameHubFx&&GameHubFx.silencio())return;try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const t=ac.currentTime+cuando,o=ac.createOscillator(),g=ac.createGain();o.type=tipo;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
+const tic=n=>tono(380+n*45,.05,'sine',.06);
+function bien(c){[0,4,7,12].forEach((s,i)=>tono(523*Math.pow(2,(s+c*2)/12),.14,'triangle',.11,i*.06))}
+const mal=()=>tono(140,.18,'sawtooth',.06);
+
+/* ---------- armar la sopa ---------- */
+function armar(){
+  const nombres=Object.keys(TEMAS),tema=nombres[Math.floor(rand()*nombres.length)];
+  const pool=[...TEMAS[tema]].filter(w=>w.length<=N);
+  for(let i=pool.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}
+  const g=Array(N*N).fill(''),pos=[];
+  for(const w of pool){if(pos.length>=8)break;
+    for(let intento=0;intento<200;intento++){const d=DIRS[Math.floor(rand()*(intento<120?8:4))],x=Math.floor(rand()*N),y=Math.floor(rand()*N),ex=x+d[0]*(w.length-1),ey=y+d[1]*(w.length-1);
+      if(ex<0||ey<0||ex>=N||ey>=N)continue;let ok=true;
+      for(let k=0;k<w.length;k++){const c=g[(y+d[1]*k)*N+x+d[0]*k];if(c&&c!==w[k]){ok=false;break}}
+      if(!ok)continue;for(let k=0;k<w.length;k++)g[(y+d[1]*k)*N+x+d[0]*k]=w[k];pos.push({w,x,y,dx:d[0],dy:d[1]});break}}
+  for(let i=0;i<g.length;i++)if(!g[i])g[i]=ABC[Math.floor(rand()*ABC.length)];
+  letras=g;palabras=pos;hechas=[];
+  $('tema').textContent=tema;
+}
+function pintar(){
+  $('vacio').hidden=true;const gr=$('grid');gr.style.gridTemplateColumns=`repeat(${N},1fr)`;
+  gr.innerHTML=letras.map((l,i)=>`<b data-i="${i}">${l}</b>`).join('');
+  $('capas').innerHTML='';
+  $('palabras').innerHTML=palabras.map((p,i)=>`<span data-w="${i}" style="--c:${COLS[i]}">${p.w.charAt(0)+p.w.slice(1).toLowerCase()}</span>`).join('');
+  medirFx();
+}
+function celda(i){const b=$('grid').children[i];const r=b.getBoundingClientRect(),R=$('capas').getBoundingClientRect();return{x:r.left-R.left+r.width/2,y:r.top-R.top+r.height/2,w:r.width}}
+function raya(a,b,color,nueva){const A=celda(a),B=celda(b),l=Math.hypot(B.x-A.x,B.y-A.y);
+  const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+  ln.setAttribute('x1',A.x);ln.setAttribute('y1',A.y);ln.setAttribute('x2',B.x);ln.setAttribute('y2',B.y);ln.setAttribute('stroke',color);ln.setAttribute('stroke-width',A.w*.82);
+  if(nueva){ln.classList.add('nueva');ln.style.setProperty('--l',l);ln.setAttribute('stroke-dasharray',l+.1)}
+  $('capas').append(ln);return ln}
+function redibujar(){$('capas').innerHTML='';hechas.forEach(k=>{const p=palabras[k];raya(p.y*N+p.x,(p.y+p.dy*(p.w.length-1))*N+p.x+p.dx*(p.w.length-1),COLS[k],false)})}
+addEventListener('resize',()=>{if(letras.length){redibujar();medirFx()}});
+
+/* ---------- arrastrar ---------- */
+function indice(e){const el=document.elementFromPoint(e.clientX,e.clientY);if(el&&el.dataset&&el.dataset.i!=null)return +el.dataset.i;
+  // si el dedo está entre letras, busca la más cercana
+  const G=$('grid').getBoundingClientRect();if(e.clientX<G.left||e.clientY<G.top||e.clientX>G.right||e.clientY>G.bottom)return null;
+  const x=Math.floor((e.clientX-G.left)/G.width*N),y=Math.floor((e.clientY-G.top)/G.height*N);return Math.max(0,Math.min(N-1,y))*N+Math.max(0,Math.min(N-1,x))}
+function linea(a,b){const ax=a%N,ay=a/N|0,bx=b%N,by=b/N|0;let dx=bx-ax,dy=by-ay;
+  // pega la línea a una de las 8 direcciones
+  const ang=Math.atan2(dy,dx),oct=Math.round(ang/(Math.PI/4)),len=Math.max(Math.abs(dx),Math.abs(dy));
+  const ux=Math.round(Math.cos(oct*Math.PI/4)),uy=Math.round(Math.sin(oct*Math.PI/4));const out=[];
+  for(let k=0;k<=len;k++){const x=ax+ux*k,y=ay+uy*k;if(x<0||y<0||x>=N||y>=N)break;out.push(y*N+x)}return out}
+function marcar(lista){for(const b of $('grid').children)b.classList.remove('sel');
+  if(sel&&sel.ln)sel.ln.remove();if(!lista.length)return;
+  sel.ln=raya(lista[0],lista[lista.length-1],COLS[hechas.length%8]+'AA',false);
+  for(const i of lista)$('grid').children[i].classList.add('sel')}
+const tab=$('tablero');
+tab.addEventListener('pointerdown',e=>{if(!c.jugando)return;const i=indice(e);if(i==null)return;e.preventDefault();tab.setPointerCapture(e.pointerId);sel={a:i,lista:[i],ln:null};marcar([i]);tic(1)});
+tab.addEventListener('pointermove',e=>{if(!sel)return;const i=indice(e);if(i==null)return;const l=linea(sel.a,i);if(l.length!==sel.lista.length)tic(l.length);sel.lista=l;marcar(l)});
+function soltar(){if(!sel)return;const l=sel.lista;marcar([]);sel=null;if(l.length<2)return;
+  const txt=l.map(i=>letras[i]).join(''),rev=[...txt].reverse().join('');
+  const k=palabras.findIndex((p,j)=>!hechas.includes(j)&&(p.w===txt||p.w===rev)&&coincide(p,l));
+  if(k<0){mal();tab.classList.remove('temblor');void tab.offsetWidth;tab.classList.add('temblor');return}
+  encontrada(k,l)}
+function coincide(p,l){const ini=p.y*N+p.x,fin=(p.y+p.dy*(p.w.length-1))*N+p.x+p.dx*(p.w.length-1);return(l[0]===ini&&l[l.length-1]===fin)||(l[0]===fin&&l[l.length-1]===ini)}
+tab.addEventListener('pointerup',soltar);tab.addEventListener('pointercancel',()=>{marcar([]);sel=null});
+
+function encontrada(k,l){hechas.push(k);const p=palabras[k],ahora=performance.now();
+  combo=ahora-ultimo<9000&&ultimo?combo+1:0;ultimo=ahora;const extra=combo*50;pts+=100+extra;
+  raya(l[0],l[l.length-1],COLS[k],true);
+  l.forEach((i,n)=>{const b=$('grid').children[i];b.classList.add('hecha');b.classList.remove('pop');void b.offsetWidth;b.style.animationDelay=(n*40)+'ms';b.classList.add('pop')});
+  $('palabras').querySelector(`[data-w="${k}"]`).classList.add('ok');
+  const m=celda(l[Math.floor(l.length/2)]);globo(m.x+8,m.y,combo?`+${100+extra} ¡combo x${combo+1}!`:'+100');
+  for(const i of l){const q=celda(i);chispas(q.x+8,q.y+8,COLS[k],8)}
+  bien(Math.min(combo,4));
+  if(hechas.length===palabras.length){const sobra=Math.max(0,Math.round((180000-(performance.now()-t0))/1000));pts+=sobra*5;
+    setTimeout(()=>{globo(tab.clientWidth/2,tab.clientHeight/2,'¡Todas! +'+sobra*5);fiesta()},350);c.terminar(pts)}
+  $('pts').textContent=pts+' pts';c.progreso(hechas.length,palabras.length)}
+function globo(x,y,t){const d=document.createElement('div');d.className='globo';d.textContent=t;d.style.left=Math.max(90,Math.min(tab.clientWidth-90,x))+'px';d.style.top=(y-20)+'px';tab.append(d);setTimeout(()=>d.remove(),1000)}
+
+/* ---------- partículas ---------- */
+const fx=$('fx'),fg=fx.getContext('2d');let parts=[],animando=false;
+function medirFx(){const d=Math.min(2,devicePixelRatio||1);fx.width=tab.clientWidth*d;fx.height=tab.clientHeight*d;fg.setTransform(d,0,0,d,0,0)}
+function chispas(x,y,col,n){for(let i=0;i<n;i++){const a=Math.random()*6.28,v=1.5+Math.random()*4;parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-2,c:col,v:1,r:2+Math.random()*3,cuadro:Math.random()<.4})}anima()}
+function fiesta(){const w=tab.clientWidth;for(let i=0;i<120;i++)parts.push({x:Math.random()*w,y:-10-Math.random()*60,vx:(Math.random()-.5)*3,vy:Math.random()*3,c:COLS[i%8],v:1.6,r:3+Math.random()*4,cuadro:true,rot:Math.random()*6});
+  [0,4,7,12,16,19,24].forEach((s,i)=>tono(523*Math.pow(2,s/12),.18,'triangle',.1,i*.07));anima()}
+function anima(){if(animando)return;animando=true;const paso=()=>{fg.clearRect(0,0,fx.width,fx.height);
+  parts=parts.filter(p=>p.v>0);for(const p of parts){p.x+=p.vx;p.y+=p.vy;p.vy+=.18;p.v-=.018;fg.globalAlpha=Math.max(0,Math.min(1,p.v));fg.fillStyle=p.c;
+    if(p.cuadro){fg.save();fg.translate(p.x,p.y);fg.rotate((p.rot||0)+p.y/20);fg.fillRect(-p.r,-p.r/2,p.r*2,p.r);fg.restore()}else{fg.beginPath();fg.arc(p.x,p.y,p.r,0,7);fg.fill()}}
+  fg.globalAlpha=1;if(parts.length)requestAnimationFrame(paso);else animando=false};requestAnimationFrame(paso)}
+
+/* ---------- carrera ---------- */
+const c=Carrera({app:'sopa',el:$('carrera'),limite:180000,mejor:'alto',maxValor:3500,minValor:0,formato:v=>v+' pts',vivo:v=>v+'/8',
+  alEmpezar:r=>{rand=r;pts=0;combo=0;ultimo=0;t0=performance.now();N=10;armar();pintar();$('pts').textContent='0 pts';c.progreso(0,8)},
+  alAcabarTiempo:()=>{sel=null;c.terminar(pts);globo(tab.clientWidth/2,tab.clientHeight/2,'¡Tiempo!');
+    // mostrar las que faltaron
+    palabras.forEach((p,k)=>{if(!hechas.includes(k))raya(p.y*N+p.x,(p.y+p.dy*(p.w.length-1))*N+p.x+p.dx*(p.w.length-1),'#15171C33',false)})},
+  alCerrar:()=>{sel=null}});
+</script>
+<script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script>
+</body></html>

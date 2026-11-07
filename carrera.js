@@ -22,18 +22,33 @@ const CSS=`.cr{border:2px solid #15171C;border-radius:18px;padding:14px 16px;bac
 .cr-v{font-variant-numeric:tabular-nums}
 .cr-cuenta{position:fixed;inset:0;display:grid;place-items:center;z-index:70;pointer-events:none;font:900 min(42vw,230px)/1 "Schibsted Grotesk",system-ui,sans-serif;color:#15171C;text-shadow:0 5px 0 #fff,0 0 30px #fff}
 .cr-cuenta[hidden]{display:none}
+@keyframes cr-pop{0%{transform:scale(2.2);opacity:0}35%{transform:scale(.92);opacity:1}100%{transform:scale(1)}}
+.cr-cuenta.pop{animation:cr-pop .45s cubic-bezier(.2,1.4,.4,1)}
+.cr-son{font:inherit;border:2px solid #15171C;background:#fff;border-radius:99px;padding:6px 10px;cursor:pointer;line-height:1}
+.cr-fx{position:fixed;inset:0;width:100vw;height:100vh;z-index:80;pointer-events:none}
+.cr-rec{display:inline-block;margin-left:6px;background:#F5B700;color:#15171C;border-radius:99px;padding:1px 9px;font-size:.8rem;font-weight:900;animation:cr-pop .5s}
 body.cr-jugando .am-peer,body.cr-jugando .am-edge{display:none!important}`;
 function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+let AC=null;const silencio=()=>{try{return localStorage.getItem('gamehubSilencio')==='1'}catch(e){return false}};
+function tono(f,d,tipo,v,cuando){if(silencio())return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime+(cuando||0),os=AC.createOscillator(),g=AC.createGain();os.type=tipo||'triangle';os.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(v||.1,t);g.gain.exponentialRampToValueAtTime(.001,t+d);os.connect(g).connect(AC.destination);os.start(t);os.stop(t+d+.02)}catch(e){}}
+function fanfarria(){[0,4,7,12,16,19,24].forEach((s,i)=>tono(523*Math.pow(2,s/12),.2,'triangle',.09,i*.08))}
+function confeti(n){const cv=document.createElement('canvas');cv.className='cr-fx';document.body.append(cv);const d=Math.min(2,devicePixelRatio||1),W=innerWidth,H=innerHeight;cv.width=W*d;cv.height=H*d;const g=cv.getContext('2d');g.scale(d,d);
+  const C=['#E4572E','#2D6CDF','#1E9E6A','#6C4BD8','#F5B700','#E8577A','#0FA3B1'],ps=[];for(let i=0;i<(n||140);i++)ps.push({x:Math.random()*W,y:-20-Math.random()*H*.5,vx:(Math.random()-.5)*4,vy:2+Math.random()*4,r:4+Math.random()*5,a:Math.random()*6,va:(Math.random()-.5)*.3,c:C[i%C.length]});
+  const t0=performance.now();(function paso(t){g.clearRect(0,0,W,H);for(const p of ps){p.x+=p.vx;p.y+=p.vy;p.vy+=.05;p.a+=p.va;g.save();g.translate(p.x,p.y);g.rotate(p.a);g.fillStyle=p.c;g.fillRect(-p.r,-p.r/2.5,p.r*2,p.r/1.25);g.restore()}
+    if(t-t0<3200)requestAnimationFrame(paso);else cv.remove()})(t0)}
+window.GameHubFx={tono,confeti,fanfarria,silencio};
 const esc=t=>String(t).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
 
 window.Carrera=function(o){
   const APP='carrera-'+o.app,LIM=o.limite||60000,alto=o.mejor!=='bajo',KEY='gamehub-mejor-'+o.app;
   if(!document.getElementById('cr-css')){const st=document.createElement('style');st.id='cr-css';st.textContent=CSS;document.head.append(st)}
   const box=o.el;box.classList.add('cr');
-  box.innerHTML='<div class="cr-top"><span class="cr-st"></span><button class="cr-btn" type="button">Empezar</button></div><ol class="cr-list"></ol>';
+  box.innerHTML='<div class="cr-top"><span class="cr-st"></span><span style="display:flex;gap:8px;align-items:center"><button class="cr-son" type="button" aria-label="Sonido"></button><button class="cr-btn" type="button">Empezar</button></span></div><ol class="cr-list"></ol>';
+  const sonBtn=box.querySelector('.cr-son');const sonTxt=()=>{sonBtn.textContent=silencio()?'🔇':'🔊'};sonTxt();
+  sonBtn.onclick=()=>{try{localStorage.setItem('gamehubSilencio',silencio()?'0':'1')}catch(e){}sonTxt();if(!silencio())tono(660,.1)};
   const stEl=box.querySelector('.cr-st'),btn=box.querySelector('.cr-btn'),list=box.querySelector('.cr-list');
   const cuenta=document.createElement('div');cuenta.className='cr-cuenta';cuenta.hidden=true;document.body.append(cuenta);
-  let sala=null,offset=0,bestRTT=Infinity,pending=new Map(),leaderId='',game=null,prog={},empezo=null,mio,acabo=false,lastProg=0;
+  let record=false,festejado=null,ultCuenta=null,sala=null,offset=0,bestRTT=Infinity,pending=new Map(),leaderId='',game=null,prog={},empezo=null,mio,acabo=false,lastProg=0;
   const online=()=>!!(sala&&sala.activo),host=()=>!online()||sala.lider(),me=()=>online()?sala.yo.id:'solo';
   const clock=()=>Date.now()+offset;
   const members=()=>online()?sala.jugadores().map(p=>({id:p.id,name:p.name,color:p.color})):[{id:'solo',name:'Tú',color:'#2D6CDF'}];
@@ -41,12 +56,12 @@ window.Carrera=function(o){
   const fmt=v=>v==null?'—':o.formato?o.formato(v):String(v);
   const juego=()=>!!game&&!game.closed&&game.people.some(p=>p.id===me());
   const mejor=()=>{try{const n=Number(localStorage.getItem(KEY));return localStorage.getItem(KEY)!==null&&Number.isFinite(n)?n:null}catch(e){return null}};
-  function guardar(v){if(v==null)return;const b=mejor();if(b===null||(alto?v>b:v<b))try{localStorage.setItem(KEY,String(v))}catch(e){}}
+  function guardar(v){if(v==null)return;const b=mejor();if(b===null||(alto?v>b:v<b)){record=b!==null;}if(b===null||(alto?v>b:v<b))try{localStorage.setItem(KEY,String(v))}catch(e){}}
 
   function publish(){tx({type:'state',game});render()}
   function accept(g){if(!g||typeof g!=='object'||!Array.isArray(g.people)||!Number.isFinite(g.start)||!Number.isFinite(g.seed))return;
     const nuevo=!game||game.id!==g.id;const antes=game&&game.closed;game=g;if(!game.results||typeof game.results!=='object')game.results={};
-    if(nuevo){prog={};mio=undefined;empezo=null;acabo=false;
+    if(nuevo){prog={};mio=undefined;record=false;empezo=null;acabo=false;
       if(!g.closed&&g.people.some(p=>p.id===me()))setTimeout(()=>{const t=o.enfocar||box.parentElement.querySelector('canvas')||box.nextElementSibling;if(t&&t.getBoundingClientRect){const r=t.getBoundingClientRect();if(r.bottom>innerHeight||r.top<0)t.scrollIntoView({behavior:'smooth',block:r.height>innerHeight*.8?'start':'center'})}},50)}
     if(game.closed&&!antes&&!nuevo)cerrado();else if(game.closed&&nuevo)cerrado();render()}
   function cerrado(){if(o.alCerrar)try{o.alCerrar(game)}catch(e){console.error(e)}}
@@ -87,13 +102,16 @@ window.Carrera=function(o){
     else if(t<0)s='Prepárate…';
     else if(acabo)s='Esperando a los demás…';
     else{s='¡Ya!';sub=o.sinReloj?'':'Quedan '+Math.max(0,Math.ceil((LIM-t)/1000))+' s'}
-    stEl.innerHTML=esc(s)+(sub?'<small>'+esc(sub)+'</small>':'');renderList()}
+    if(game&&game.closed&&!game.aborted&&festejado!==game.id&&juego()){festejado=game.id;const f=orden(),w=f[0];
+      const gane=online()&&game.people.length>1&&w&&w.v!=null&&w.v===mio&&mio!=null;
+      if(gane||record){setTimeout(()=>{confeti(gane?170:110);fanfarria()},150)}else if(mio!=null)tono(392,.25,'triangle',.08)}
+    stEl.innerHTML=esc(s)+(game&&game.closed&&record?'<span class="cr-rec">¡Récord!</span>':'')+(sub?'<small>'+esc(sub)+'</small>':'');renderList()}
 
   function tick(){
     document.body.classList.toggle('cr-jugando',juego()&&clock()>=game.start-3000);
     if(game&&!game.closed&&juego()){const t=clock()-game.start;
-      if(t<0&&t>-3000){cuenta.hidden=false;cuenta.textContent=Math.ceil(-t/1000)}else cuenta.hidden=true;
-      if(t>=0&&empezo!==game.id){empezo=game.id;cuenta.hidden=false;cuenta.textContent='¡Ya!';setTimeout(()=>{if(cuenta.textContent==='¡Ya!')cuenta.hidden=true},500);
+      if(t<0&&t>-3000){cuenta.hidden=false;const n=Math.ceil(-t/1000);if(ultCuenta!==game.id+':'+n){ultCuenta=game.id+':'+n;cuenta.textContent=n;cuenta.classList.remove('pop');void cuenta.offsetWidth;cuenta.classList.add('pop');tono(440,.12,'square',.05)}}else cuenta.hidden=true;
+      if(t>=0&&empezo!==game.id){empezo=game.id;cuenta.hidden=false;cuenta.textContent='¡Ya!';cuenta.classList.remove('pop');void cuenta.offsetWidth;cuenta.classList.add('pop');tono(880,.25,'square',.06);setTimeout(()=>{if(cuenta.textContent==='¡Ya!')cuenta.hidden=true},500);
         try{o.alEmpezar(mulberry(game.seed),game.seed)}catch(e){console.error(e)}}
       if(t>=LIM&&!acabo){acabo=true;if(o.alAcabarTiempo)try{o.alAcabarTiempo()}catch(e){console.error(e)}if(mio===undefined)terminar(null)}
     }else if(cuenta.textContent!=='¡Ya!')cuenta.hidden=true;
@@ -121,6 +139,6 @@ window.Carrera=function(o){
     tx({type:'hello'});render();ping()});
   setInterval(ping,1500);
   btn.onclick=start;render();
-  return{terminar,progreso,get jugando(){return juego()&&clock()>=game.start&&!acabo},get online(){return online()}};
+  return{terminar,progreso,get transcurrido(){return game?Math.max(0,clock()-game.start):0},get jugando(){return juego()&&clock()>=game.start&&!acabo},get online(){return online()}};
 };
 })();
