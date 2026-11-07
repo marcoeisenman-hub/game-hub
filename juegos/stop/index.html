@@ -1,0 +1,178 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Stop — game.hub</title><link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="game.hub"><link rel="stylesheet" href="/estilo.css">
+<style>
+body{background:#fff}
+main{max-width:560px;margin:70px auto 40px;padding:0 16px}
+h1{font-size:clamp(34px,8vw,54px);letter-spacing:-.05em;margin:0;line-height:1.1}
+.sub{color:var(--mut);margin:2px 0 0}
+.caja{margin-top:14px;border:2px solid var(--ink);border-radius:22px;background:#fff;padding:16px;box-shadow:0 5px 0 var(--ink)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.estado{font-weight:800}
+.estado small{display:block;font-weight:500;color:var(--mut)}
+.btn2{font:900 1.05rem "Schibsted Grotesk",system-ui,sans-serif;border:2px solid var(--ink);border-radius:14px;padding:12px 20px;background:var(--ink);color:#fff;cursor:pointer;box-shadow:0 4px 0 #0005;touch-action:manipulation}
+.btn2:active{transform:translateY(3px);box-shadow:0 1px 0 #0005}
+.btn2:disabled{opacity:.35;cursor:default;transform:none}
+.letra{display:grid;place-items:center;margin:14px auto 4px;width:120px;height:120px;border-radius:26px;background:#E4572E;color:#fff;font:900 84px/1 "Schibsted Grotesk",system-ui,sans-serif;border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink)}
+.letra.gira{animation:gira .9s cubic-bezier(.2,1.3,.4,1)}
+@keyframes gira{0%{transform:rotateY(0) scale(.4)}60%{transform:rotateY(720deg) scale(1.15)}100%{transform:rotateY(720deg) scale(1)}}
+.reloj{text-align:center;font-weight:900;font-size:1.3rem;font-variant-numeric:tabular-nums}
+.reloj.poco{color:#E63946;animation:late .5s infinite alternate}
+@keyframes late{to{transform:scale(1.12)}}
+.campos{display:grid;gap:10px;margin-top:12px}
+.campos label{display:grid;gap:4px;font-weight:800;font-size:.95rem}
+.campos input{font:600 1.1rem "Schibsted Grotesk",system-ui,sans-serif;border:2px solid var(--ink);border-radius:12px;padding:11px 12px;background:#fff;width:100%}
+.campos input.ok{border-color:#1E9E6A;background:#EAF8F0}
+.campos input.no{border-color:#E63946;background:#FDECEE}
+.campos input:disabled{color:var(--ink);opacity:1}
+.stop{display:block;width:100%;margin-top:16px;font:900 2rem/1 "Schibsted Grotesk",system-ui,sans-serif;letter-spacing:.04em;padding:18px;border-radius:18px;border:3px solid var(--ink);background:#E63946;color:#fff;box-shadow:0 6px 0 var(--ink);cursor:pointer;touch-action:manipulation}
+.stop:active{transform:translateY(4px);box-shadow:0 2px 0 var(--ink)}
+.stop:disabled{background:#F2F3F5;color:#9AA0A8;cursor:default;transform:none}
+.grito{position:fixed;inset:0;display:grid;place-items:center;z-index:80;pointer-events:none}
+.grito div{background:#E63946;color:#fff;border:4px solid var(--ink);border-radius:28px;padding:18px 34px;text-align:center;box-shadow:0 10px 0 var(--ink);animation:grito .5s cubic-bezier(.2,1.5,.4,1)}
+.grito b{display:block;font:900 clamp(56px,18vw,110px)/1 "Schibsted Grotesk",system-ui,sans-serif}
+@keyframes grito{from{transform:scale(2.5) rotate(-8deg);opacity:0}}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.95rem}
+th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:.8rem;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+td .r{display:inline-block;padding:2px 8px;border-radius:8px;font-weight:700;cursor:default}
+td .r.lider{cursor:pointer}
+td .r.mala{text-decoration:line-through;color:#E63946;background:#FDECEE}
+td .r.vacia{color:#B4B9C1}
+td .p{display:block;font-size:.78rem;font-weight:900;color:#1E9E6A}
+td .p.cero{color:#B4B9C1}
+.tot td{font-weight:900;font-size:1.05rem;border-bottom:0}
+.scroll{overflow-x:auto}
+.nota{color:var(--mut);font-size:.9rem}
+.jug{display:inline-flex;align-items:center;gap:5px}
+.jug i{width:10px;height:10px;border-radius:50%;background:var(--pc)}
+</style></head><body><a class="volver" href="/">← game.hub</a>
+<main>
+  <h1>Stop</h1>
+  <p class="sub">Sale una letra. Escribe una palabra que empiece con esa letra en cada categoría. El primero que llena todo grita <b>STOP</b>… ¡y se acaba para todos!</p>
+  <section class="caja">
+    <div class="top"><span class="estado" id="estado">¿Listo?</span><button class="btn2" id="go" type="button">Empezar</button></div>
+    <div id="juego" hidden>
+      <div class="letra" id="letra">A</div>
+      <div class="reloj" id="reloj">90</div>
+      <div class="campos" id="campos"></div>
+      <button class="stop" id="stop" type="button" disabled>STOP ✋</button>
+    </div>
+    <div id="revision" hidden></div>
+    <div id="tabla"></div>
+  </section>
+  <p class="nota">Puntos: <b>20</b> si eres el único con respuesta en esa categoría, <b>10</b> si la tuya es distinta, <b>5</b> si alguien puso la misma. El líder puede tocar una respuesta para anularla si no vale.</p>
+</main>
+<script src="/carrera.js"></script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const CATS=['Nombre','Apellido','Animal','País','Ciudad','Fruta o verdura','Color','Cosa','Comida','Marca','Profesión','Deporte','Película o serie','Parte del cuerpo','Algo de la escuela','Algo de la playa'];
+const LETRAS='ABCDEFGHIJLMNOPRSTV';
+const APP='stop',DUR_SALA=90000,DUR_SOLO=60000;
+const esc=t=>String(t).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const norm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zñ0-9 ]/g,'').replace(/\s+/g,' ').trim();
+const F=()=>window.GameHubFx||{};
+let sala=null,G=null,fin=0,envie=null,grito=null,festejo=null,timerStop=null;
+const online=()=>!!(sala&&sala.activo);
+const yo=()=>online()?sala.yo.id:'solo';
+const soyLider=()=>!online()||sala.lider();
+const gente=()=>online()?sala.jugadores().map(p=>({id:p.id,name:String(p.name||'Amigo').slice(0,24),color:p.color||'#2D6CDF'})):[{id:'solo',name:'Tú',color:'#2D6CDF'}];
+const tx=d=>{if(online())sala.enviar({...d,app:APP})};
+function rnd(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+/* ---------- líder ---------- */
+function nuevaRonda(){if(!soyLider()||(G&&G.fase==='jugando'))return;
+  const r=rnd(crypto.getRandomValues(new Uint32Array(1))[0]),c=[...CATS];
+  for(let i=c.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[c[i],c[j]]=[c[j],c[i]]}
+  const usadas=G&&G.letras||[];let L=LETRAS.split('').filter(x=>!usadas.includes(x));if(!L.length)L=LETRAS.split('');
+  G={id:Math.random().toString(36).slice(2,9),ronda:(G?G.ronda:0)+1,letra:L[Math.floor(r()*L.length)],letras:[...usadas.slice(-8)],cats:c.slice(0,6),fase:'jugando',
+     dur:online()?DUR_SALA:DUR_SOLO,people:gente(),resp:{},malas:{},quien:null,totales:G?G.totales||{}:{},sumado:false};
+  G.letras.push(G.letra);G.t0=Date.now();publicar()}
+function publicar(){if(G&&G.fase==='jugando')G.restante=Math.max(0,G.dur-(Date.now()-G.t0));tx({t:'estado',G});aplicar(G)}
+function pedirStop(quien){if(!G||G.fase!=='jugando')return;G.fase='stop';G.quien=quien;G.tStop=Date.now();publicar();
+  clearTimeout(timerStop);timerStop=setTimeout(()=>{if(G&&G.fase==='stop')revisar()},3000)}
+function recibirResp(id,r){if(!G||G.fase==='jugando'||!G.people.some(p=>p.id===id)||G.resp[id])return;
+  G.resp[id]=(Array.isArray(r)?r:[]).slice(0,6).map(x=>String(x||'').slice(0,40));
+  if(G.fase==='stop'&&G.people.every(p=>G.resp[p.id]))revisar();else if(G.fase==='revision')publicar()}
+function revisar(){if(!G||G.fase!=='stop')return;clearTimeout(timerStop);G.fase='revision';publicar()}
+function anular(pid,i){if(!soyLider()||!G||G.fase!=='revision'||G.sumado)return;const k=pid+':'+i;if(G.malas[k])delete G.malas[k];else G.malas[k]=1;publicar()}
+function confirmar(){if(!soyLider()||!G||G.fase!=='revision'||G.sumado)return;const p=puntos(G);G.sumado=true;
+  for(const q of G.people)G.totales[q.id]=(G.totales[q.id]||0)+p.total[q.id];
+  const max=Math.max(...G.people.map(q=>p.total[q.id]));
+  if(online()&&G.people.length>1&&max>0){const gs=G.people.filter(q=>p.total[q.id]===max);G.ganadores=gs;G.tabla=GameHubTabla.sumar(gs)}
+  publicar()}
+
+/* ---------- puntos ---------- */
+function puntos(g){const L=norm(g.letra),total={},celda={};for(const p of g.people)total[p.id]=0;
+  g.cats.forEach((_,i)=>{const val={};
+    for(const p of g.people){const n=norm((g.resp[p.id]||[])[i]);val[p.id]=n.length>=2&&n[0]===L&&!g.malas[p.id+':'+i]?n:''}
+    const llenos=g.people.filter(p=>val[p.id]);
+    for(const p of g.people){let pt=0;if(val[p.id]){const igual=llenos.filter(q=>val[q.id]===val[p.id]).length;pt=llenos.length===1&&g.people.length>1?20:igual>1?5:10}
+      celda[p.id+':'+i]=pt;total[p.id]+=pt}});
+  return{total,celda}}
+
+/* ---------- todos ---------- */
+function misResp(){return[...$('campos').querySelectorAll('input')].map(x=>x.value.trim())}
+function aplicar(g){const nuevo=!G||!g||G.id!==g.id||$('campos').dataset.id!==g.id;G=g;
+  if(g.fase==='jugando'&&g.restante!=null)fin=Date.now()+g.restante;
+  if(g.tabla&&!soyLider())GameHubTabla.guardar(g.tabla);
+  if(nuevo&&g.fase==='jugando'){envie=null;$('campos').dataset.id=g.id;
+    $('campos').innerHTML=g.cats.map((c,i)=>`<label>${esc(c)}<input data-i="${i}" autocomplete="off" autocapitalize="words" maxlength="40" placeholder="${esc(g.letra)}…"></label>`).join('');
+    const l=$('letra');l.textContent=g.letra;l.classList.remove('gira');void l.offsetWidth;l.classList.add('gira');
+    if(F().tono)[0,1,2,3,4,5].forEach(k=>F().tono(300+k*90,.06,'square',.04,k*.1));
+    const f=$('campos').querySelector('input');if(f&&matchMedia('(pointer:fine)').matches)setTimeout(()=>f.focus({preventScroll:true}),900)}
+  if(g.fase!=='jugando'&&envie!==g.id&&g.people.some(p=>p.id===yo())){envie=g.id;const r=misResp();if(soyLider())recibirResp(yo(),r);else tx({t:'resp',id:g.id,r})}
+  if(g.fase==='stop'&&grito!==g.id){grito=g.id;const d=document.createElement('div');d.className='grito';d.innerHTML='<div><b>STOP</b>'+(g.quien?esc(g.quien.id===yo()?'¡Lo gritaste tú!':'Lo gritó '+g.quien.name):'¡Se acabó el tiempo!')+'</div>';document.body.append(d);setTimeout(()=>d.remove(),1600);
+    if(F().tono){F().tono(880,.12,'square',.07);F().tono(660,.25,'square',.07,.12)}}
+  if(g.ganadores&&festejo!==g.id){festejo=g.id;GameHubTabla.anunciar(g.ganadores,'Stop',yo())}
+  pintar()}
+function pintar(){const g=G;
+  $('go').disabled=!soyLider()||(g&&(g.fase==='jugando'||g.fase==='stop'))||(g&&g.fase==='revision'&&!g.sumado);
+  $('go').textContent=!soyLider()?'El líder empieza':g?'Otra ronda':'Empezar';
+  $('juego').hidden=!g||g.fase==='revision';$('revision').hidden=!g||g.fase!=='revision';
+  const st=$('estado');
+  if(!g)st.innerHTML=online()?(soyLider()?'Tú eres el líder: dale a Empezar.':'Esperando a que el líder empiece…'):'¿Listo? Tienes 60 segundos.<small>Con amigos es más divertido: crea una sala.</small>';
+  else if(g.fase==='jugando')st.innerHTML='Ronda '+g.ronda+' · ¡Escribe!<small>Llena todo para poder gritar STOP</small>';
+  else if(g.fase==='stop')st.innerHTML='¡STOP! Juntando respuestas…';
+  else st.innerHTML='Ronda '+g.ronda+' · Resultados'+(soyLider()&&!g.sumado?'<small>Toca una respuesta para anularla si no vale</small>':'');
+  for(const inp of $('campos').querySelectorAll('input'))inp.disabled=!g||g.fase!=='jugando';
+  if(g&&g.fase==='revision')revisionHtml();
+  $('tabla').innerHTML=online()&&window.GameHubTabla?GameHubTabla.html():'';
+  validar()}
+function revisionHtml(){const g=G,p=puntos(g),ppl=g.people,L=soyLider()&&!g.sumado;
+  let h='<div class="scroll"><table><tr><th>'+esc(g.letra)+'</th>'+ppl.map(q=>`<th><span class="jug" style="--pc:${esc(q.color)}"><i></i>${esc(q.id===yo()&&online()?'Tú':q.name)}</span></th>`).join('')+'</tr>';
+  g.cats.forEach((c,i)=>{h+='<tr><td><b>'+esc(c)+'</b></td>'+ppl.map(q=>{const r=(g.resp[q.id]||[])[i]||'',pt=p.celda[q.id+':'+i],mala=g.malas[q.id+':'+i];
+    return `<td><span class="r${r?'':' vacia'}${mala?' mala':''}${L&&r?' lider':''}" data-p="${esc(q.id)}" data-i="${i}">${r?esc(r):'—'}</span><span class="p${pt?'':' cero'}">${g.resp[q.id]?'+'+pt:'…'}</span></td>`}).join('')+'</tr>'});
+  h+='<tr class="tot"><td>Ronda</td>'+ppl.map(q=>'<td>'+p.total[q.id]+'</td>').join('')+'</tr>';
+  if(g.ronda>1||g.sumado)h+='<tr class="tot"><td>Total</td>'+ppl.map(q=>'<td>'+((g.totales[q.id]||0)+(g.sumado?0:p.total[q.id]))+'</td>').join('')+'</tr>';
+  h+='</table></div>';
+  if(soyLider()&&!g.sumado)h+='<button class="btn2" id="confirmar" type="button" style="margin-top:12px;width:100%">Confirmar puntos ✔</button>';
+  if(!online()){const t=p.total.solo;h+=`<p style="font-weight:800;margin:12px 0 0">Hiciste ${t} puntos.</p>`}
+  $('revision').innerHTML=h;const b=$('confirmar');if(b)b.onclick=confirmar}
+function validar(){const g=G;if(!g||g.fase!=='jugando'){$('stop').disabled=true;return}const L=norm(g.letra);let todos=true;
+  for(const inp of $('campos').querySelectorAll('input')){const n=norm(inp.value);const ok=n.length>=2&&n[0]===L;inp.classList.toggle('ok',ok);inp.classList.toggle('no',!!n&&!ok);if(!ok)todos=false}
+  $('stop').disabled=!todos}
+$('campos').addEventListener('input',validar);
+$('campos').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const ins=[...$('campos').querySelectorAll('input')],i=ins.indexOf(e.target);if(ins[i+1])ins[i+1].focus();else if(!$('stop').disabled)$('stop').click()}});
+$('revision').addEventListener('click',e=>{const r=e.target.closest('.r.lider');if(r)anular(r.dataset.p,+r.dataset.i)});
+$('stop').onclick=()=>{if($('stop').disabled||!G||G.fase!=='jugando')return;const q=gente().find(p=>p.id===yo())||{id:yo(),name:'Tú'};if(soyLider())pedirStop({id:q.id,name:q.name});else tx({t:'stop',id:G.id})};
+$('go').onclick=()=>{if(G&&G.fase==='revision'&&!G.sumado)confirmar();nuevaRonda()};
+setInterval(()=>{if(!G||G.fase!=='jugando'){$('reloj').classList.remove('poco');return}const q=Math.max(0,fin-Date.now());$('reloj').textContent=Math.ceil(q/1000);$('reloj').classList.toggle('poco',q<10000);
+  if(q<=0&&soyLider())pedirStop(null)},200);
+setInterval(()=>{if(online()&&soyLider()&&G)tx({t:'estado',G:{...G,restante:G.fase==='jugando'?Math.max(0,G.dur-(Date.now()-G.t0)):undefined}})},2500);
+
+function conSala(fn){window.RatitoSala?fn(window.RatitoSala):addEventListener('ratitosala',()=>fn(window.RatitoSala),{once:true})}
+conSala(api=>{sala=api;
+  sala.al('mensaje',(d,de)=>{if(!d||d.app!==APP)return;const lid=sala.jugadores()[0]?.id;
+    if(d.t==='estado'&&de.id===lid&&d.G&&typeof d.G==='object'&&Array.isArray(d.G.cats)&&!soyLider())aplicar(d.G);
+    if(!soyLider()||!G)return;
+    if(d.t==='hola')tx({t:'estado',G:{...G,restante:G.fase==='jugando'?Math.max(0,G.dur-(Date.now()-G.t0)):undefined}});
+    if(d.t==='stop'&&d.id===G.id){const q=G.people.find(p=>p.id===de.id);if(q)pedirStop({id:q.id,name:q.name})}
+    if(d.t==='resp'&&d.id===G.id)recibirResp(de.id,d.r)});
+  sala.al('cambio',pintar);tx({t:'hola'});pintar()});
+pintar();
+</script>
+<script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script>
+</body></html>

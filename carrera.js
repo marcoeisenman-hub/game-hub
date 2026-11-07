@@ -46,6 +46,18 @@ function confeti(n){const cv=document.createElement('canvas');cv.className='cr-f
 window.GameHubFx={tono,confeti,fanfarria,silencio};
 const esc=t=>String(t).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
 
+/* tabla de la sala para juegos que no usan Carrera (ej. Stop) */
+window.GameHubTabla={
+  css(){if(!document.getElementById('cr-css')){const st=document.createElement('style');st.id='cr-css';st.textContent=CSS;document.head.append(st)}},
+  key(){const s=window.RatitoSala;return 'ghTabla-'+(s&&s.codigo||'')},
+  leer(){try{const t=JSON.parse(sessionStorage.getItem(this.key())||'{}');return t&&typeof t==='object'?t:{}}catch(e){return {}}},
+  guardar(t){if(t&&typeof t==='object')try{sessionStorage.setItem(this.key(),JSON.stringify(t))}catch(e){}},
+  sumar(gs){const t=this.leer();for(const p of gs){const k=String(p.name||'Amigo').slice(0,24);t[k]={pts:((t[k]&&+t[k].pts)||0)+1,color:p.color||'#2D6CDF'}}this.guardar(t);return t},
+  anunciar(gs,juego,yoId){this.css();const d=document.createElement('div');d.className='cr-gano';const yo=gs.some(g=>g.id===yoId);
+    d.innerHTML='<big>'+esc(gs.length>1?'Empate: '+gs.map(g=>g.name).join(' y '):(yo?'¡Ganaste!':gs[0].name+' ganó'))+'</big><small>'+esc(juego)+' · +1 punto para '+esc(gs.length>1?'cada uno':(yo?'ti':gs[0].name))+'</small>';
+    document.body.append(d);setTimeout(()=>d.remove(),3200);if(yo){confeti(150);fanfarria()}},
+  html(){const t=this.leer(),f=Object.entries(t).filter(([,v])=>v&&+v.pts>0).sort((a,b)=>b[1].pts-a[1].pts);if(!f.length)return '';
+    return '<div class="cr-tabla"><b>🏆 Tabla de la sala</b>'+f.map(([n,v])=>{const i=f.filter(x=>+x[1].pts>+v.pts).length;return '<span style="--pc:'+esc(v.color||'#2D6CDF')+'"><i></i>'+(i<3?['🥇','🥈','🥉'][i]+' ':'')+esc(n)+' · '+(+v.pts)+(+v.pts===1?' punto':' puntos')+'</span>'}).join('')+'</div>'}};
 window.Carrera=function(o){
   const APP='carrera-'+o.app,LIM=o.limite||60000,alto=o.mejor!=='bajo',KEY='gamehub-mejor-'+o.app;
   if(!document.getElementById('cr-css')){const st=document.createElement('style');st.id='cr-css';st.textContent=CSS;document.head.append(st)}
