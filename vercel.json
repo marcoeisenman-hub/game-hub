@@ -1,0 +1,10 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "ratito-juegos.vercel.app" }],
+      "destination": "https://game-hub-juegos.vercel.app/:path*",
+      "permanent": true
+    }
+  ]
+}
