@@ -93,7 +93,7 @@ function nuevaRonda(){if(!soyLider()||(G&&G.fase==='jugando'))return;
 function publicar(){if(G&&G.fase==='jugando')G.restante=Math.max(0,G.dur-(Date.now()-G.t0));tx({t:'estado',G});aplicar(G)}
 function pedirStop(quien){if(!G||G.fase!=='jugando')return;G.fase='stop';G.quien=quien;G.tStop=Date.now();publicar();
   clearTimeout(timerStop);timerStop=setTimeout(()=>{if(G&&G.fase==='stop')revisar()},3000)}
-function recibirResp(id,r){if(!G||G.fase==='jugando'||!G.people.some(p=>p.id===id)||G.resp[id])return;
+function recibirResp(id,r){if(!G||G.fase==='jugando'||G.sumado||!G.people.some(p=>p.id===id)||G.resp[id])return;
   G.resp[id]=(Array.isArray(r)?r:[]).slice(0,6).map(x=>String(x||'').slice(0,40));
   if(G.fase==='stop'&&G.people.every(p=>G.resp[p.id]))revisar();else if(G.fase==='revision')publicar()}
 function revisar(){if(!G||G.fase!=='stop')return;clearTimeout(timerStop);G.fase='revision';publicar()}
@@ -171,7 +171,9 @@ conSala(api=>{sala=api;
     if(d.t==='hola')tx({t:'estado',G:{...G,restante:G.fase==='jugando'?Math.max(0,G.dur-(Date.now()-G.t0)):undefined}});
     if(d.t==='stop'&&d.id===G.id){const q=G.people.find(p=>p.id===de.id);if(q)pedirStop({id:q.id,name:q.name})}
     if(d.t==='resp'&&d.id===G.id)recibirResp(de.id,d.r)});
-  sala.al('cambio',pintar);tx({t:'hola'});pintar()});
+  sala.al('cambio',()=>{if(soyLider()&&G){G.people=G.people.filter(p=>sala.jugadores().some(j=>j.id===p.id)||G.resp[p.id]);
+    if(G.fase==='stop'){clearTimeout(timerStop);timerStop=setTimeout(()=>{if(G&&G.fase==='stop')revisar()},2500)}
+    if(G.fase==='jugando'&&fin){G.t0=Date.now()-(G.dur-Math.max(0,fin-Date.now()))}}pintar()});tx({t:'hola'});pintar()});
 pintar();
 </script>
 <script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script>
