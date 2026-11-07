@@ -95,7 +95,8 @@ function finish(){
   drawing=false;done=true;const {r,score}=live();
   if(r<50)return fail('Muy pequeño. Hazlo más grande.');
   S.textContent=score.toFixed(1)+'%';S.style.color=col((100-score)/320);doneScore=score;draw(score);
-  const nuevo=score>best;if(nuevo){best=score;localStorage.setItem('ratitoCirculo',best);showBest()}
+  {const F=window.GameHubFx;if(F&&F.acorde){if(score>=92){F.acorde(score>=97?784:587);F.chispas(innerWidth/2,innerHeight/2,['#1E9E6A','#F5B700','#2D6CDF'],score>=97?40:20)}else if(score<70)F.error();else F.tono(440,.15)}}
+  const nuevo=score>best;if(nuevo){if(window.GameHubFx&&GameHubFx.confeti)GameHubFx.confeti(80);best=score;localStorage.setItem('ratitoCirculo',best);showBest()}
   last=score;tx({s:'end',score,best,p:[(pts[pts.length-1].x-cx)/U(),(pts[pts.length-1].y-cy)/U()]});tabla();
   M.textContent=(nuevo?'¡Nuevo récord! ':'')+(score>=97?'Casi una máquina.':score>=92?'Excelente pulso.':score>=85?'Bastante bien.':score>=70?'Puedes mejorar.':'Ánimo, otra vez.')+' Toca para intentar de nuevo.';
 }

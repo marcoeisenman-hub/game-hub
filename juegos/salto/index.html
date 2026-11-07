@@ -20,12 +20,12 @@ let lava=700,fant={},ultFant=0,player={x:240,y:525,vx:0,vy:-650},platforms=[],ca
 function release(){direction=0}
 function steer(e){direction=e.clientX<canvas.getBoundingClientRect().left+canvas.getBoundingClientRect().width/2?-1:1}
 canvas.addEventListener('pointerdown',e=>{if(!active||e.button>0)return;e.preventDefault();steer(e);canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointermove',e=>{if(active&&canvas.hasPointerCapture(e.pointerId))steer(e)});
-function finish(){if(!active)return;active=false;if(sala&&sala.activo)sala.enviar({app:'salto-fant',x:Math.round(player.x),y:Math.round(player.y),h:height,muerto:1});release();burst(player.x,Math.min(H-20,player.y-camera),'#E63946',35);marca.textContent=height+' m';estado.textContent='Fin de la escalada. Llegaste a '+height+' m.'+(sala&&sala.activo?' Mira a tus amigos…':'');c.progreso(height,1500);c.terminar(height)}
+function finish(){if(!active)return;active=false;if(window.GameHubFx&&GameHubFx.error)GameHubFx.error();if(sala&&sala.activo)sala.enviar({app:'salto-fant',x:Math.round(player.x),y:Math.round(player.y),h:height,muerto:1});release();burst(player.x,Math.min(H-20,player.y-camera),'#E63946',35);marca.textContent=height+' m';estado.textContent='Fin de la escalada. Llegaste a '+height+' m.'+(sala&&sala.activo?' Mira a tus amigos…':'');c.progreso(height,1500);c.terminar(height)}
 function update(dt){t+=dt;const d=(keys.has('arrowright')||keys.has('d')?1:0)-(keys.has('arrowleft')||keys.has('a')?1:0)||direction;player.vx+=(d*310-player.vx)*(1-Math.exp(-13*dt));player.x=((player.x+player.vx*dt)%W+W)%W;const oldY=player.y;player.vy+=1450*dt;player.y+=player.vy*dt;
  for(const p of platforms){if(p.type===1)p.x=p.base+Math.sin(t*p.speed+p.phase)*p.range;if(p.crumble>0){p.crumble-=dt;if(p.crumble<=0)p.dead=true}if(p.type===3)p.visible=Math.sin(t*1.5+p.phase)>.05;else p.visible=true;
  if(p.dead||!p.visible)continue;const distance=Math.min(Math.abs(player.x-p.x),W-Math.abs(player.x-p.x));
  if(p.type===5&&distance<p.w/2+9&&Math.abs(player.y-p.y)<24){finish();return}
- if(p.type!==5&&player.vy>0&&oldY+13<=p.y&&player.y+13>=p.y&&distance<p.w/2+9){player.y=p.y-13;player.vy=p.type===4?-950:-650;if(p.type===2)p.crumble=.14;burst(player.x,player.y-camera,p.type===4?'#F5B700':'#2D6CDF',8);shake=p.type===4?8:2}}
+ if(p.type!==5&&player.vy>0&&oldY+13<=p.y&&player.y+13>=p.y&&distance<p.w/2+9){player.y=p.y-13;player.vy=p.type===4?-950:-650;window.GameHubFx&&GameHubFx.tono&&GameHubFx.tono(p.type===4?520:300+Math.min(400,height/4),p.type===4?.18:.06,'sine',.05);if(p.type===2)p.crumble=.14;burst(player.x,player.y-camera,p.type===4?'#F5B700':'#2D6CDF',8);shake=p.type===4?8:2}}
  // la lava sube cada vez más rápido y no se queda muy lejos
  lava-=Math.min(230,38+t*2.4)*dt;if(lava>camera+H+90)lava=camera+H+90;
  if(player.y+13>=lava){burst(player.x,player.y-camera,'#F28C28',40);finish();return}

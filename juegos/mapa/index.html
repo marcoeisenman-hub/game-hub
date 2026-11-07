@@ -116,6 +116,7 @@ function marca(sel,lat,lon,color,txt,grande){const [x,y]=proj([lon,lat]),s=1/k;
   const m=sel.append('g').attr('transform',`translate(${x},${y}) scale(${s})`);
   m.append('circle').attr('r',grande?8:6).attr('fill',color).attr('stroke','#fff').attr('stroke-width',2.5);
   if(txt)m.append('text').attr('x',11).attr('y',4).attr('font-size',13).attr('font-weight',700).attr('fill',color).attr('stroke','#fff').attr('stroke-width',3.5).attr('paint-order','stroke').text(txt)}
+let festRonda=-1;function festejar(pts,el){const F=window.GameHubFx;if(!F||!F.flotar||festRonda===P.ronda)return;festRonda=P.ronda;if(el)F.flotar(el,null,'+'+pts+' pts',pts>=4000?"#1E9E6A":pts>=2000?'#15171C':'#E4572E');if(pts>=4250){F.confeti(60);F.acorde(659)}else if(pts>=2000)F.acorde(440);else F.error()}
 function pintar(){
   if(!lista.length)armar();
   const L=lugar(),m=d3.select('#marcas');if(!m.node())return;m.selectAll('*').remove();
@@ -128,7 +129,7 @@ function pintar(){
     for(const id in rs){const x=rs[id];m.append('path').attr('d',path({type:'LineString',coordinates:[[x.d.lon,x.d.lat],[L[3],L[2]]]})).attr('fill','none').attr('stroke',x.yo?'#15171C':x.color).attr('stroke-width',1.6).attr('stroke-dasharray','5 5').attr('vector-effect','non-scaling-stroke');}
     for(const id in rs){const x=rs[id];marca(m,x.d.lat,x.d.lon,x.yo?'#15171C':x.color,x.yo?'Tú':x.name)}
     marca(m,real[0],real[1],'#E4572E',L[0],true);
-    res.hidden=false;res.innerHTML=`${nf.format(Math.round(mia.km))} km · <span>${nf.format(mia.pts)} pts</span>`;
+    res.hidden=false;setTimeout(()=>festejar(mia.pts,res),30);res.innerHTML=`${nf.format(Math.round(mia.km))} km · <span>${nf.format(mia.pts)} pts</span>`;
     const ult=P.ronda>=RONDAS-1,faltan=P.jugadores().filter(j=>!P.respuestas()[j.id]);
     sig.hidden=false;
     if(faltan.length&&P.enSala){sig.disabled=true;sig.textContent='Esperando a '+faltan.map(j=>j.name).join(', ')}

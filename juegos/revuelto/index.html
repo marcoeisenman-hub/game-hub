@@ -39,6 +39,17 @@ h1{font-size:clamp(34px,8vw,54px);letter-spacing:-.05em;margin:0}
 <script src="/carrera.js"></script>
 <script>
 'use strict';
+
+// Efectos locales: solo presentación; no consumen el azar de Carrera.
+const jugo={
+ audio:null,
+ nota(f=660,n=1){try{if(window.GameHubFx?.silencio?.()||localStorage.getItem('gamehubSilencio')==='1')return;const A=window.AudioContext||window.webkitAudioContext;if(!A)return;const a=this.audio||(this.audio=new A());a.resume().catch(()=>{});for(let i=0;i<n;i++){const t=a.currentTime+i*.065,o=a.createOscillator(),g=a.createGain();o.type='triangle';o.frequency.value=f*Math.pow(1.25,i);g.gain.setValueAtTime(.035,t);g.gain.exponentialRampToValueAtTime(.001,t+.12);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+.13)}}catch{}},
+ mover(el,mal=false){el?.animate(mal?[{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}]:[{transform:'scale(.94)'},{transform:'scale(1.04)'},{transform:'scale(1)'}],{duration:280})},
+ flotar(el,txt,color='#1E9E6A'){if(!el)return;const r=el.getBoundingClientRect(),p=document.createElement('span');p.textContent=txt;Object.assign(p.style,{position:'fixed',left:Math.max(8,Math.min(innerWidth-85,r.left+r.width/2-30))+'px',top:Math.max(10,r.top)+'px',font:'900 24px system-ui',color,pointerEvents:'none',zIndex:100});document.body.append(p);p.animate([{opacity:1,transform:'translateY(0)'},{opacity:0,transform:'translateY(-65px)'}],{duration:750}).onfinish=()=>p.remove()},
+ chispas(el,color='#F5B700',n=12){if(!el)return;const r=el.getBoundingClientRect(),capa=document.createElement('div');Object.assign(capa.style,{position:'fixed',inset:'0',overflow:'hidden',pointerEvents:'none',zIndex:99});document.body.append(capa);setTimeout(()=>capa.remove(),650);for(let i=0;i<n;i++){const p=document.createElement('i');Object.assign(p.style,{position:'fixed',left:(r.left+r.width/2)+'px',top:(r.top+r.height/2)+'px',width:'6px',height:'6px',borderRadius:'2px',background:color,pointerEvents:'none',zIndex:99});capa.append(p);const a=i/n*Math.PI*2;p.animate([{opacity:1,transform:'translate(0,0)'},{opacity:0,transform:`translate(${Math.cos(a)*55}px,${Math.sin(a)*55}px)`}],{duration:550}).onfinish=()=>p.remove()}},
+ numero(el,v,suf=''){const t=performance.now();function f(now){if(!el.isConnected)return;const q=Math.min(1,(now-t)/400);el.textContent=Math.round(v*(1-Math.pow(1-q,3)))+suf;if(q<1)requestAnimationFrame(f)}requestAnimationFrame(f)}
+};
+
 const $=id=>document.getElementById(id);
 // [palabra, pista]
 const P4=[['casa','donde vives'],['gato','dice miau'],['perro','mejor amigo'],['mesa','tiene 4 patas'],['luna','sale de noche'],['playa','arena y mar'],['fuego','quema'],['pato','hace cuac'],['silla','para sentarse'],['libro','tiene páginas'],['nube','en el cielo'],['flor','tiene pétalos'],['pez','nada en el agua'],['sopa','se come con cuchara'],['tren','va por rieles'],['mano','tiene 5 dedos'],['rana','salta y croa'],['bola','es redonda'],['taza','para el café'],['rojo','un color'],['leche','blanca, de vaca'],['oso','animal grande y peludo'],['pan','de la panadería'],['sol','estrella cercana'],['nieve','fría y blanca'],['barco','va por el mar'],['queso','amarillo y con huecos'],['reloj','marca la hora'],['lapiz','para escribir'],['piña','fruta con corona']];
@@ -56,8 +67,8 @@ function flash(c){const p=$('mesa');p.classList.remove('bien','mal');void p.offs
 $('letras').addEventListener('pointerdown',e=>{const b=e.target.closest('button[data-i]');if(!b||!c.jugando||Date.now()<bloq)return;e.preventDefault();const i=+b.dataset.i;if(usadas[i])return;
   usadas[i]=true;orden.push(i);pinta();
   if(orden.length===letras.length){const w=orden.map(k=>letras[k]).join('');
-    if(w===palabra){puntos++;c.progreso(puntos,15);flash('bien');bloq=Date.now()+250;setTimeout(()=>{if(c.jugando)nueva()},250)}
-    else{flash('mal');setTimeout(()=>{usadas=letras.map(()=>false);orden=[];pinta()},350)}}});
+    if(w===palabra){puntos++;c.progreso(puntos,15);flash('bien');jugo.nota(700,2);[...$('resp').children].forEach((el,i)=>el.animate([{transform:'translateY(0)'},{transform:'translateY(-12px)'},{transform:'translateY(0)'}],{duration:220,delay:i*22}));bloq=Date.now()+250;setTimeout(()=>{if(c.jugando)nueva()},250)}
+    else{flash('mal');jugo.nota(130);jugo.mover($('resp'),true);bloq=Date.now()+350;setTimeout(()=>{usadas=letras.map(()=>false);orden=[];pinta()},350)}}});
 $('borrar').onclick=()=>{if(!c.jugando||!orden.length||Date.now()<bloq)return;usadas[orden.pop()]=false;pinta()};
 $('saltar').onclick=()=>{if(!c.jugando||Date.now()<bloq)return;bloq=Date.now()+3000;$('pista').textContent='Era: '+palabra.toUpperCase()+' · espera 3 s';setTimeout(()=>{if(c.jugando)nueva()},3000)};
 addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(e.repeat||!c.jugando||Date.now()<bloq)return;if(e.key==='Backspace'){$('borrar').onclick();return}

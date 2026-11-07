@@ -95,7 +95,7 @@ function snapshot(d){if(!Array.isArray(d.ps)||!Array.isArray(d.g))return;ronda({
   const g=new Uint8Array(GW*GH);let k=0;for(let i=0;i+1<d.g.length&&k<g.length;i+=2){g.fill(d.g[i]|0,k,Math.min(g.length,k+(d.g[i+1]|0)));k+=d.g[i+1]|0}R.grid=g;
   d.ps.forEach((p,i)=>{if(R.ps[i])R.ps[i].vivo=p.vivo!==false});if(d.fin)R.fin=d.fin;campeon=d.camp||null;pintaJug()}
 function aplicar(d){if(!R||!Array.isArray(d))return;R.ps.forEach((p,i)=>{if(!p.vivo)return;const x=d[i*5]|0,y=d[i*5+1]|0,v=d[i*5+2];p.dx=d[i*5+3]|0;p.dy=d[i*5+4]|0;
-    if(v){p.x=x;p.y=y;if(x>=0&&y>=0&&x<GW&&y<GH)R.grid[y*GW+x]=i+1}else{p.vivo=false;boom(p);if(p.id===yo())shake=14;else shake=Math.max(shake,5)}});pintaJug()}
+    if(v){p.x=x;p.y=y;if(x>=0&&y>=0&&x<GW&&y<GH)R.grid[y*GW+x]=i+1}else{p.vivo=false;boom(p);if(window.GameHubFx&&GameHubFx.tono){GameHubFx.tono(p.id===yo()?90:160,.3,'sawtooth',p.id===yo()?.08:.04)}if(p.id===yo())shake=14;else shake=Math.max(shake,5)}});pintaJug()}
 function fin(f){if(!R||f.id!==R.id)return;R.fin=f;if(f.marc&&typeof f.marc==='object')marc=f.marc;campeon=f.camp||null;pintaJug()}
 function boom(p){const ex=p.x+p.dx,ey=p.y+p.dy;for(let k=0;k<26;k++){const a=Math.random()*6.283,s=2+Math.random()*9;parts.push({x:ex+.5,y:ey+.5,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:.6+Math.random()*.5,c:p.color})}}
 function nombre(id){const p=R&&R.ps.find(q=>q.id===id);return p?(p.id===yo()&&online()?'Tú':p.name):'Alguien'}

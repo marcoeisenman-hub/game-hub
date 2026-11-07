@@ -34,6 +34,17 @@ h1{font-size:clamp(34px,8vw,54px);letter-spacing:-.05em;margin:0}
 <script src="/carrera.js"></script>
 <script>
 'use strict';
+
+// Efectos locales: solo presentación; no consumen el azar de Carrera.
+const jugo={
+ audio:null,
+ nota(f=660,n=1){try{if(window.GameHubFx?.silencio?.()||localStorage.getItem('gamehubSilencio')==='1')return;const A=window.AudioContext||window.webkitAudioContext;if(!A)return;const a=this.audio||(this.audio=new A());a.resume().catch(()=>{});for(let i=0;i<n;i++){const t=a.currentTime+i*.065,o=a.createOscillator(),g=a.createGain();o.type='triangle';o.frequency.value=f*Math.pow(1.25,i);g.gain.setValueAtTime(.035,t);g.gain.exponentialRampToValueAtTime(.001,t+.12);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+.13)}}catch{}},
+ mover(el,mal=false){el?.animate(mal?[{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}]:[{transform:'scale(.94)'},{transform:'scale(1.04)'},{transform:'scale(1)'}],{duration:280})},
+ flotar(el,txt,color='#1E9E6A'){if(!el)return;const r=el.getBoundingClientRect(),p=document.createElement('span');p.textContent=txt;Object.assign(p.style,{position:'fixed',left:Math.max(8,Math.min(innerWidth-85,r.left+r.width/2-30))+'px',top:Math.max(10,r.top)+'px',font:'900 24px system-ui',color,pointerEvents:'none',zIndex:100});document.body.append(p);p.animate([{opacity:1,transform:'translateY(0)'},{opacity:0,transform:'translateY(-65px)'}],{duration:750}).onfinish=()=>p.remove()},
+ chispas(el,color='#F5B700',n=12){if(!el)return;const r=el.getBoundingClientRect(),capa=document.createElement('div');Object.assign(capa.style,{position:'fixed',inset:'0',overflow:'hidden',pointerEvents:'none',zIndex:99});document.body.append(capa);setTimeout(()=>capa.remove(),650);for(let i=0;i<n;i++){const p=document.createElement('i');Object.assign(p.style,{position:'fixed',left:(r.left+r.width/2)+'px',top:(r.top+r.height/2)+'px',width:'6px',height:'6px',borderRadius:'2px',background:color,pointerEvents:'none',zIndex:99});capa.append(p);const a=i/n*Math.PI*2;p.animate([{opacity:1,transform:'translate(0,0)'},{opacity:0,transform:`translate(${Math.cos(a)*55}px,${Math.sin(a)*55}px)`}],{duration:550}).onfinish=()=>p.remove()}},
+ numero(el,v,suf=''){const t=performance.now();function f(now){if(!el.isConnected)return;const q=Math.min(1,(now-t)/400);el.textContent=Math.round(v*(1-Math.pow(1-q,3)))+suf;if(q<1)requestAnimationFrame(f)}requestAnimationFrame(f)}
+};
+
 const $=id=>document.getElementById(id);
 const COL=[['ROJO','#E63946'],['AZUL','#2D6CDF'],['VERDE','#1E9E6A'],['AMARILLO','#F5B700'],['MORADO','#6C4BD8'],['NARANJA','#F28C28']];
 let rand=Math.random,puntos=0,n=0,actual=null;
@@ -47,14 +58,14 @@ function nueva(){n++;const k=Math.min(6,4+Math.floor(puntos/8));
   const ops=[w,t,...resto].slice(0,4);for(let i=ops.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[ops[i],ops[j]]=[ops[j],ops[i]]}
   actual={w,t,modo,ok:modo==='col'?t:modo==='pal'?w:-1};
   $('pal').textContent=COL[w][0];$('pal').style.color=COL[t][1];
-  $('regla').textContent=modo==='col'?'¿De qué COLOR está?':modo==='pal'?'¿Qué dice la PALABRA?':'Toca uno que NO sea el color';$('regla').className='regla'+(modo==='pal'?' pal':modo==='no'?' no':'');
+  $('regla').animate([{transform:'rotateX(90deg)'},{transform:'rotateX(0)'}],{duration:100});$('regla').textContent=modo==='col'?'¿De qué COLOR está?':modo==='pal'?'¿Qué dice la PALABRA?':'Toca uno que NO sea el color';$('regla').className='regla'+(modo==='pal'?' pal':modo==='no'?' no':'');
   $('carta').style.background=puntos>=14?['#FDE2E4','#DCE8FB','#DDF3E6','#FFF3C4','#E8E1FB','#FFE5CC'][Math.floor(r2*6)]:'';
   $('pal').classList.toggle('baila',puntos>=14);$('pal').style.setProperty('--rot',(r3*16-8).toFixed(1)+'deg');
   $('ops').innerHTML=ops.map(i=>`<button type="button" data-i="${i}" style="${puntos>=6?'color:'+COL[(i+1+Math.floor(rand()*(k-1)))%k][1]:''}">${COL[i][0].charAt(0)+COL[i][0].slice(1).toLowerCase()}</button>`).join('');
   $('pts').textContent=puntos}
 function flash(c){const p=$('carta');p.classList.remove('bien','mal');void p.offsetWidth;p.classList.add(c)}
 function responder(e){const b=e.target.closest('button'),teclado=e.type==='keydown';if(!b||b.disabled||!c.jugando||!actual||!b.dataset.i)return;e.preventDefault();
-  if(actual.modo==='no'?+b.dataset.i!==actual.t:+b.dataset.i===actual.ok){puntos++;flash('bien')}else{puntos=Math.max(0,puntos-1);flash('mal')}
+  if(actual.modo==='no'?+b.dataset.i!==actual.t:+b.dataset.i===actual.ok){puntos++;jugo.nota(820);flash('bien')}else{puntos=Math.max(0,puntos-1);jugo.nota(130);flash('mal')}
   c.progreso(puntos,40);nueva();if(teclado){const f=$('ops').querySelector('button');if(f)f.focus()}}
 addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(e.repeat)return;if(/^[1-4]$/.test(e.key)){const b=$('ops').children[+e.key-1];if(b)responder({target:b,type:'keydown',preventDefault(){}})}});
 $('ops').addEventListener('pointerdown',responder);

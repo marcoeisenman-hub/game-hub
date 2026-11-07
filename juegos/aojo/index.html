@@ -104,26 +104,34 @@ const PREG=[
 ['¿Cuántos kilómetros mide el río Amazonas?',6400,'km',100,1000000,'Lleva más agua que cualquier otro río del planeta.'],
 ['¿Cuántos años tiene la Gran Pirámide de Guiza?',4500,'años',50,1000000,'Fue el edificio más alto del mundo durante casi 4.000 años.'],
 ];
-const RONDAS=7,nf=new Intl.NumberFormat('es',{maximumFractionDigits:2});
+const RONDAS=7,nf=new Intl.NumberFormat('es-PA',{maximumFractionDigits:2});
 const $=id=>document.getElementById(id);
 let lista=[];
 function actOtra(){const b=document.getElementById('otra');b.disabled=!P.mando;b.textContent=P.mando?'Jugar otra vez':'El líder empieza otra'}
 const P=Partida({rondas:RONDAS,alCambiar:t=>{try{actOtra()}catch(e){}if(t==='partida'){armar();$('fin').hidden=true;$('juego').hidden=false}if(t==='partida'||t==='ronda')nueva();pintar()}});
 function armar(){lista=barajar(PREG.map((_,i)=>i),azar(P.seed)).slice(0,RONDAS)}
-const Q=()=>PREG[lista[P.ronda]];
+// la respuesta ya no queda siempre en el medio: el rango se corre al azar (igual para toda la sala)
+const dos=x=>{const e=10**(Math.floor(Math.log10(x))-1);return Math.round(x/e)*e};
+let qCache=null;
+const Q=()=>{const k=P.seed+':'+P.ronda;if(qCache&&qCache.k===k)return qCache.q;const q=[...PREG[lista[P.ronda]]];
+  const r=azar((P.seed>>>0)+P.ronda*7919+1)(),span=Math.log10(q[4])-Math.log10(q[3]),pos=.12+.76*r,lo=dos(10**(Math.log10(q[1])-pos*span)),hi=dos(10**(Math.log10(q[1])-pos*span+span));
+  q[3]=Math.min(lo,q[1]*.9);q[4]=Math.max(hi,q[1]*1.1);qCache={k,q};return q};
 const lg=Math.log10;
 function desdeSl(v){const [, , ,lo,hi]=Q();return 10**(lg(lo)+(lg(hi)-lg(lo))*v/1000)}
 function haciaSl(x){const [, , ,lo,hi]=Q();return Math.round(1000*(lg(x)-lg(lo))/(lg(hi)-lg(lo)))}
 function bonito(x){if(x>=100)return Math.round(x);if(x>=10)return Math.round(x*10)/10;return Math.round(x*100)/100}
-function leer(){let t=$('num').value.replace(/\s/g,'');t=/^\d+\.\d{1,2}$/.test(t)?t:t.replace(/\./g,'').replace(',','.');const v=parseFloat(t);return Number.isFinite(v)&&v>0?v:null}
+function leer(){let t=$('num').value.replace(/\s/g,'');
+  // en Panamá: punto = decimal, coma = miles (1,500.5). Si solo hay una coma con 1-2 decimales, también vale como decimal (2,5)
+  if(/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(t))t=t.replace(/,/g,'');else if(!t.includes('.')&&/^\d+,\d{1,2}$/.test(t))t=t.replace(',','.');else t=t.replace(/,/g,'');const v=parseFloat(t);return Number.isFinite(v)&&v>0?v:null}
 // exacto = 1000; 10 % de error ≈ 800; 25 % ≈ 600; el doble ≈ 200; el triple ≈ 80
 const puntos=(g,r)=>{if(!(g>0)||!(r>0))return 0;return Math.round(1000*Math.exp(-2.3*Math.abs(Math.log(g/r))))};
 const errorPct=(g,r)=>Math.round(Math.abs(g-r)/r*100);
-function nueva(){const q=Q();$('sl').value=500;$('num').value=nf.format(bonito(desdeSl(500)));}
+function nueva(){const q=Q();const real=haciaSl(q[1]);let v;do{v=60+Math.floor(Math.random()*880)}while(Math.abs(v-real)<260);$('sl').value=v;$('num').value=nf.format(bonito(desdeSl(v)));}
 $('sl').oninput=()=>{$('num').value=nf.format(bonito(desdeSl(+$('sl').value)))};
 $('num').oninput=()=>{const v=leer();if(v)$('sl').value=Math.max(0,Math.min(1000,haciaSl(v)))};
 $('num').onkeydown=e=>{if(e.key==='Enter')$('ok').click()};
 $('ok').onclick=()=>{const g=leer();if(!g){$('num').focus();return}const r=Q()[1];P.responder({g,pts:puntos(g,r)})};
+let festRonda=-1;function festejar(pts,el){const F=window.GameHubFx;if(!F||!F.flotar||festRonda===P.ronda)return;festRonda=P.ronda;if(el)F.flotar(el,null,'+'+pts+' pts',pts>=800?'#1E9E6A':pts>=400?'#15171C':'#E4572E');if(pts>=850){F.confeti(60);F.acorde(659)}else if(pts>=400)F.acorde(440);else F.error()}
 function pintar(){
   if(!lista.length){armar();nueva()}
   const q=Q(),mia=P.mia(),t=P.puntos(),yo=P.jugadores().find(j=>j.yo)||{id:'yo'};
@@ -136,7 +144,7 @@ function pintar(){
     const pos=x=>Math.max(0,Math.min(100,(lg(x)-a)/(b-a)*100));
     const pts=Object.values(rs).sort((x,y)=>x.d.g-y.d.g);
     $('linea').innerHTML='<div class="eje"></div>'+pts.map((x,i)=>`<div class="p ${i%2?'abajo':''}" style="left:${pos(x.d.g)}%"><i style="background:${x.yo?'#15171C':x.color}"></i><small style="color:${x.yo?'#15171C':x.color}">${x.yo?'Tú':x.name}: ${nf.format(bonito(x.d.g))}</small></div>`).join('')+`<div class="p real" style="left:${pos(q[1])}%"><i></i><small>${nf.format(q[1])}</small></div>`;
-    const veces=mia.g>q[1]?mia.g/q[1]:q[1]/mia.g;
+    festejar(mia.pts,$('real'));const veces=mia.g>q[1]?mia.g/q[1]:q[1]/mia.g;
     $('real').textContent=`${nf.format(q[1])} ${q[2]} · ${errorPct(mia.g,q[1])===0?'¡exacto!':'te fuiste por '+nf.format(errorPct(mia.g,q[1]))+' %'} · ganaste ${nf.format(mia.pts)} pts`;
     $('nota').textContent=(veces<1.05?'¡Casi exacto! ':veces<1.5?'Muy cerca. ':`Te fuiste ${nf.format(Math.round(veces*10)/10)} veces ${mia.g>q[1]?'por arriba':'por abajo'}. `)+q[5];
     const ult=P.ronda>=RONDAS-1,faltan=P.jugadores().filter(j=>!rs[j.id]),s=$('sig');

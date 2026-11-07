@@ -70,13 +70,15 @@ function cadenaDe(idx,k){const N=G.ps.length;return((idx-k)%N+N)%N}
 function nombre(id){const p=G&&G.ps.find(q=>q.id===id);return p?(p.id===yo()?'Tú':p.name):'Alguien'}
 
 /* ---------- líder ---------- */
-function empezar(){if(!lider())return;const js=sala.jugadores().map(j=>({id:j.id,name:j.name,color:j.color})).slice(0,10);if(js.length<2)return;
+function empezar(){if(!lider())return;const js=sala.jugadores().map(j=>({id:j.id,name:j.name,color:j.color})).slice(0,10);if(!js.length)return;
+  while(js.length<4){const i=js.length;js.push({id:'garabato-bot-'+i,name:['Chispa 🤖','Lápiz 🤖','Tinta 🤖','Garabín 🤖'][i],color:COL[[6,7,8,5][i]],bot:true})}
   const N=js.length,pasos=N<4?4:Math.min(N,8);
   G={id:Math.random().toString(36).slice(2,9),ps:js,pasos,k:0,cad:Array.from({length:N},()=>[]),fin:null,rev:null};abrirPaso(0)}
 let pasoTimer=0;
-function abrirPaso(k){G.k=k;G.limite=Date.now()+tiempoPaso(k);publicar();clearTimeout(pasoTimer);pasoTimer=setTimeout(()=>cerrarPaso(true),tiempoPaso(k)+3000)}
+let botTimers=[];
+function abrirPaso(k){botTimers.forEach(clearTimeout);botTimers=[];G.k=k;G.limite=Date.now()+tiempoPaso(k);publicar();clearTimeout(pasoTimer);pasoTimer=setTimeout(()=>cerrarPaso(true),tiempoPaso(k)+3000);simularBots()}
 function quienHace(c,k){return G.ps[(c+k)%G.ps.length]}
-function recibir(d,de){if(!G||G.fin||d.id!==G.id||d.k!==G.k)return;const idx=G.ps.findIndex(p=>p.id===de.id);if(idx<0)return;const c=cadenaDe(idx,G.k);if(G.cad[c][G.k])return;
+function recibir(d,de){if(!G||G.fin||d.id!==G.id||d.k!==G.k)return;const idx=G.ps.findIndex(p=>p.id===de.id&&(!p.bot||de.botInterno));if(idx<0)return;const c=cadenaDe(idx,G.k);if(G.cad[c][G.k])return;
   const t=tipoPaso(G.k);let v;
   if(t==='dibujar'){if(!Array.isArray(d.v))return;v=d.v.slice(0,400).filter(s=>s&&Array.isArray(s.p)).map(s=>({c:Math.max(0,Math.min(COL.length-1,s.c|0)),w:Math.max(0,Math.min(2,s.w|0)),p:s.p.slice(0,1200).map(n=>Math.max(-5,Math.min(1005,n|0)))}))}
   else{v=String(d.v||'').trim().slice(0,90)||'(no escribió nada)'}
@@ -87,6 +89,32 @@ function cerrarPaso(porTiempo){if(!G||G.fin)return;clearTimeout(pasoTimer);const
   if(G.k+1<G.pasos)abrirPaso(G.k+1);else{G.fin=true;G.rev={c:0,i:0};publicar()}}
 function publicar(){if(!G)return;const d={type:'estado',G:{...G,falta:G.limite?Math.max(0,G.limite-Date.now()):0}};tx(d);aplicarEstado(d.G,true)}
 function siguienteRev(){if(!lider()||!G||!G.fin)return;const r=G.rev;if(r.i+1<G.pasos)r.i++;else if(r.c+1<G.cad.length){r.c++;r.i=0}else r.c=G.cad.length;publicar()}
+
+
+/* Los robots solo los ejecuta el líder; sus entregas usan el mismo validador. */
+function dibujarBot(texto){
+ const t=texto.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),ts=[];
+ const linea=(p,c=0,w=1)=>ts.push({c,w,p:p.flat().map(Math.round)});
+ const circulo=(x,y,r,c=0)=>linea(Array.from({length:37},(_,i)=>[x+Math.cos(i*Math.PI/18)*r,y+Math.sin(i*Math.PI/18)*r]),c);
+ const forma=/gato|perro|tiburon|pez|pulpo|vaca|pollo|pinguino|mono|sapo|abeja|elefante|dinosaurio/.test(t)?'animal':/\b(sol|luna|nube|lluvia)\b/.test(t)&&!t.includes('lentes de sol')?'sol':/casa|colegio|kiosko|super|banco/.test(t)?'casa':/cohete|astronauta/.test(t)?'cohete':/pizza|hamburguesa|empanada|pina|helado|raspao|patacon|platano/.test(t)?'comida':'persona';
+ if(forma==='animal'){circulo(390,310,115,3);linea([[290,260],[285,145],[350,205]],3);linea([[430,205],[500,145],[490,260]],3);circulo(355,285,9);circulo(430,285,9);linea([[385,315],[400,325],[415,315]]);linea([[330,355],[390,385],[450,355]]);linea([[300,320],[215,300]]);linea([[490,320],[575,300]]);}
+ else if(forma==='sol'){circulo(390,275,100,4);for(let i=0;i<12;i++){const a=i*Math.PI/6;linea([[390+Math.cos(a)*125,275+Math.sin(a)*125],[390+Math.cos(a)*165,275+Math.sin(a)*165]],3)}circulo(355,260,8);circulo(425,260,8);linea([[350,300],[390,325],[430,300]]);}
+ else if(forma==='casa'){linea([[210,290],[390,125],[570,290],[210,290]],2);linea([[245,290],[245,480],[535,480],[535,290]],6);linea([[355,480],[355,365],[420,365],[420,480]],9);linea([[270,325],[320,325],[320,375],[270,375],[270,325]],6);circulo(620,130,45,4);}
+ else if(forma==='cohete'){linea([[330,400],[330,240],[390,130],[450,240],[450,400],[330,400]],6);circulo(390,270,35,7);linea([[330,330],[270,430],[330,400]],2);linea([[450,330],[510,430],[450,400]],2);linea([[345,415],[365,510],[390,440],[415,510],[435,415]],3);}
+ else if(forma==='comida'){circulo(390,300,145,3);linea([[250,290],[530,290]],9);linea([[260,330],[520,330]],5);circulo(350,260,8);circulo(430,260,8);linea([[350,365],[390,390],[430,365]]);linea([[250,330],[190,260]]);linea([[530,330],[590,260]]);}
+ else{circulo(390,190,68,7);circulo(365,180,7);circulo(415,180,7);linea([[365,215],[390,230],[415,215]]);linea([[390,260],[390,400]],6);linea([[270,300],[390,325],[520,245]],6);linea([[390,400],[300,500]],6);linea([[390,400],[475,500]],6);}
+ if(/lentes|sol/.test(t)&&forma!=='sol')linea([[330,260],[375,260],[375,285],[330,285],[330,260],[420,260],[465,260],[465,285],[420,285],[420,260]],0);
+ return ts;
+}
+function adivinarBot(trazos){
+ // Adivina por los trazos que realmente recibió, sin leer frases ocultas.
+ if(!Array.isArray(trazos)||!trazos.length)return 'Un ninja invisible esperando el recreo';
+ const color=c=>trazos.filter(s=>s.c===c).length,frases=color(3)>=8?['El sol contando un chiste','Una estrella con demasiada energía']:color(9)&&color(5)?['Una hamburguesa saludando','Una pizza haciendo ejercicio']:color(9)?['La casa del profe de arte','Un kiosko en vacaciones']:color(2)&&color(6)?['Un cohete buscando wifi','Un astronauta en un cohete']:color(3)?['Un gato con bigotes de espagueti','Un perro que se cree tigre']:['Un robot bailando en el recreo','Un astronauta haciendo yoga','Un profe festejando el viernes'];
+ return frases[Math.floor(Math.random()*frases.length)];
+}
+function simularBots(){if(!lider()||!G||G.fin)return;const id=G.id,k=G.k;
+ G.ps.forEach((p,i)=>{if(!p.bot||G.cad[cadenaDe(i,k)][k])return;botTimers.push(setTimeout(()=>{if(!lider()||!G||G.id!==id||G.k!==k||G.fin)return;const ch=G.cad[cadenaDe(i,k)],t=tipoPaso(k),prev=ch[k-1];const v=t==='escribir'?IDEAS[Math.floor(Math.random()*IDEAS.length)]:t==='dibujar'?dibujarBot(String(prev?.v||'')):adivinarBot(prev?.v);recibir({id,k,v},{id:p.id,botInterno:true})},1800+i*700+(tipoPaso(k)==='dibujar'?1800:0)))});
+}
 
 /* ---------- todos ---------- */
 function aplicarEstado(g,propio){if(!g||!Array.isArray(g.ps)||!Array.isArray(g.cad))return;
@@ -114,10 +142,10 @@ addEventListener('resize',()=>{redibujar();document.querySelectorAll('canvas[dat
 /* ---------- pantallas ---------- */
 function chips(){if(!G)return'';const k=G.k;return '<div class="jugs">'+G.ps.map((p,idx)=>{const c=cadenaDe(idx,k),ok=G.fin||!!G.cad[c][k];return`<span class="${ok?'listo':''}" style="--pc:${esc(p.color)}"><i></i>${esc(p.id===yo()?'Tú':p.name)}${ok?' ✓':''}</span>`}).join('')+'</div>'}
 function render(fuerte){document.body.classList.toggle('jugando',!!G&&!G.fin);
-  if(!online()){app.innerHTML=`<div class="caja"><p class="grande-t">Se juega con amigos 🎨</p><p class="mut">Garabato necesita una sala de 2 o más personas (mejor 4+). Crea una sala en la portada, manda el link y entren todos a Garabato.</p>${como()}<a class="btn grande" href="/#multiplayer">Crear sala</a></div>`;return}
+  if(!online()){app.innerHTML=`<div class="caja"><p class="grande-t">Se juega con amigos 🎨</p><p class="mut">Garabato necesita una sala: los bots completan hasta 4 jugadores. Crea una sala en la portada, manda el link y entren todos a Garabato.</p>${como()}<a class="btn grande" href="/#multiplayer">Crear sala</a></div>`;return}
   if(!G||(G.fin&&G.rev&&G.rev.c>=G.cad.length&&false)){const js=sala.jugadores();
-    app.innerHTML=`<div class="caja"><p class="grande-t">${js.length<2?'Esperando amigos…':'¡Listos para garabatear!'}</p>${como()}<div class="jugs">${js.map(j=>`<span style="--pc:${esc(j.color)}"><i></i>${esc(j.yo?'Tú':j.name)}</span>`).join('')}</div>
-      ${lider()?`<button class="btn grande" id="go" ${js.length<2?'disabled':''}>Empezar</button>`:'<p class="mut"><b>El líder</b> empieza cuando estén todos.</p>'}</div>`;
+    app.innerHTML=`<div class="caja"><p class="grande-t">${js.length<1?'Esperando amigos…':'¡Listos para garabatear!'}</p>${como()}<p class="mut">Si faltan jugadores, unos artistas robot completan hasta 4. Cada cadena pasa por todos.</p><div class="jugs">${js.map(j=>`<span style="--pc:${esc(j.color)}"><i></i>${esc(j.yo?'Tú':j.name)}</span>`).join('')}</div>
+      ${lider()?`<button class="btn grande" id="go" ${js.length<1?'disabled':''}>Empezar</button>`:'<p class="mut"><b>El líder</b> empieza cuando estén todos.</p>'}</div>`;
     const go=$('go');if(go)go.onclick=empezar;return}
   if(G.fin)return renderRev(fuerte);
   const idx=miIdx();

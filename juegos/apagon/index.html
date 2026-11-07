@@ -43,6 +43,16 @@ canvas{display:block;width:100%;touch-action:none}
   <p class="ayuda">Flechas o WASD en compu. Desliza el dedo en el celular. Tu linterna se gasta: cada fusible la recarga.</p>
 </main>
 <script>
+// Efectos locales: solo presentación; no consumen el azar de Carrera.
+const jugo={
+ audio:null,
+ nota(f=660,n=1){try{if(window.GameHubFx?.silencio?.()||localStorage.getItem('gamehubSilencio')==='1')return;const A=window.AudioContext||window.webkitAudioContext;if(!A)return;const a=this.audio||(this.audio=new A());a.resume().catch(()=>{});for(let i=0;i<n;i++){const t=a.currentTime+i*.065,o=a.createOscillator(),g=a.createGain();o.type='triangle';o.frequency.value=f*Math.pow(1.25,i);g.gain.setValueAtTime(.035,t);g.gain.exponentialRampToValueAtTime(.001,t+.12);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+.13)}}catch{}},
+ mover(el,mal=false){el?.animate(mal?[{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}]:[{transform:'scale(.94)'},{transform:'scale(1.04)'},{transform:'scale(1)'}],{duration:280})},
+ flotar(el,txt,color='#1E9E6A'){if(!el)return;const r=el.getBoundingClientRect(),p=document.createElement('span');p.textContent=txt;Object.assign(p.style,{position:'fixed',left:Math.max(8,Math.min(innerWidth-85,r.left+r.width/2-30))+'px',top:Math.max(10,r.top)+'px',font:'900 24px system-ui',color,pointerEvents:'none',zIndex:100});document.body.append(p);p.animate([{opacity:1,transform:'translateY(0)'},{opacity:0,transform:'translateY(-65px)'}],{duration:750}).onfinish=()=>p.remove()},
+ chispas(el,color='#F5B700',n=12){if(!el)return;const r=el.getBoundingClientRect(),capa=document.createElement('div');Object.assign(capa.style,{position:'fixed',inset:'0',overflow:'hidden',pointerEvents:'none',zIndex:99});document.body.append(capa);setTimeout(()=>capa.remove(),650);for(let i=0;i<n;i++){const p=document.createElement('i');Object.assign(p.style,{position:'fixed',left:(r.left+r.width/2)+'px',top:(r.top+r.height/2)+'px',width:'6px',height:'6px',borderRadius:'2px',background:color,pointerEvents:'none',zIndex:99});capa.append(p);const a=i/n*Math.PI*2;p.animate([{opacity:1,transform:'translate(0,0)'},{opacity:0,transform:`translate(${Math.cos(a)*55}px,${Math.sin(a)*55}px)`}],{duration:550}).onfinish=()=>p.remove()}},
+ numero(el,v,suf=''){const t=performance.now();function f(now){if(!el.isConnected)return;const q=Math.min(1,(now-t)/400);el.textContent=Math.round(v*(1-Math.pow(1-q,3)))+suf;if(q<1)requestAnimationFrame(f)}requestAnimationFrame(f)}
+};
+
 const cv=document.getElementById('cv'),g=cv.getContext('2d'),capa=document.getElementById('capa');
 const N=14,Z=7; // laberinto de 14x14, 4 zonas de 7x7
 const DIR=[[0,-1,1],[1,0,2],[0,1,4],[-1,0,8]]; // dx,dy,bit de pared (N,E,S,O)
@@ -105,7 +115,7 @@ function elegirSombra(e){
 function empezar(){nivel=1;vidas=3;pts=0;nuevoNivel();estado='juego';capa.hidden=true;hud()}
 function hud(){document.getElementById('nivel').textContent=nivel;document.getElementById('vidas').textContent=vidas;document.getElementById('pts').textContent=pts;
   document.getElementById('pila').firstElementChild.style.width=(pila*100)+'%';document.getElementById('pila').classList.toggle('baja',pila<.25)}
-function prender(z){lit[z]=true;pts+=100;pila=1;mensaje={t:'¡Luz!',h:performance.now()};
+function prender(z){jugo.mover(document.querySelector('canvas'));jugo.nota(600,3);zonaFx.push({z,at:performance.now()});lit[z]=true;pts+=100;pila=1;mensaje={t:'¡Luz!',h:performance.now()};
   sombras=sombras.map((s,i)=>s&&lit[zona(Math.round(s.x),Math.round(s.y))]?(()=>{const n=nuevaSombra(i);if(n)n.espera=1.5;return n})():s);
   if(lit.every(Boolean)){pts+=250*nivel;nivel++;estado='pausa';setTimeout(()=>{nuevoNivel();estado='juego'},1100)}}
 function atrapado(){vidas--;hud();if(vidas<=0){fin();return}
@@ -121,7 +131,7 @@ function loop(t){const dt=Math.min(.05,(t-ultimo)/1000);ultimo=t;
   if(estado==='juego'){
     mover(player,dt,elegirJugador,false);
     const px=Math.round(player.x),py=Math.round(player.y);
-    for(const f of fus)if(!f.ok&&f.x===px&&f.y===py&&Math.abs(player.x-px)+Math.abs(player.y-py)<.35){f.ok=true;pts+=10;pila=Math.min(1,pila+.35);
+    for(const f of fus)if(!f.ok&&f.x===px&&f.y===py&&Math.abs(player.x-px)+Math.abs(player.y-py)<.35){f.ok=true;jugo.chispas({getBoundingClientRect:()=>{const r=cv.getBoundingClientRect();return{left:r.left+(f.x+.5)/N*r.width,top:r.top+(f.y+.5)/N*r.height,width:0,height:0}}},'#F5B700',10);jugo.nota(1100,2);pts+=10;pila=Math.min(1,pila+.35);
       if(fus.filter(o=>o.z===f.z).every(o=>o.ok))prender(f.z)}
     if(estado==='juego'){
       pila=Math.max(0,pila-dt*(0.035+nivel*0.004));
@@ -139,6 +149,7 @@ function medir(){const w=document.querySelector('main').clientWidth-28,h=Math.ma
   C=s/N;dpr=Math.min(2,devicePixelRatio||1);cv.style.height=s+'px';cv.style.width=s+'px';cv.width=niebla.width=s*dpr;cv.height=niebla.height=s*dpr;
   document.getElementById('marco').style.width=s+4+'px'}
 addEventListener('resize',medir);
+let zonaFx=[];
 function dibujar(t){
   const s=N*C;g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle='#1B1F2B';g.fillRect(0,0,s,s);
   if(!walls){g.fillStyle='#0E1016';g.fillRect(0,0,s,s);return}
@@ -173,6 +184,7 @@ function dibujar(t){
     g.beginPath();g.arc(cx-C*.12,cy-C*.04,C*.06,0,7);g.arc(cx+C*.12,cy-C*.04,C*.06,0,7);g.fill()}
   // fusibles: un brillito en lo oscuro para saber dónde buscar
   for(const f of fus){if(f.ok||lit[f.z])continue;g.fillStyle='rgba(245,183,0,'+(.18+.12*Math.sin(t/300+f.y))+')';g.beginPath();g.arc((f.x+.5)*C,(f.y+.5)*C,C*.07,0,7);g.fill()}
+  zonaFx=zonaFx.filter(e=>t-e.at<650);for(const e of zonaFx){g.fillStyle='rgba(255,240,150,'+(.65*(1-(t-e.at)/650))+')';g.fillRect((e.z%2)*Z*C,(e.z>>1)*Z*C,Z*C,Z*C)}
   if(mensaje&&t-mensaje.h<1000){const a=1-(t-mensaje.h)/1000;g.globalAlpha=a;g.fillStyle='#fff';g.font='900 '+Math.round(C*1.3)+'px "Schibsted Grotesk",sans-serif';g.textAlign='center';g.fillText(mensaje.t,s/2,s/2);g.globalAlpha=1}
 }
 

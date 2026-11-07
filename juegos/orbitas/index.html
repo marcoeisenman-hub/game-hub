@@ -94,7 +94,7 @@ function physics(dt){
       big.vx=(a.vx*a.m+b.vx*b.m)/M;big.vy=(a.vy*a.m+b.vy*b.m)/M;big.x=(a.x*a.m+b.x*b.m)/M;big.y=(a.y*a.m+b.y*b.m)/M;
       if(!big.star){big.r=Math.cbrt(big.r**3+small.r**3);}else big.r=26*Math.cbrt(M/2200);
       big.m=M;flashes.push({x:small.x,y:small.y,r:small.r*3+8,life:1,c:small.star?'#FFF2C4':'#FFD9A8'});nuevosFlash.push([small.x-CX(),small.y-CY(),small.r*3+8,small.star?1:0]);
-      if(!small.star&&big.star)lost++;else merges++;
+      if(!small.star&&big.star)lost++;else merges++;if(window.GameHubFx&&GameHubFx.tono)GameHubFx.tono(Math.max(80,600-Math.sqrt(big.m||1)*20),.15,'sine',.05);
       bodies.splice(bodies.indexOf(small),1);j--}}
   // fuera de la pantalla, muy lejos
   bodies=bodies.filter(b=>{const out=b.x<-2*W||b.x>3*W||b.y<-2*H||b.y>3*H;if(out)lost++;return !out});

@@ -72,6 +72,7 @@ function tocar(){
   if(fase==='angulo'){fase='fuerza';t=0}
   else if(fase==='fuerza'){perfecto=pot>=.86&&pot<=.96;const p=perfecto?1.15:pot;
     const v=(26+datos.fuerza*5.5)*p,a=ang*Math.PI/180;b.vx=v*Math.cos(a);b.vy=v*Math.sin(a);b.y=0;fase='vuelo';
+    {const F=window.GameHubFx;if(F&&F.tono){F.tono(perfecto?110:90,.18,'sine',.18);if(perfecto){F.acorde(659);F.chispas(innerWidth/2,innerHeight*.6,['#fff','#F5B700'],22)}}}
     if(perfecto)mostrar('¡Patada perfecta!');
     for(let i=0;i<5;i++)nuevoPel(40+i*60)}
 }
@@ -85,14 +86,14 @@ function paso(dt){
   const v=Math.hypot(b.vx,b.vy);b.vx-=b.vx*aire*v*dt;b.vy-=b.vy*aire*v*dt;b.vy-=G*dt;
   b.x+=b.vx*dt;b.y+=b.vy*dt;b.rot+=b.vx*dt*1.6;
   if(b.y<=0){b.y=0;if(b.vy<-2.5){b.vy=-b.vy*e;b.vx*=.88}else{b.vy=0;b.vx=Math.max(0,b.vx-(3+b.vx*.25)*dt)}}
-  for(const p of pel){if(!p.ok&&Math.hypot(p.x-b.x,p.y-b.y)<3.6){p.ok=true;golpes++;b.vy=Math.max(b.vy,0)+14+datos.rebote;b.vx+=5;mostrar('¡Pelícano!')}}
+  for(const p of pel){if(!p.ok&&Math.hypot(p.x-b.x,p.y-b.y)<3.6){p.ok=true;golpes++;b.vy=Math.max(b.vy,0)+14+datos.rebote;b.vx+=5;mostrar('¡Pelícano!');if(window.GameHubFx&&GameHubFx.tono){GameHubFx.tono(523+golpes*60,.1,'square',.05)}}}
   // pelícanos nuevos delante
   const ult=pel.length?pel[pel.length-1].x:0;if(ult<b.x+260)nuevoPel(ult+30+Math.random()*60+b.x*.02);
   pel=pel.filter(p=>p.x>b.x-120);
   while(pasados<LUGARES.length&&b.x>LUGARES[pasados][0]){mostrar('Pasaste '+LUGARES[pasados][1]);pasados++}
   if(b.y<=0&&b.vx<=0.05&&b.vy===0)terminar()
 }
-function terminar(){fase='fin';const d=Math.floor(b.x),m=Math.round(d/8)+golpes*3+(perfecto?5:0);datos.monedas+=m;const nuevo=d>datos.record;if(nuevo)datos.record=d;guardar();
+function terminar(){fase='fin';const d=Math.floor(b.x),m=Math.round(d/8)+golpes*3+(perfecto?5:0);datos.monedas+=m;const nuevo=d>datos.record;if(nuevo)datos.record=d;guardar();{const F=window.GameHubFx;if(F&&F.acorde){if(nuevo){F.confeti(90);F.acorde(659)}else F.tono(392,.2)}}
   setTimeout(()=>menu({d,m,nuevo,lugar:pasados?LUGARES[pasados-1][1]:null}),700)}
 
 /* ---------- dibujo ---------- */

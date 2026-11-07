@@ -29,6 +29,17 @@ h1{font-size:clamp(34px,8vw,54px);letter-spacing:-.05em;margin:0}
 <script src="/carrera.js"></script>
 <script>
 'use strict';
+
+// Efectos locales: solo presentación; no consumen el azar de Carrera.
+const jugo={
+ audio:null,
+ nota(f=660,n=1){try{if(window.GameHubFx?.silencio?.()||localStorage.getItem('gamehubSilencio')==='1')return;const A=window.AudioContext||window.webkitAudioContext;if(!A)return;const a=this.audio||(this.audio=new A());a.resume().catch(()=>{});for(let i=0;i<n;i++){const t=a.currentTime+i*.065,o=a.createOscillator(),g=a.createGain();o.type='triangle';o.frequency.value=f*Math.pow(1.25,i);g.gain.setValueAtTime(.035,t);g.gain.exponentialRampToValueAtTime(.001,t+.12);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+.13)}}catch{}},
+ mover(el,mal=false){el?.animate(mal?[{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}]:[{transform:'scale(.94)'},{transform:'scale(1.04)'},{transform:'scale(1)'}],{duration:280})},
+ flotar(el,txt,color='#1E9E6A'){if(!el)return;const r=el.getBoundingClientRect(),p=document.createElement('span');p.textContent=txt;Object.assign(p.style,{position:'fixed',left:Math.max(8,Math.min(innerWidth-85,r.left+r.width/2-30))+'px',top:Math.max(10,r.top)+'px',font:'900 24px system-ui',color,pointerEvents:'none',zIndex:100});document.body.append(p);p.animate([{opacity:1,transform:'translateY(0)'},{opacity:0,transform:'translateY(-65px)'}],{duration:750}).onfinish=()=>p.remove()},
+ chispas(el,color='#F5B700',n=12){if(!el)return;const r=el.getBoundingClientRect(),capa=document.createElement('div');Object.assign(capa.style,{position:'fixed',inset:'0',overflow:'hidden',pointerEvents:'none',zIndex:99});document.body.append(capa);setTimeout(()=>capa.remove(),650);for(let i=0;i<n;i++){const p=document.createElement('i');Object.assign(p.style,{position:'fixed',left:(r.left+r.width/2)+'px',top:(r.top+r.height/2)+'px',width:'6px',height:'6px',borderRadius:'2px',background:color,pointerEvents:'none',zIndex:99});capa.append(p);const a=i/n*Math.PI*2;p.animate([{opacity:1,transform:'translate(0,0)'},{opacity:0,transform:`translate(${Math.cos(a)*55}px,${Math.sin(a)*55}px)`}],{duration:550}).onfinish=()=>p.remove()}},
+ numero(el,v,suf=''){const t=performance.now();function f(now){if(!el.isConnected)return;const q=Math.min(1,(now-t)/400);el.textContent=Math.round(v*(1-Math.pow(1-q,3)))+suf;if(q<1)requestAnimationFrame(f)}requestAnimationFrame(f)}
+};
+
 const $=id=>document.getElementById(id);
 let rand=Math.random,puntos=0,correcto=-1,bloq=0;
 function nivel(){const k=puntos;const lado=Math.min(7,2+Math.floor(k/3));const dif=Math.max(4,26-k*.9);return{lado,dif}}
@@ -41,9 +52,9 @@ function nueva(){const {lado,dif}=nivel(),tot=lado*lado;
   tab.innerHTML=html;$('tam').textContent=lado+'×'+lado;$('pts').textContent=puntos}
 $('tab').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!e.repeat&&e.target.closest('button[data-i]')){e.preventDefault();e.target.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))}});
 $('tab').addEventListener('pointerdown',e=>{const b=e.target.closest('button[data-i]');if(!b||!c.jugando||Date.now()<bloq)return;e.preventDefault();
-  if(+b.dataset.i===correcto){puntos++;c.progreso(puntos,30);nueva()}
+  if(+b.dataset.i===correcto){puntos++;jugo.nota(720);const clon=b.cloneNode(true);const r=b.getBoundingClientRect();Object.assign(clon.style,{position:'fixed',left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px',pointerEvents:'none',zIndex:70});document.body.append(clon);clon.animate([{transform:'scale(1)',opacity:1},{transform:'scale(.1)',opacity:0}],{duration:250}).onfinish=()=>clon.remove();c.progreso(puntos,30);nueva()}
   else{bloq=Date.now()+3000;const t=$('tab');t.classList.remove('mal');void t.offsetWidth;t.classList.add('mal');
-    const m=document.createElement('div');m.className='bloqueo';m.textContent='¡Ese no! −3 s';t.append(m);setTimeout(()=>m.remove(),3000)}});
+    const m=document.createElement('div');m.className='bloqueo';m.innerHTML='<span>3</span><i style="position:absolute;bottom:12px;left:8%;width:84%;height:7px;background:white;transform-origin:left"></i>';jugo.nota(120);t.append(m);m.querySelector('i').animate([{transform:'scaleX(1)'},{transform:'scaleX(0)'}],{duration:3000,fill:'forwards'});const cuenta=setInterval(()=>{m.querySelector('span').textContent='¡Congelado! '+Math.max(1,Math.ceil((bloq-Date.now())/1000))},100);setTimeout(()=>{clearInterval(cuenta);m.remove()},3000)}});
 function mostrar(){const b=$('tab').querySelector(`button[data-i="${correcto}"]`);if(b)b.classList.add('era')}
 const c=Carrera({app:'distinto',maxValor:80,el:$('carrera'),limite:40000,mejor:'alto',formato:v=>v+(v===1?' encontrado':' encontrados'),
   alEmpezar:r=>{rand=r;puntos=0;bloq=0;nueva();c.progreso(0,30)},

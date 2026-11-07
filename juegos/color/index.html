@@ -22,7 +22,7 @@ function renderBoard(){const b=$('#board');b.replaceChildren();if(!game?.closed|
   const mia=game.answers[me()],pm=mia?points(mia,real):0;
   const res=document.createElement('div');res.className='res';
   res.innerHTML='<div class="duo"><div><i style="background:'+paint(real)+'"></i><small>Original</small></div><div><i style="background:'+(mia?paint(mia):'#eee')+'"></i><small>'+(mia?'Tu color':'No respondiste')+'</small></div></div><div class="nota"><b>'+pm.toFixed(1).replace('.',',')+'</b><span>/ 10</span><em>'+(mia?palabra(pm):'Sin respuesta')+'</em></div>';
-  b.append(res);
+  b.append(res);{const F=window.GameHubFx,k=game.id+':'+game.round;if(F&&F.acorde&&mia&&window.__colFest!==k){window.__colFest=k;const nb=res.querySelector('.nota b');if(nb)nb.animate([{transform:'scale(.3)',opacity:0},{transform:'scale(1.25)',opacity:1},{transform:'scale(1)'}],{duration:500,easing:'cubic-bezier(.2,1.4,.4,1)'});if(pm>=9){F.confeti(70);F.acorde(659)}else if(pm>=6)F.acorde(440);else F.error()}}
   const rows=game.people.map(p=>({p,r:game.answers[p.id]?points(game.answers[p.id],real):0,total:game.history.reduce((sum,r)=>sum+(r.answers[p.id]?points(r.answers[p.id],r.target):0),0)})).sort((a,b)=>b.total-a.total);
   const ol=document.createElement('ol');ol.className='rank';
   for(const {p,r,total} of rows){const li=document.createElement('li');const c=game.answers[p.id];

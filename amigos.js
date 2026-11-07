@@ -1,4 +1,20 @@
 if(location.hostname==="ratito-juegos.vercel.app")location.replace("https://game-hub-juegos.vercel.app"+location.pathname+location.search+location.hash);
+/* efectos compartidos para todos los juegos: GameHubFx.tono / acorde / chispas / flotar / confeti / temblor */
+(()=>{if(window.GameHubFx&&window.GameHubFx.chispas)return;let AC=null;
+const silencio=()=>{try{return localStorage.getItem('gamehubSilencio')==='1'}catch(e){return false}};
+function tono(f,d,tipo,v,cuando){if(silencio())return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime+(cuando||0),o=AC.createOscillator(),g=AC.createGain();o.type=tipo||'triangle';o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(v||.09,t);g.gain.exponentialRampToValueAtTime(.001,t+(d||.12));o.connect(g).connect(AC.destination);o.start(t);o.stop(t+(d||.12)+.02)}catch(e){}}
+const acorde=(base,sub)=>[0,4,7,12].forEach((s,i)=>tono((base||523)*Math.pow(2,s/12),.16,'triangle',.08,i*.06*(sub?1:1)));
+const error=()=>{tono(180,.18,'sawtooth',.05);tono(140,.22,'sawtooth',.04,.06)};
+const css=document.createElement('style');css.textContent='.ghfx-p{position:fixed;z-index:90;pointer-events:none;width:8px;height:8px;border-radius:2px;will-change:transform,opacity}.ghfx-t{position:fixed;z-index:91;pointer-events:none;font:900 1.15rem "Schibsted Grotesk",system-ui,sans-serif;color:#fff;background:#15171C;border-radius:99px;padding:3px 11px;transform:translate(-50%,-50%);animation:ghfx-sube .9s ease-out forwards;white-space:nowrap}@keyframes ghfx-sube{0%{opacity:0;transform:translate(-50%,-30%) scale(.6)}25%{opacity:1;transform:translate(-50%,-70%) scale(1.12)}100%{opacity:0;transform:translate(-50%,-170%) scale(1)}}.ghfx-temblor{animation:ghfx-t .32s}@keyframes ghfx-t{20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}@media (prefers-reduced-motion:reduce){.ghfx-p{display:none}}';
+(document.head||document.documentElement).append(css);
+function chispas(x,y,color,n){const C=Array.isArray(color)?color:[color||'#F5B700'];for(let i=0;i<(n||14);i++){const d=document.createElement('i');d.className='ghfx-p';d.style.left=x+'px';d.style.top=y+'px';d.style.background=C[i%C.length];document.body.append(d);
+  const a=Math.random()*6.283,v=40+Math.random()*90;d.animate([{transform:'translate(-50%,-50%) scale(1)',opacity:1},{transform:`translate(${Math.cos(a)*v-4}px,${Math.sin(a)*v+30}px) rotate(${Math.random()*540}deg) scale(.4)`,opacity:0}],{duration:600+Math.random()*300,easing:'cubic-bezier(.2,.8,.4,1)'}).onfinish=()=>d.remove()}}
+function enEl(el){const r=el.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2]}
+function flotar(x,y,txt,color){if(x&&x.getBoundingClientRect){[x,y]=enEl(x)}const d=document.createElement('div');d.className='ghfx-t';d.textContent=txt;if(color)d.style.background=color;d.style.left=x+'px';d.style.top=y+'px';document.body.append(d);setTimeout(()=>d.remove(),950)}
+function temblor(el){if(!el)return;el.classList.remove('ghfx-temblor');void el.offsetWidth;el.classList.add('ghfx-temblor')}
+function confeti(n){const C=['#E4572E','#2D6CDF','#1E9E6A','#6C4BD8','#F5B700','#E8577A','#0FA3B1'];for(let i=0;i<(n||90);i++){const d=document.createElement('i');d.className='ghfx-p';d.style.left=Math.random()*innerWidth+'px';d.style.top='-12px';d.style.background=C[i%C.length];document.body.append(d);
+  d.animate([{transform:'translateY(0) rotate(0)'},{transform:`translate(${(Math.random()-.5)*160}px,${innerHeight+40}px) rotate(${Math.random()*900}deg)`}],{duration:1800+Math.random()*1400,delay:Math.random()*400,easing:'cubic-bezier(.3,.1,.6,1)'}).onfinish=()=>d.remove()}}
+window.GameHubFx=Object.assign(window.GameHubFx||{},{tono,acorde,error,chispas,flotar,temblor,confeti:window.GameHubFx&&window.GameHubFx.confeti||confeti,silencio,enEl})})();
 /* silencio global: todo el sonido de cualquier juego pasa por un volumen que respeta el botón 🔇 */
 (()=>{const O=window.AudioContext||window.webkitAudioContext;if(!O||O.__gh)return;const todos=new Set();
 const mudo=()=>{try{return localStorage.getItem('gamehubSilencio')==='1'}catch(e){return false}};
@@ -17,7 +33,7 @@ const me={id:rid(10),name:localStorage.getItem('ratitoNombre')||'Amigo '+(10+cry
 let OFF=0; // diferencia con el reloj del anfitrión de la sala: así todos miden la llegada con el mismo reloj
 let SINCE=Date.now(); // cuándo entré a la sala en esta página (reloj propio: todos ordenan igual)
 const PAGE=location.pathname.replace(/index\.html$/,'');
-const PAGES={'/':'la portada','/juegos/vida/':'Tu vida en vivo','/juegos/orbitas/':'Órbitas','/juegos/circulo/':'Círculo perfecto','/juegos/arena/':'Arena','/juegos/calculo/':'Cálculo','/juegos/estela/':'Estela','/juegos/esquiva/':'Esquiva','/juegos/salto/':'Salto','/juegos/hoyo/':'Hoyo','/juegos/garabato/':'Garabato','/juegos/sopa/':'Sopa de letras','/juegos/sombra/':'La sombra llega tarde','/juegos/peso/':'Peso prestado','/juegos/eco/':'Eco','/juegos/mezcla/':'Mezcla','/juegos/trampa/':'Color trampa','/juegos/revuelto/':'Revuelto','/juegos/vasos/':'Vasos','/juegos/cuantos/':'¿Cuántos?','/juegos/distinto/':'Distinto','/juegos/punteria/':'Puntería','/juegos/secuencia/':'Secuencia','/juegos/reflejos/':'Reflejos','/juegos/mapa/':'¿Dónde queda?','/juegos/aojo/':'A ojo','/juegos/color/':'Mismo color','/juegos/teclazo/':'Teclazo','/juegos/reves/':'Al revés','/juegos/apagon/':'Apagón','/juegos/gravedad/':'Gravedad','/juegos/encaje/':'Encaje','/juegos/pelotazo/':'Pelotazo','/juegos/pulso/':'Pulso'};
+const PAGES={'/':'la portada','/juegos/vida/':'Tu vida en vivo','/juegos/orbitas/':'Órbitas','/juegos/circulo/':'Círculo perfecto','/juegos/arena/':'Arena','/juegos/calculo/':'Cálculo','/juegos/estela/':'Estela','/juegos/esquiva/':'Esquiva','/juegos/salto/':'Salto','/juegos/hoyo/':'Hoyo','/juegos/garabato/':'Garabato','/juegos/sopa/':'Sopa de letras','/juegos/peso/':'Peso prestado','/juegos/eco/':'Eco','/juegos/mezcla/':'Mezcla','/juegos/trampa/':'Color trampa','/juegos/revuelto/':'Revuelto','/juegos/vasos/':'Vasos','/juegos/cuantos/':'¿Cuántos?','/juegos/distinto/':'Distinto','/juegos/punteria/':'Puntería','/juegos/secuencia/':'Secuencia','/juegos/reflejos/':'Reflejos','/juegos/mapa/':'¿Dónde queda?','/juegos/aojo/':'A ojo','/juegos/color/':'Mismo color','/juegos/teclazo/':'Teclazo','/juegos/reves/':'Al revés','/juegos/apagon/':'Apagón','/juegos/gravedad/':'Gravedad','/juegos/encaje/':'Encaje','/juegos/pelotazo/':'Pelotazo','/juegos/pulso/':'Pulso'};
 function color(id){const ids=[me.id].concat(Object.keys(people)).sort();const k=Math.max(0,ids.indexOf(id));return COLORS[k%COLORS.length]}
 const clean=s=>String(s||'').replace(/[<>&"]/g,'').slice(0,16)||'Amigo';
 
@@ -159,7 +175,10 @@ function leave(){if(code)send({t:'bye'});gen++;code=null;sessionStorage.removeIt
 $('am-new').onclick=()=>{const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789',c=Array.from(crypto.getRandomValues(new Uint8Array(6)),x=>A[x%A.length]).join('');try{sessionStorage.setItem('ratitoCreador',c)}catch(e){}start(c)};
 $('am-leave').onclick=leave;
 $('am-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('am-url').value);$('am-copy').textContent='¡Listo!';setTimeout(()=>$('am-copy').textContent='Copiar',1200)}catch(e){$('am-url').select()}};
-addEventListener('pagehide',()=>{if(code)send({t:'bye'})});
+addEventListener('pagehide',()=>{if(code)send({t:'bye'});
+  // soltar el código de la sala YA, para que la siguiente página (o el amigo) lo pueda tomar sin quedarse 'Conectando…'
+  try{if(peer){for(const c of conns)try{c.close()}catch(e){}if(hc)try{hc.close()}catch(e){}peer.destroy()}}catch(e){}});
+addEventListener('pageshow',e=>{if(e.persisted&&code){retry=0;connect(code)}});
 
 
 /* ---------- API para los juegos: window.RatitoSala ---------- */
@@ -216,6 +235,8 @@ function frame(){
 /* ---------- arranque: link con ?sala o sala guardada al cambiar de juego ---------- */
 const q=(new URLSearchParams(location.search).get('sala')||'').toUpperCase();
 const saved=sessionStorage.getItem('ratitoSala');
+// en sala, el botón de volver te deja en la parte de multiplayer
+setInterval(()=>{for(const v of document.querySelectorAll('a.volver'))v.setAttribute('href',code?'/#multiplayer':'/')},500);
 const c0=/^[A-Z0-9]{5,8}$/.test(q)?q:saved;
 if(q)history.replaceState(null,'',location.pathname+location.hash);
 if(c0&&/^[A-Z0-9]{5,8}$/.test(c0))start(c0);
