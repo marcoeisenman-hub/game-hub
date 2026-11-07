@@ -81,9 +81,9 @@ const F=()=>window.GameHubFx||{};
 /* ---------- ¿existe la palabra? ---------- */
 const DIC={};for(const c of CATS){const set=new Set(),porLetra={};for(const w of PAL[c]){const n=norm(w);if(!n)continue;set.add(n);set.add(n.replace(/ /g,''));(porLetra[n[0]]=porLetra[n[0]]||[]).push(n)}DIC[c]={set,porLetra}}
 function dist1(a,b){if(Math.abs(a.length-b.length)>1)return false;let i=0,j=0,e=0;while(i<a.length&&j<b.length){if(a[i]===b[j]){i++;j++;continue}if(++e>1)return false;if(a.length>b.length)i++;else if(b.length>a.length)j++;else{i++;j++}}return e+(a.length-i)+(b.length-j)<=1}
-function existe(cat,txt,letra){let n=norm(txt).replace(/^(el|la|los|las|un|una) /,'');if(n.length<2||n[0]!==norm(letra))return false;const d=DIC[cat];if(!d)return true;
-  const prueba=[n,n.replace(/ /g,''),n.replace(/es$/,''),n.replace(/s$/,'')];if(prueba.some(x=>d.set.has(x)))return true;
-  if(n.length>=5)return(d.porLetra[n[0]]||[]).some(w=>w.length>=5&&dist1(n,w));return false}
+function existe(cat,txt,letra){const L=norm(letra),d=DIC[cat];const base=norm(txt),sin=base.replace(/^(el|la|los|las|un|una) /,'');
+  for(const n of [base,sin]){if(n.length<2||n[0]!==L)continue;if(!d)return true;if([n,n.replace(/ /g,''),n.replace(/es$/,''),n.replace(/s$/,'')].some(x=>d.set.has(x)))return true}
+  return false}
 let sala=null,G=null,fin=0,envie=null,grito=null,festejo=null,timerStop=null;
 const online=()=>!!(sala&&sala.activo);
 const yo=()=>online()?sala.yo.id:'solo';
@@ -99,11 +99,11 @@ function nuevaRonda(){if(!soyLider()||(G&&G.fase==='jugando'))return;
   const usadas=G&&G.letras||[];let L=LETRAS.split('').filter(x=>!usadas.includes(x));if(!L.length)L=LETRAS.split('');
   G={id:Math.random().toString(36).slice(2,9),ronda:(G?G.ronda:0)+1,letra:L[Math.floor(r()*L.length)],letras:[...usadas.slice(-8)],cats:c.slice(0,6),fase:'jugando',
      dur:online()?DUR_SALA:DUR_SOLO,people:conBots(),resp:{},malas:{},quien:null,totales:G?G.totales||{}:{},sumado:false};
-  G.letras.push(G.letra);G.t0=Date.now();G.tBot=G.people.some(p=>p.bot)?G.t0+40000+Math.random()*40000:null;publicar()}
+  G.letras.push(G.letra);G.t0=Date.now();G.tBot=G.people.some(p=>p.bot)?G.t0+55000+Math.random()*30000:null;publicar()}
 function conBots(){const p=gente();return p.length<2?[...p,...BOTS]:p}
-function respBot(b){const t=Math.min(1,(Date.now()-G.t0)/60000);return G.cats.map(c=>{if(Math.random()>b.nivel*(.35+.65*t))return '';const l=(PAL[c]||[]).filter(w=>norm(w)[0]===norm(G.letra));if(!l.length)return '';l.sort((x,y)=>x.length-y.length);const pool=l.filter(w=>!w.includes(' ')).slice(0,Math.max(3,Math.ceil(l.length*.3)));const w=(pool.length?pool:l)[Math.floor(Math.random()*(pool.length||l.length))];return w.charAt(0).toUpperCase()+w.slice(1)})}
+function respBot(b,completo){const t=Math.min(1,(Date.now()-G.t0)/60000);return G.cats.map(c=>{if(!completo&&Math.random()>b.nivel*(.35+.65*t))return '';const l=(PAL[c]||[]).filter(w=>norm(w)[0]===norm(G.letra));if(!l.length)return '';l.sort((x,y)=>x.length-y.length);const pool=l.filter(w=>!w.includes(' ')).slice(0,Math.max(3,Math.ceil(l.length*.3)));const w=(pool.length?pool:l)[Math.floor(Math.random()*(pool.length||l.length))];return w.charAt(0).toUpperCase()+w.slice(1)})}
 function publicar(){if(G&&G.fase==='jugando')G.restante=Math.max(0,G.dur-(Date.now()-G.t0));tx({t:'estado',G});aplicar(G)}
-function pedirStop(quien){if(!G||G.fase!=='jugando')return;for(const b of G.people.filter(p=>p.bot))G.resp[b.id]=respBot(b);G.fase='stop';G.quien=quien;G.tStop=Date.now();publicar();
+function pedirStop(quien){if(!G||G.fase!=='jugando')return;for(const b of G.people.filter(p=>p.bot))G.resp[b.id]=respBot(b,quien&&quien.id===b.id);G.fase='stop';G.quien=quien;G.tStop=Date.now();publicar();
   clearTimeout(timerStop);timerStop=setTimeout(()=>{if(G&&G.fase==='stop')revisar()},3000)}
 function recibirResp(id,r){if(!G||G.fase==='jugando'||G.sumado||!G.people.some(p=>p.id===id)||G.resp[id])return;
   G.resp[id]=(Array.isArray(r)?r:[]).slice(0,6).map(x=>String(x||'').slice(0,40));
