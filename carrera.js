@@ -166,7 +166,7 @@ window.Carrera=function(o){
     sala.al('mensaje',(d,de)=>{if(!d||d.app!==APP)return;const leader=sala.jugadores()[0]?.id;
       if(d.type==='ping'&&host())tx({type:'pong',to:de.id,t:d.t,now:Date.now()});
       if(d.type==='pong'&&d.to===me()&&de.id===leader&&pending.has(d.t)){const rtt=Date.now()-d.t;pending.delete(d.t);if(rtt<bestRTT){bestRTT=rtt;offset=d.now-(d.t+rtt/2)}}
-      if(d.type==='hello'&&host()){if(d.tabla&&typeof d.tabla==='object')guardarTabla(d.tabla);if(game)publish()}
+      if(d.type==='hello'&&host()){if(d.tabla&&typeof d.tabla==='object')guardarTabla(d.tabla);if(game){if(online())game.tabla=leerTabla();publish()}}
       if(d.type==='state'&&de.id===leader&&d.game)accept(d.game);
       if(d.type==='prog'&&game&&d.id===game.id&&Number.isFinite(d.n)&&Number.isFinite(d.max)&&d.max>0){prog[de.id]={n:d.n,max:d.max,tag:typeof d.tag==='string'?d.tag.slice(0,20):''};renderList()}
       receive(d,de)});
