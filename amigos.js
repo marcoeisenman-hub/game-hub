@@ -1,5 +1,12 @@
 if(location.hostname==="ratito-juegos.vercel.app")location.replace("https://game-hub-juegos.vercel.app"+location.pathname+location.search+location.hash);
-/* game.hub — "Jugar con amigos": cursores en vivo entre amigos (PeerJS, sin servidor propio).
+/* silencio global: todo el sonido de cualquier juego pasa por un volumen que respeta el botón 🔇 */
+(()=>{const O=window.AudioContext||window.webkitAudioContext;if(!O||O.__gh)return;const todos=new Set();
+const mudo=()=>{try{return localStorage.getItem('gamehubSilencio')==='1'}catch(e){return false}};
+class AC extends O{get destination(){if(!this.__m){const real=Object.getOwnPropertyDescriptor(O.prototype,'destination')||Object.getOwnPropertyDescriptor(BaseAudioContext.prototype,'destination');const d=real.get.call(this);this.__m=this.createGain();this.__m.connect(d);todos.add(this)}this.__m.gain.value=mudo()?0:1;return this.__m}}
+AC.__gh=true;window.AudioContext=AC;if(window.webkitAudioContext)window.webkitAudioContext=AC;
+addEventListener('gamehub-silencio',()=>{for(const c of todos)if(c.__m)c.__m.gain.value=mudo()?0:1});
+addEventListener('storage',e=>{if(e.key==='gamehubSilencio')dispatchEvent(new Event('gamehub-silencio'))})})();
+/* game.hub — "Sala": cursores en vivo entre amigos (PeerJS, sin servidor propio).
    Cualquiera de la sala puede ser el centro: si el que la creó se va o cambia de juego, otro toma su lugar. */
 (()=>{
 'use strict';
@@ -43,9 +50,9 @@ const css=`
 @media (max-width:420px){.am-btn{padding:8px 11px;font-size:.82rem}}
 `;
 const st=document.createElement('style');st.textContent=css;document.head.append(st);
-const btn=document.createElement('button');btn.className='am-btn';btn.type='button';btn.innerHTML='Jugar con amigos';
+const btn=document.createElement('button');btn.className='am-btn';btn.type='button';btn.innerHTML='Sala';
 const panel=document.createElement('div');panel.className='am-panel';panel.hidden=true;
-panel.innerHTML=`<h3>Jugar con amigos</h3>
+panel.innerHTML=`<h3>Sala</h3>
 <p id="am-st">Crea una sala y manda el link: jugarán la misma partida y verán el cursor del otro, en cualquier juego.</p>
 <div id="am-off"><button class="w" id="am-new">Crear sala</button></div>
 <div id="am-on" hidden>
@@ -77,7 +84,7 @@ function list(){btn.hidden=!code;if(!code)panel.hidden=true;
   const all=[{id:me.id,name:me.name+' (tú)',page:PAGE}].concat(Object.values(people));
   $('am-list').innerHTML=all.map(p=>`<li><i style="background:${color(p.id)}"></i>${clean(p.name.replace(' (tú)',''))}${p.id===me.id?' (tú)':''}<small>${p.page===PAGE?'aquí':'en '+(PAGES[p.page]||'otra página')}</small></li>`).join('');
   const n=Object.keys(people).length;
-  btn.innerHTML=code?`Amigos <b>${n+1}</b>`:'Jugar con amigos';
+  btn.innerHTML=code?`Sala <b>${n+1}</b>`:'Sala';
   if(code)status(n?`En la sala: ${n+1} personas. Ya están jugando juntos.`:'Esperando a tus amigos… mándales el link.');
   changed();emit('amigos');
 }
@@ -148,7 +155,7 @@ function start(c){setTimeout(changed,0);
 }
 function leave(){if(code)send({t:'bye'});gen++;code=null;sessionStorage.removeItem('ratitoSala');
   for(const id of Object.keys(people))drop(id);if(peer)try{peer.destroy()}catch(e){}peer=null;conns=[];hc=null;host=false;
-  $('am-off').hidden=false;$('am-on').hidden=true;btn.innerHTML='Jugar con amigos';btn.hidden=true;panel.hidden=true;status('Crea una sala y manda el link: jugarán la misma partida y verán el cursor del otro, en cualquier juego.');changed()}
+  $('am-off').hidden=false;$('am-on').hidden=true;btn.innerHTML='Sala';btn.hidden=true;panel.hidden=true;status('Crea una sala y manda el link: jugarán la misma partida y verán el cursor del otro, en cualquier juego.');changed()}
 $('am-new').onclick=()=>{const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789',c=Array.from(crypto.getRandomValues(new Uint8Array(6)),x=>A[x%A.length]).join('');try{sessionStorage.setItem('ratitoCreador',c)}catch(e){}start(c)};
 $('am-leave').onclick=leave;
 $('am-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('am-url').value);$('am-copy').textContent='¡Listo!';setTimeout(()=>$('am-copy').textContent='Copiar',1200)}catch(e){$('am-url').select()}};

@@ -36,28 +36,40 @@ canvas.fx{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-eve
 </style></head><body><a class="volver" href="/">← game.hub</a>
 <main>
   <h1>Sopa de <span>letras</span></h1>
-  <p class="sub">Encuentra las 8 palabras escondidas. Arrastra el dedo de la primera letra a la última. Pueden ir de lado, de arriba abajo, en diagonal… ¡y al revés!</p>
+  <p class="sub">Encuentra las 8 palabras escondidas. Arrastra el dedo de la primera letra a la última. Van de lado, de arriba abajo o en diagonal… ¡y una que otra al revés!</p>
   <div id="carrera"></div>
-  <div class="barra"><span class="tema" id="tema">Tema</span><span class="pts" id="pts">0 pts</span></div>
+  <div class="barra"><span class="tema" id="tema">Tema</span><span class="pts" id="pts">0.0 s</span></div>
   <section class="tablero" id="tablero"><div class="vacio" id="vacio">Toca <b>Empezar</b> para ver la sopa.</div><svg class="capas" id="capas"></svg><div class="grid" id="grid"></div><canvas class="fx" id="fx"></canvas></section>
   <div class="palabras" id="palabras"></div>
-  <p class="nota">Cada palabra: +100. Encuentra dos seguidas rápido para combo. Si las encuentras todas, el tiempo que sobra también suma.</p>
+  <p class="nota">Gana el que encuentre las 8 más rápido. Máximo 3 minutos: si no terminas, cuenta cuántas encontraste.</p>
 </main>
 <script src="/carrera.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
 const TEMAS={
-  'Panamá':['CANAL','COLON','CHIRIQUI','DARIEN','BOQUETE','POLLERA','SANCOCHO','PATACON','TAMBORITO','GUARO','RAPIDO','DIABLO','CHICHA','PIXVAE','CARIMANOLA','BOCAS','CINTA','ESCLUSA','BARCO','ARRAIJAN'],
-  'Animales':['JAGUAR','TUCAN','PEREZOSO','IGUANA','DELFIN','TIBURON','BALLENA','RANA','AGUILA','MONO','TORTUGA','COCODRILO','PULPO','COLIBRI','CONEJO','LORO','ZORRO','LEON','TIGRE','PANDA'],
-  'Fútbol':['GOL','PORTERO','PENAL','CORNER','ARBITRO','TARJETA','BALON','CANCHA','DEFENSA','DELANTERO','CAPITAN','ESTADIO','PASE','TIRO','FALTA','MUNDIAL','HINCHA','REGATE','CABEZAZO','OFSAID'],
-  'Comida':['ARROZ','POLLO','EMPANADA','HOJALDRE','TORTILLA','MANGO','PIÑA','QUESO','PIZZA','HELADO','SOPA','YUCA','FRIJOL','GALLETA','PAPAYA','LIMON','CHOCOLATE','TOSTADA','HUEVO','PAN'],
-  'Espacio':['PLANETA','ESTRELLA','LUNA','COMETA','COHETE','GALAXIA','MARTE','SATURNO','ORBITA','ASTRONAUTA','METEORO','SOL','NEBULOSA','JUPITER','VENUS','ECLIPSE','ALIEN','TELESCOPIO','NAVE','GRAVEDAD'],
-  'Videojuegos':['NIVEL','JEFE','MANDO','PIXEL','VIDAS','PUNTOS','MONEDA','SALTO','PODER','MAPA','MISION','ARENA','RECORD','COMBO','PAUSA','ESCUDO','PORTAL','CONSOLA','AVATAR','LOGRO']};
+  'Panamá':['CANAL','COLON','BOCAS','DARIEN','POLLERA','SANCOCHO','PATACON','CHICHA','BARCO','ESCLUSA','DIABLO','CINTA','TAMBOR','PLAYA','ISLA','COCO'],
+  'Animales':['JAGUAR','TUCAN','IGUANA','DELFIN','TIBURON','BALLENA','RANA','AGUILA','MONO','TORTUGA','PULPO','LORO','ZORRO','LEON','TIGRE','PANDA','PERRO','GATO','OSO','CABALLO'],
+  'Fútbol':['GOL','PORTERO','PENAL','CORNER','BALON','CANCHA','DEFENSA','CAPITAN','ESTADIO','PASE','TIRO','FALTA','MUNDIAL','HINCHA','EQUIPO','ARCO'],
+  'Comida':['ARROZ','POLLO','EMPANADA','TORTILLA','MANGO','QUESO','PIZZA','HELADO','SOPA','YUCA','GALLETA','LIMON','HUEVO','PAN','TACO','PASTA'],
+  'Espacio':['PLANETA','ESTRELLA','LUNA','COMETA','COHETE','GALAXIA','MARTE','ORBITA','SOL','VENUS','ALIEN','NAVE','TIERRA','SATURNO'],
+  'Videojuegos':['NIVEL','JEFE','MANDO','PIXEL','VIDAS','PUNTOS','MONEDA','SALTO','PODER','MAPA','MISION','RECORD','COMBO','PAUSA','ESCUDO','PORTAL'],
+  'Colores':['ROJO','AZUL','VERDE','AMARILLO','NEGRO','BLANCO','MORADO','NARANJA','ROSADO','GRIS','CAFE','DORADO','CELESTE','PLATA'],
+  'Deportes':['BEISBOL','BOXEO','TENIS','NATACION','KARATE','SURF','GOLF','RUGBY','VOLEIBOL','CICLISMO','ATLETISMO','SKATE','BALONCESTO','AJEDREZ'],
+  'Escuela':['LAPIZ','LIBRO','MOCHILA','PIZARRA','RECREO','MAESTRA','TAREA','EXAMEN','REGLA','BORRADOR','CUADERNO','CLASE','NOTA','TIZA'],
+  'La casa':['COCINA','CAMA','SOFA','MESA','SILLA','PUERTA','VENTANA','BAÑO','TECHO','LAMPARA','ESPEJO','NEVERA','PATIO','ESCALERA'],
+  'Música':['GUITARRA','PIANO','TAMBOR','CANCION','RITMO','BAILE','FLAUTA','VIOLIN','RAP','REGGAETON','SALSA','BAJO','CORO','MICROFONO'],
+  'Ropa':['CAMISA','ZAPATO','GORRA','MEDIAS','FALDA','SUETER','BOTAS','JEANS','CHANCLAS','BUFANDA','PIJAMA','VESTIDO','CORREA','GUANTES'],
+  'Transporte':['CARRO','BUS','TREN','AVION','BARCO','MOTO','METRO','TAXI','BICI','LANCHA','CAMION','PATINETA','HELICOPTERO','CANOA'],
+  'Frutas':['MANGO','PIÑA','PAPAYA','SANDIA','UVA','FRESA','BANANO','NARANJA','LIMON','COCO','MELON','PERA','MANZANA','GUAYABA'],
+  'El cuerpo':['MANO','PIE','CABEZA','OJO','NARIZ','BOCA','OREJA','RODILLA','CODO','DEDO','ESPALDA','CORAZON','HOMBRO','DIENTE'],
+  'El mar':['OLA','ARENA','CORAL','ALGA','CANGREJO','MEDUSA','ANCLA','FARO','ISLA','PEZ','CONCHA','MAREA','ESTRELLA','PALMERA'],
+  'Profesiones':['DOCTOR','PILOTO','CHEF','POLICIA','BOMBERO','PINTOR','MAESTRO','ABOGADO','DENTISTA','CARTERO','GRANJERO','JUEZ','ACTOR','NOVELISTA'],
+  'El clima':['LLUVIA','SOL','NUBE','RAYO','TRUENO','VIENTO','CALOR','FRIO','NIEVE','ARCOIRIS','TORMENTA','NIEBLA','HURACAN','BRISA']};
 const COLS=['#E4572E','#2D6CDF','#1E9E6A','#6C4BD8','#F28C28','#E8577A','#0FA3B1','#C7A000'];
 const ABC='ABCDEFGHIJLMNOPRSTUVZ';
-const DIRS=[[1,0],[0,1],[1,1],[-1,1],[-1,0],[0,-1],[-1,-1],[1,-1]];
-let N=10,letras=[],palabras=[],hechas=[],rand=Math.random,pts=0,ultimo=0,combo=0,sel=null,t0=0;
+const DIRS=[[1,0],[0,1],[1,1],[-1,1],[-1,0],[0,-1],[-1,-1],[1,-1]]; // las primeras 3 son las fáciles
+let N=10,letras=[],palabras=[],hechas=[],rand=Math.random,ultimo=0,combo=0,sel=null,t0=0;
 
 /* ---------- sonido ---------- */
 let ac=null;
@@ -73,7 +85,7 @@ function armar(){
   for(let i=pool.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}
   const g=Array(N*N).fill(''),pos=[];
   for(const w of pool){if(pos.length>=8)break;
-    for(let intento=0;intento<200;intento++){const d=DIRS[Math.floor(rand()*(intento<120?8:4))],x=Math.floor(rand()*N),y=Math.floor(rand()*N),ex=x+d[0]*(w.length-1),ey=y+d[1]*(w.length-1);
+    for(let intento=0;intento<200;intento++){const d=DIRS[Math.floor(rand()*(pos.length<5?3:pos.length<7?4:8))],x=Math.floor(rand()*N),y=Math.floor(rand()*N),ex=x+d[0]*(w.length-1),ey=y+d[1]*(w.length-1);
       if(ex<0||ey<0||ex>=N||ey>=N)continue;let ok=true;
       for(let k=0;k<w.length;k++){const c=g[(y+d[1]*k)*N+x+d[0]*k];if(c&&c!==w[k]){ok=false;break}}
       if(!ok)continue;for(let k=0;k<w.length;k++)g[(y+d[1]*k)*N+x+d[0]*k]=w[k];pos.push({w,x,y,dx:d[0],dy:d[1]});break}}
@@ -123,16 +135,18 @@ function coincide(p,l){const ini=p.y*N+p.x,fin=(p.y+p.dy*(p.w.length-1))*N+p.x+p
 tab.addEventListener('pointerup',soltar);tab.addEventListener('pointercancel',()=>{marcar([]);sel=null});
 
 function encontrada(k,l){hechas.push(k);const p=palabras[k],ahora=performance.now();
-  combo=ahora-ultimo<9000&&ultimo?combo+1:0;ultimo=ahora;const extra=combo*50;pts+=100+extra;
+  combo=ahora-ultimo<9000&&ultimo?combo+1:0;ultimo=ahora;
   raya(l[0],l[l.length-1],COLS[k],true);
   l.forEach((i,n)=>{const b=$('grid').children[i];b.classList.add('hecha');b.classList.remove('pop');void b.offsetWidth;b.style.animationDelay=(n*40)+'ms';b.classList.add('pop')});
   $('palabras').querySelector(`[data-w="${k}"]`).classList.add('ok');
-  const m=celda(l[Math.floor(l.length/2)]);globo(m.x+8,m.y,combo?`+${100+extra} ¡combo x${combo+1}!`:'+100');
+  const m=celda(l[Math.floor(l.length/2)]);globo(m.x+8,m.y,combo?`¡combo x${combo+1}!`:'¡'+(p.w.charAt(0)+p.w.slice(1).toLowerCase())+'!');
   for(const i of l){const q=celda(i);chispas(q.x+8,q.y+8,COLS[k],8)}
   bien(Math.min(combo,4));
-  if(hechas.length===palabras.length){const sobra=Math.max(0,Math.round((180000-(performance.now()-t0))/1000));pts+=sobra*5;
-    setTimeout(()=>{globo(tab.clientWidth/2,tab.clientHeight/2,'¡Todas! +'+sobra*5);fiesta()},350);c.terminar(pts)}
-  $('pts').textContent=pts+' pts';c.progreso(hechas.length,palabras.length)}
+  if(hechas.length===palabras.length){const ms=Math.max(1,Math.round(tiempo()));fin=ms;$('pts').textContent=(ms/1000).toFixed(1)+' s';
+    setTimeout(()=>{globo(tab.clientWidth/2,tab.clientHeight/2,'¡Todas en '+(ms/1000).toFixed(1)+' s!');fiesta()},350);c.terminar(ms)}
+  c.progreso(hechas.length,palabras.length)}
+const tiempo=()=>c.transcurrido||performance.now()-t0;
+let fin=null;setInterval(()=>{if(c.jugando&&fin==null)$('pts').textContent=(tiempo()/1000).toFixed(1)+' s'},100);
 function globo(x,y,t){const d=document.createElement('div');d.className='globo';d.textContent=t;d.style.left=Math.max(90,Math.min(tab.clientWidth-90,x))+'px';d.style.top=(y-20)+'px';tab.append(d);setTimeout(()=>d.remove(),1000)}
 
 /* ---------- partículas ---------- */
@@ -147,12 +161,12 @@ function anima(){if(animando)return;animando=true;const paso=()=>{fg.clearRect(0
   fg.globalAlpha=1;if(parts.length)requestAnimationFrame(paso);else animando=false};requestAnimationFrame(paso)}
 
 /* ---------- carrera ---------- */
-const c=Carrera({app:'sopa',el:$('carrera'),limite:180000,mejor:'alto',maxValor:3500,minValor:0,formato:v=>v+' pts',vivo:v=>v+'/8',
-  alEmpezar:r=>{rand=r;pts=0;combo=0;ultimo=0;t0=performance.now();N=10;armar();pintar();$('pts').textContent='0 pts';c.progreso(0,8)},
-  alAcabarTiempo:()=>{sel=null;c.terminar(pts);globo(tab.clientWidth/2,tab.clientHeight/2,'¡Tiempo!');
+const c=Carrera({app:'sopa',el:$('carrera'),limite:180000,mejor:'bajo',maxValor:260000,minValor:1,primeroGana:v=>v<=180000,formato:v=>v<=180000?(v/1000).toFixed(1)+' s':(8-Math.round((v-180000)/10000))+'/8 palabras',vivo:v=>v+'/8',
+  alEmpezar:r=>{rand=r;fin=null;combo=0;ultimo=0;t0=performance.now();N=10;armar();pintar();$('pts').textContent='0.0 s';c.progreso(0,8)},
+  alAcabarTiempo:()=>{sel=null;fin=180000;c.terminar(180000+(8-hechas.length)*10000);globo(tab.clientWidth/2,tab.clientHeight/2,'¡Tiempo!');
     // mostrar las que faltaron
     palabras.forEach((p,k)=>{if(!hechas.includes(k))raya(p.y*N+p.x,(p.y+p.dy*(p.w.length-1))*N+p.x+p.dx*(p.w.length-1),'#15171C33',false)})},
-  alCerrar:()=>{sel=null}});
+  alCerrar:()=>{marcar([]);sel=null;if(fin==null&&letras.length){fin=-1;palabras.forEach((p,k)=>{if(!hechas.includes(k))raya(p.y*N+p.x,(p.y+p.dy*(p.w.length-1))*N+p.x+p.dx*(p.w.length-1),'#15171C33',false)})}}});
 </script>
 <script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script>
 </body></html>

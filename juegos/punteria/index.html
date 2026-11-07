@@ -24,7 +24,7 @@ campo.addEventListener('pointerdown',e=>{e.preventDefault();if(!activo||!c.jugan
  else{const d=dianas[i],dist=Math.hypot(x-d.x,y-d.y)/d.r,ganado=d.tipo==='trampa'?-3:d.tipo==='oro'?5:dist<=.3?3:dist<=.65?2:1;puntos=Math.max(0,puntos+ganado);golpe((ganado>0?'+':'−')+Math.abs(ganado),x,y);if(ganado<0){campo.animate([{transform:'translateX(-5px)'},{transform:'translateX(5px)'},{transform:'translateX(0)'}],{duration:180})};d.el.remove();dianas.splice(i,1);c.progreso(puntos,60);if(!dianas.length)siguiente()}
  marcador.textContent=puntos+' pts';
 });
-const c=Carrera({app:'punteria',maxValor:500,el:document.querySelector('#carrera'),limite:30000,mejor:'alto',formato:v=>v+' pts',vivo:v=>v+' pts',
+const c=Carrera({app:'punteria',maxValor:5000,el:document.querySelector('#carrera'),limite:30000,mejor:'alto',formato:v=>v+' pts',vivo:v=>v+' pts',
  alEmpezar(rand){limpiar();totalInicio=anterior=performance.now();puntos=0;onda=0;marcador.textContent='0 pts';
  // Cada oleada consume siempre los mismos sorteos, independientemente de los aciertos.
  ondas=Array.from({length:1000},(_,i)=>{const datos=Array.from({length:i%5===4?2:1},(_,j)=>({u:i%5===4?j*.78+rand()*.16:rand(),v:rand(),color:colores[Math.floor(rand()*colores.length)],tipo:'normal',vx:(rand()<.5?-1:1)*(70+rand()*110),vy:(rand()<.5?-1:1)*(70+rand()*100)}));for(const tipo of ['trampa','oro']){const aparece=rand()<.58;const d={u:rand(),v:rand(),color:'#15171C',tipo,vx:(rand()<.5?-1:1)*(tipo==='oro'?265:140),vy:(rand()<.5?-1:1)*(tipo==='oro'?210:120)};if(aparece)datos.push(d)}return datos});

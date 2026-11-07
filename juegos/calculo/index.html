@@ -87,7 +87,7 @@ $('chipsN').innerHTML=NIV.slice(1).map((L,i)=>`<button type="button" data-n="${i
 $('chipsN').onclick=e=>{const b=e.target.closest('button');if(!b||b.disabled)return;ponNivel(+b.dataset.n,true)};
 $('edad').oninput=()=>{const e=Math.round(+$('edad').value);if(e>=5&&e<=99){try{localStorage.setItem('gamehubCalculoEdad',e)}catch(x){}ponNivel(nivelDeEdad(e),true)}};
 ponNivel(NV,false);
-const c=Carrera({app:'calculo',maxValor:150,el:$('carrera'),etiqueta:()=>'nivel '+NV,limite:45000,mejor:'alto',formato:v=>v+(v===1?' buena':' buenas'),
+const c=Carrera({app:'calculo',maxValor:1500,el:$('carrera'),etiqueta:()=>'nivel '+NV,limite:45000,mejor:'alto',formato:v=>v+(v===1?' buena':' buenas'),
   alEmpezar:r=>{rand=r;puntos=0;n=0;nueva();c.progreso(0,30)},
   alAcabarTiempo:()=>{c.terminar(puntos);$('op').textContent='¡Tiempo!';escrito='';pinta()},
   alCerrar:()=>{}});

@@ -63,7 +63,7 @@ $('saltar').onclick=()=>{if(!c.jugando||Date.now()<bloq)return;bloq=Date.now()+3
 addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(e.repeat||!c.jugando||Date.now()<bloq)return;if(e.key==='Backspace'){$('borrar').onclick();return}
   const k=e.key.toLowerCase();if(k.length!==1)return;const i=letras.findIndex((l,j)=>!usadas[j]&&sinTilde(l)===sinTilde(k));if(i>=0)$('letras').querySelector(`[data-i="${i}"]`).dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))});
 setInterval(()=>{const on=c.jugando;$('borrar').disabled=$('saltar').disabled=!on},200);
-const c=Carrera({app:'revuelto',maxValor:60,el:$('carrera'),limite:60000,mejor:'alto',formato:v=>v+(v===1?' palabra':' palabras'),vivo:v=>v+'',
+const c=Carrera({app:'revuelto',maxValor:400,el:$('carrera'),limite:60000,mejor:'alto',formato:v=>v+(v===1?' palabra':' palabras'),vivo:v=>v+'',
   alEmpezar:r=>{rand=r;puntos=0;n=0;bloq=0;nueva();c.progreso(0,15)},
   alAcabarTiempo:()=>{c.terminar(puntos);$('pista').textContent='¡Tiempo! Era: '+palabra.toUpperCase()}});
 </script>

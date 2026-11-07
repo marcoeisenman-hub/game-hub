@@ -39,6 +39,7 @@ function nueva(){const {lado,dif}=nivel(),tot=lado*lado;
   const base=`hsl(${h} ${s}% ${l}%)`,otro=`hsl(${h} ${s}% ${Math.max(8,Math.min(92,l+sig*dif))}%)`;
   let html='';for(let i=0;i<tot;i++)html+=`<button type="button" data-i="${i}" style="background:${i===correcto?otro:base}" aria-label="Cuadro ${i+1}"></button>`;
   tab.innerHTML=html;$('tam').textContent=lado+'×'+lado;$('pts').textContent=puntos}
+$('tab').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!e.repeat&&e.target.closest('button[data-i]')){e.preventDefault();e.target.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))}});
 $('tab').addEventListener('pointerdown',e=>{const b=e.target.closest('button[data-i]');if(!b||!c.jugando||Date.now()<bloq)return;e.preventDefault();
   if(+b.dataset.i===correcto){puntos++;c.progreso(puntos,30);nueva()}
   else{bloq=Date.now()+3000;const t=$('tab');t.classList.remove('mal');void t.offsetWidth;t.classList.add('mal');

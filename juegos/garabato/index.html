@@ -107,7 +107,7 @@ function redibujar(){if(!lienzo)return;const r=lienzo.getBoundingClientRect(),dp
 function posL(e){const r=lienzo.getBoundingClientRect();return[Math.round((e.clientX-r.left)/r.width*LW),Math.round((e.clientY-r.top)/r.height*LH)]}
 function montarLienzo(){lienzo=$('lienzo');if(!lienzo)return;lctx=lienzo.getContext('2d');redibujar();
   lienzo.onpointerdown=e=>{if(yoEntregue===G.k)return;e.preventDefault();lienzo.setPointerCapture(e.pointerId);const [x,y]=posL(e);dibujando={c:colSel,w:tamSel,p:[x,y]};trazos.push(dibujando);redibujar()};
-  lienzo.onpointermove=e=>{if(!dibujando)return;const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];for(const ev of evs){const [x,y]=posL(ev),p=dibujando.p;if(Math.hypot(x-p[p.length-2],y-p[p.length-1])>=3)p.push(x,y)}redibujar()};
+  lienzo.onpointermove=e=>{if(!dibujando)return;const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];for(const ev of evs){const [x,y]=posL(ev);let p=dibujando.p;if(p.length>=1198&&trazos.length<400){dibujando={c:dibujando.c,w:dibujando.w,p:[p[p.length-2],p[p.length-1]]};trazos.push(dibujando);p=dibujando.p}if(p.length<1198&&Math.hypot(x-p[p.length-2],y-p[p.length-1])>=3)p.push(x,y)}redibujar()};
   lienzo.onpointerup=lienzo.onpointercancel=()=>{dibujando=null}}
 addEventListener('resize',()=>{redibujar();document.querySelectorAll('canvas[data-rep]').forEach(dibujarItem)});
 

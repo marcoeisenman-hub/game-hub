@@ -79,9 +79,9 @@ function live(){
   const dev=Math.sqrt(rs.reduce((a,v)=>a+(v-r)**2,0)/rs.length)/r;
   return {r,score:Math.max(0,100-dev*100*3.2)};
 }
-c.addEventListener('pointerdown',e=>{c.setPointerCapture(e.pointerId);pts=[{x:e.clientX,y:e.clientY,t:performance.now()}];drawing=true;done=false;doneScore=null;M.textContent='';S.textContent='';tx({s:'start',p:[(e.clientX-cx)/U(),(e.clientY-cy)/U()]});
+let dedo=null;c.addEventListener('pointerdown',e=>{if(drawing&&dedo!==null&&e.pointerId!==dedo)return;dedo=e.pointerId;c.setPointerCapture(e.pointerId);pts=[{x:e.clientX,y:e.clientY,t:performance.now()}];drawing=true;done=false;doneScore=null;M.textContent='';S.textContent='';tx({s:'start',p:[(e.clientX-cx)/U(),(e.clientY-cy)/U()]});
   if(Math.hypot(e.clientX-cx,e.clientY-cy)<40)fail('Muy cerca del punto. Empieza más lejos.')});
-c.addEventListener('pointermove',e=>{if(!drawing)return;const p={x:e.clientX,y:e.clientY,t:performance.now()};
+c.addEventListener('pointermove',e=>{if(!drawing||e.pointerId!==dedo)return;const p={x:e.clientX,y:e.clientY,t:performance.now()};
   const l=pts[pts.length-1];if(Math.hypot(p.x-l.x,p.y-l.y)<2)return;pts.push(p);
   if(p.t-sendT>35){sendT=p.t;tx({s:'pt',p:[(p.x-cx)/U(),(p.y-cy)/U()]})}
   if(Math.hypot(p.x-cx,p.y-cy)<30)return fail('Te acercaste demasiado al punto.');
@@ -90,7 +90,7 @@ c.addEventListener('pointermove',e=>{if(!drawing)return;const p={x:e.clientX,y:e
   if(pts.length>12){const {score}=live();S.textContent=score.toFixed(1)+'%';S.style.color=col((100-score)/320)}
   if(Math.abs(s)>=2*Math.PI){finish();return}
   draw()});
-c.addEventListener('pointerup',()=>{if(drawing){const s=Math.abs(swept());if(s<2*Math.PI*.985)fail(s<Math.PI?'Eso no es un círculo. Da la vuelta completa.':'Te faltó cerrar el círculo.');else finish()}});
+c.addEventListener('pointerup',e=>{if(e.pointerId!==dedo)return;if(drawing){const s=Math.abs(swept());if(s<2*Math.PI*.985)fail(s<Math.PI?'Eso no es un círculo. Da la vuelta completa.':'Te faltó cerrar el círculo.');else finish()}});
 function finish(){
   drawing=false;done=true;const {r,score}=live();
   if(r<50)return fail('Muy pequeño. Hazlo más grande.');

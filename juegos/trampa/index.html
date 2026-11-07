@@ -60,7 +60,7 @@ addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,text
 $('ops').addEventListener('pointerdown',responder);
 $('ops').addEventListener('keydown',e=>{if(!e.repeat&&(e.key==='Enter'||e.key===' '))responder(e)});
 function botones(){for(const b of $('ops').children)b.disabled=!c.jugando}
-const c=Carrera({app:'trampa',maxValor:150,el:$('carrera'),limite:35000,mejor:'alto',formato:v=>v+' pts',vivo:v=>v+' pts',
+const c=Carrera({app:'trampa',maxValor:1500,el:$('carrera'),limite:35000,mejor:'alto',formato:v=>v+' pts',vivo:v=>v+' pts',
   alEmpezar:r=>{rand=r;puntos=0;n=0;nueva();c.progreso(0,40)},
   alAcabarTiempo:()=>{c.terminar(puntos);$('pal').textContent='¡Tiempo!';$('pal').style.color='#15171C'}});
 setInterval(botones,150);

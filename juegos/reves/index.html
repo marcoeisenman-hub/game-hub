@@ -159,7 +159,7 @@ $('f1').onchange=async e=>{const f=e.target.files[0];if(!f)return;error();
   listo1(recortar(buf))}catch(x){error('Ese archivo no se pudo abrir. Prueba con un mp3, m4a o wav.')}e.target.value=''};
 $('n1').onclick=$('n1b').onclick=()=>tocar(orig,$('c1'));
 $('r1').onclick=$('r1b').onclick=()=>tocar(origRev,$('c1'));
-$('g2').onclick=()=>grabar($('g2'),$('t2'),buf=>{imit=buf;$('i2').disabled=false;imitRev=reves(buf);dibujos.c2=imitRev;redibujar();
+$('g2').onclick=()=>!orig?null:grabar($('g2'),$('t2'),buf=>{imit=buf;$('i2').disabled=false;imitRev=reves(buf);dibujos.c2=imitRev;redibujar();
   $('p2').classList.add('hecho');$('p3').classList.remove('off');mostrarNota(parecido(orig,imitRev));tocar(imitRev,$('c2'));
   $('p3').scrollIntoView({behavior:'smooth',block:'center'})});
 $('r2').onclick=()=>imitRev&&tocar(imitRev,$('c2'));
