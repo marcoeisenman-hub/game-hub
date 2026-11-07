@@ -90,6 +90,7 @@ c.addEventListener('pointermove',e=>{if(!drawing||e.pointerId!==dedo)return;cons
   if(pts.length>12){const {score}=live();S.textContent=score.toFixed(1)+'%';S.style.color=col((100-score)/320)}
   if(Math.abs(s)>=2*Math.PI){finish();return}
   draw()});
+c.addEventListener('pointercancel',e=>{if(e.pointerId!==dedo)return;dedo=null;if(drawing)fail('Se cortó el trazo. Inténtalo otra vez.')});
 c.addEventListener('pointerup',e=>{if(e.pointerId!==dedo)return;if(drawing){const s=Math.abs(swept());if(s<2*Math.PI*.985)fail(s<Math.PI?'Eso no es un círculo. Da la vuelta completa.':'Te faltó cerrar el círculo.');else finish()}});
 function finish(){
   drawing=false;done=true;const {r,score}=live();

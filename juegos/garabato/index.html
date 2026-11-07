@@ -203,6 +203,7 @@ conSala(api=>{sala=api;
     if(d.type==='reac')flotar(d.e);
     if(d.type==='estado'&&de.id===jefe&&!lider())aplicarEstado(d.G)});
   sala.al('cambio',()=>{const j=online()?sala.jugadores()[0]?.id:'';if(j!==jefeAnt){jefeAnt=j;if(G&&!G.fin&&!lider()){/* espera estado del nuevo líder */}if(G&&lider()&&!G.fin){abrirPaso(G.k)}}
+    if(!lider()&&online())tx({type:'hola'});
     if(!G||G.fin)render(false);else render(false)});
   tx({type:'hola'});render(true)});
 setTimeout(()=>render(true),50);

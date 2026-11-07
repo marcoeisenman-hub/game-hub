@@ -149,7 +149,8 @@ function pintar(){const g=G;
   else if(g.fase==='jugando')st.innerHTML='Ronda '+g.ronda+' · ¡Escribe!<small>Llena todo para poder gritar STOP</small>';
   else if(g.fase==='stop')st.innerHTML='¡STOP! Juntando respuestas…';
   else st.innerHTML='Ronda '+g.ronda+' · Resultados'+(soyLider()&&!g.sumado?'<small>Toca una respuesta para anularla, o para aceptarla si sí existe</small>':'');
-  for(const inp of $('campos').querySelectorAll('input'))inp.disabled=!g||g.fase!=='jugando';
+  const dentro=!g||g.people.some(p=>p.id===yo());if(g&&!dentro&&g.fase!=='revision')st.innerHTML='Ronda '+g.ronda+' en juego<small>Entras en la siguiente ronda</small>';
+  for(const inp of $('campos').querySelectorAll('input'))inp.disabled=!g||g.fase!=='jugando'||!dentro;
   if(g&&g.fase==='revision')revisionHtml();
   $('tabla').innerHTML=online()&&window.GameHubTabla?GameHubTabla.html():'';
   validar()}
@@ -163,7 +164,7 @@ function revisionHtml(){const g=G,p=puntos(g),ppl=g.people,L=soyLider()&&!g.suma
   if(soyLider()&&!g.sumado)h+='<button class="btn2" id="confirmar" type="button" style="margin-top:12px;width:100%">Confirmar puntos ✔</button>';
   if(!online()){const t=p.total.solo;h+=`<p style="font-weight:800;margin:12px 0 0">Hiciste ${t} puntos.</p>`}
   $('revision').innerHTML=h;const b=$('confirmar');if(b)b.onclick=confirmar}
-function validar(){const g=G;if(!g||g.fase!=='jugando'){$('stop').disabled=true;return}const L=norm(g.letra);let todos=true;
+function validar(){const g=G;if(!g||g.fase!=='jugando'||!g.people.some(p=>p.id===yo())){$('stop').disabled=true;return}const L=norm(g.letra);let todos=true;
   for(const inp of $('campos').querySelectorAll('input')){const n=norm(inp.value),letraOk=n.length>=2&&n[0]===L,ok=letraOk&&existe(g.cats[+inp.dataset.i],inp.value,g.letra);inp.classList.toggle('ok',ok);inp.classList.toggle('duda',letraOk&&!ok);inp.classList.toggle('no',!!n&&!letraOk);if(!letraOk)todos=false}
   $('stop').disabled=!todos}
 $('campos').addEventListener('input',validar);
@@ -184,7 +185,7 @@ conSala(api=>{sala=api;
     if(d.t==='hola')tx({t:'estado',G:{...G,restante:G.fase==='jugando'?Math.max(0,G.dur-(Date.now()-G.t0)):undefined}});
     if(d.t==='stop'&&d.id===G.id){const q=G.people.find(p=>p.id===de.id);if(q)pedirStop({id:q.id,name:q.name})}
     if(d.t==='resp'&&d.id===G.id)recibirResp(de.id,d.r)});
-  sala.al('cambio',()=>{if(soyLider()&&G){G.people=G.people.filter(p=>sala.jugadores().some(j=>j.id===p.id)||G.resp[p.id]);
+  sala.al('cambio',()=>{if(!soyLider()&&online())tx({t:'hola'});if(soyLider()&&G){G.people=G.people.filter(p=>sala.jugadores().some(j=>j.id===p.id)||G.resp[p.id]);
     if(G.fase==='stop'){clearTimeout(timerStop);timerStop=setTimeout(()=>{if(G&&G.fase==='stop')revisar()},2500)}
     if(G.fase==='jugando'&&fin){G.t0=Date.now()-(G.dur-Math.max(0,fin-Date.now()))}}pintar()});tx({t:'hola'});pintar()});
 pintar();

@@ -81,7 +81,7 @@ function volume(){if(audio)master.gain.setValueAtTime(muted||mode!=='playing'?0:
 $('accion').addEventListener('click',()=>{if(paused)resume();else{jump();}volume();});
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();canvas.focus({preventScroll:true});jump();volume();});
 document.addEventListener('keydown',e=>{if(e.code!=='Space'||e.target.closest('button,input,a,textarea,select,[contenteditable]'))return;e.preventDefault();if(!e.repeat){jump();volume();}});
-$('silencio').addEventListener('click',()=>{muted=!muted;volume();$('silencio').textContent=muted?'Activar sonido':'Silenciar';$('silencio').setAttribute('aria-pressed',String(muted));});
+$('silencio').addEventListener('click',()=>{muted=!muted;if(!muted){try{localStorage.setItem('gamehubSilencio','0')}catch(e){}dispatchEvent(new Event('gamehub-silencio'))}volume();$('silencio').textContent=muted?'Activar sonido':'Silenciar';$('silencio').setAttribute('aria-pressed',String(muted));});
 $('reiniciar').addEventListener('click',()=>{if(starting)return;save();checkpoint=0;start(0).then(volume);});
 $('practica').addEventListener('change',()=>{checkpoint=0;});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});

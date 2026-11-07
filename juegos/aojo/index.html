@@ -145,7 +145,7 @@ function pintar(){
     const pts=Object.values(rs).sort((x,y)=>x.d.g-y.d.g);
     $('linea').innerHTML='<div class="eje"></div>'+pts.map((x,i)=>`<div class="p ${i%2?'abajo':''}" style="left:${pos(x.d.g)}%"><i style="background:${x.yo?'#15171C':x.color}"></i><small style="color:${x.yo?'#15171C':x.color}">${x.yo?'Tú':x.name}: ${nf.format(bonito(x.d.g))}</small></div>`).join('')+`<div class="p real" style="left:${pos(q[1])}%"><i></i><small>${nf.format(q[1])}</small></div>`;
     festejar(mia.pts,$('real'));const veces=mia.g>q[1]?mia.g/q[1]:q[1]/mia.g;
-    $('real').textContent=`${nf.format(q[1])} ${q[2]} · ${errorPct(mia.g,q[1])===0?'¡exacto!':'te fuiste por '+nf.format(errorPct(mia.g,q[1]))+' %'} · ganaste ${nf.format(mia.pts)} pts`;
+    $('real').textContent=`${nf.format(q[1])} ${q[2]} · ${mia.g===q[1]?'¡exacto!':errorPct(mia.g,q[1])===0?'casi exacto (menos de 1 %)':'te fuiste por '+nf.format(errorPct(mia.g,q[1]))+' %'} · ganaste ${nf.format(mia.pts)} pts`;
     $('nota').textContent=(veces<1.05?'¡Casi exacto! ':veces<1.5?'Muy cerca. ':`Te fuiste ${nf.format(Math.round(veces*10)/10)} veces ${mia.g>q[1]?'por arriba':'por abajo'}. `)+q[5];
     const ult=P.ronda>=RONDAS-1,faltan=P.jugadores().filter(j=>!rs[j.id]),s=$('sig');
     if(faltan.length&&P.enSala){s.disabled=true;s.textContent='Esperando a '+faltan.map(j=>j.name).join(', ')}

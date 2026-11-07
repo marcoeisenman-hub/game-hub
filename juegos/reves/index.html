@@ -165,7 +165,7 @@ function listo1(buf){orig=buf;origRev=reves(buf);imit=imitRev=null;$('i2').disab
   tocar(origRev,$('c1'))}
 $('g1').onclick=()=>grabar($('g1'),$('t1'),listo1);
 $('f1').onchange=async e=>{const f=e.target.files[0];if(!f)return;error();
-  try{let buf=await ac().decodeAudioData(await f.arrayBuffer());if(buf.duration>MAX*2){const c=ac(),n=Math.floor(buf.sampleRate*MAX*2),r=c.createBuffer(buf.numberOfChannels,n,buf.sampleRate);for(let ch=0;ch<buf.numberOfChannels;ch++)r.getChannelData(ch).set(buf.getChannelData(ch).subarray(0,n));buf=r}
+  try{let buf=await ac().decodeAudioData(await f.arrayBuffer());if(buf.duration>MAX){const c=ac(),n=Math.floor(buf.sampleRate*MAX),r=c.createBuffer(buf.numberOfChannels,n,buf.sampleRate);for(let ch=0;ch<buf.numberOfChannels;ch++)r.getChannelData(ch).set(buf.getChannelData(ch).subarray(0,n));buf=r}
   listo1(recortar(buf))}catch(x){error('Ese archivo no se pudo abrir. Prueba con un mp3, m4a o wav.')}e.target.value=''};
 $('n1').onclick=$('n1b').onclick=()=>tocar(orig,$('c1'));
 $('r1').onclick=$('r1b').onclick=()=>tocar(origRev,$('c1'));

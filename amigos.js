@@ -22,6 +22,12 @@ class AC extends O{get destination(){if(!this.__m){const real=Object.getOwnPrope
 AC.__gh=true;window.AudioContext=AC;if(window.webkitAudioContext)window.webkitAudioContext=AC;
 addEventListener('gamehub-silencio',()=>{for(const c of todos)if(c.__m)c.__m.gain.value=mudo()?0:1});
 addEventListener('storage',e=>{if(e.key==='gamehubSilencio')dispatchEvent(new Event('gamehub-silencio'))})})();
+/* botón de sonido para juegos que no tienen la caja de carrera (que ya trae el suyo) */
+addEventListener('DOMContentLoaded',()=>{if(location.pathname==='/'||!location.pathname.startsWith('/juegos/'))return;setTimeout(()=>{if(document.querySelector('.cr-son'))return;
+  const mudo=()=>{try{return localStorage.getItem('gamehubSilencio')==='1'}catch(e){return false}};
+  const b=document.createElement('button');b.type='button';b.setAttribute('aria-label','Sonido');b.style.cssText='position:fixed;right:12px;bottom:12px;z-index:60;width:42px;height:42px;border-radius:50%;border:2px solid #15171C;background:#fff;font-size:18px;cursor:pointer;box-shadow:0 3px 0 #15171C;line-height:1';
+  const pinta=()=>{b.textContent=mudo()?'🔇':'🔊'};pinta();b.onclick=()=>{try{localStorage.setItem('gamehubSilencio',mudo()?'0':'1')}catch(e){}pinta();dispatchEvent(new Event('gamehub-silencio'))};
+  addEventListener('gamehub-silencio',pinta);document.body.append(b)},300)});
 /* game.hub — "Sala": cursores en vivo entre amigos (PeerJS, sin servidor propio).
    Cualquiera de la sala puede ser el centro: si el que la creó se va o cambia de juego, otro toma su lugar. */
 (()=>{

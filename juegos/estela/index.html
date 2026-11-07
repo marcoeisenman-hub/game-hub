@@ -162,8 +162,8 @@ conSala(api=>{sala=api;
     if(d.type==='t'&&!lider()){if(R&&d.id===R.id&&d.n===R.n+1){R.n=d.n;aplicar(d.d)}else if(!(R&&d.id===R.id&&d.n<=R.n))pedir()}
     if(d.type==='snap'&&!lider()&&d.to===yo())snapshot(d)
     if(d.type==='fin'&&!lider())fin(d)});
-  sala.al('cambio',()=>{const lid=online()?sala.jugadores()[0]?.id:'';if(lid!==leaderId){leaderId=lid;if(R&&!R.fin){clearTimeout(timer);R.fin={gan:null,id:R.id,abort:true};}}estado()});
-  estado()});
+  sala.al('cambio',()=>{const lid=online()?sala.jugadores()[0]?.id:'';if(lid!==leaderId){leaderId=lid;if(R&&!R.fin){clearTimeout(timer);R.fin={gan:null,id:R.id,abort:true};}}if(online()&&!lider())pedir();estado()});
+  if(online()&&!lider())setTimeout(pedir,600);estado()});
 </script>
 <script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script>
 </body></html>
