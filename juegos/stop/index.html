@@ -197,7 +197,7 @@ function respBot(b,completo){const t=G.t0?Math.min(1,(Date.now()-G.t0)/G.cfg.dur
 function valida(g,cat,pid){const r=(g.resp[pid]||[])[cat];if(!r||!letraOk(r,g.letra))return false;const v=Object.entries(g.votos[cat+':'+pid]||{}).filter(([k])=>k!==pid).map(([,x])=>x);
   const up=v.filter(x=>x===1).length,down=v.filter(x=>x===-1).length;return conocida(g.cats[cat],r,g.letra)||!dic(g.cats[cat])?!(down>up):up>down}
 function puntos(g){const total={},celda={};for(const p of g.people)total[p.id]=0;
-  g.cats.forEach((_,i)=>{const val={};for(const p of g.people)val[p.id]=valida(g,i,p.id)?norm((g.resp[p.id]||[])[i]).replace(/^(el|la|los|las|un|una) /,''):'';
+  g.cats.forEach((_,i)=>{const val={};for(const p of g.people)val[p.id]=valida(g,i,p.id)?norm((g.resp[p.id]||[])[i]).replace(/^(el|la|los|las|un|una|the|a|an) /,''):'';
     const llenos=g.people.filter(p=>val[p.id]);
     for(const p of g.people){let pt=0;if(val[p.id]){const igual=llenos.filter(q=>val[q.id]===val[p.id]).length;pt=llenos.length===1&&g.people.length>1?20:igual>1?5:10}celda[p.id+':'+i]=pt;total[p.id]+=pt}});
   return{total,celda}}

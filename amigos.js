@@ -169,7 +169,7 @@ function connect(c,k){
       q.on('disconnected',()=>{if(g!==gen||q.destroyed)return;try{q.reconnect()}catch(e){again(0)}});
       q.on('open',()=>{if(g!==gen)return;const h=hc=q.connect(sid(c,k),{reliable:true});wire(h,false);
         h.on('open',()=>{if(g!==gen)return;retry=0;setCode(c)});
-        setTimeout(()=>{if(g===gen&&hc===h&&!h.open)next()},4000)});
+        setTimeout(()=>{if(g===gen&&hc===h&&!h.open)next()},8000)});
       q.on('error',e2=>{if(g!==gen)return;if(e2.type==='peer-unavailable')next();else if(e2.type==='network'||e2.type==='disconnected'||e2.type==='server-error'||e2.type==='socket-error')again(0);else status('No se pudo conectar. Revisa tu internet.')});
     }else if(err.type==='network'||err.type==='server-error'||err.type==='socket-error'){status('Sin conexión. Reintentando…');again(0)}
     else status('No se pudo conectar. Revisa tu internet.')});
