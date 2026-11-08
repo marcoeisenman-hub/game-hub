@@ -98,7 +98,7 @@ $('am-name').oninput=()=>{me.name=clean($('am-name').value.trim());localStorage.
    La sala va por un broker MQTT público (WebSocket seguro): todos publican y escuchan en el canal
    de la sala, así no hay un "centro" que se pueda colgar (antes con PeerJS se quedaban en 'Conectando…'). */
 const MQ_URLS=['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt'],TOP='gamehub-v2/';
-let mq=null,mqOk=false,mqI=0,code=null,people=Object.create(null),sendT=0,lc=null,running=false,gen=0,ultHola=0,vigia=0;
+let mqOk=false,code=null,people=Object.create(null),sendT=0,lc=null,running=false,gen=0,ultHola=0;
 const status=t=>$('am-st').textContent=t;
 function soyCreador(){try{return !!code&&sessionStorage.getItem('ratitoCreador')===code}catch(e){return false}}
 /* cifrado: el canal es un hash del código y cada mensaje va cifrado (AES-GCM) con una clave sacada del código.
@@ -114,7 +114,7 @@ async function cifrar(o,cl){const iv=crypto.getRandomValues(new Uint8Array(12));
 async function descifrar(t,cl){const [a,b]=String(t).split('.');if(!a||!b)return null;return JSON.parse(TD.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(a)},cl.key,unb64(b))))}
 let colaTx=Promise.resolve(),colaRx=Promise.resolve();
 function send(m){if(!code||!mqOk||!CL.key||CL.c!==code)return;m.id=me.id;m.name=me.name;m.page=PAGE;m.since=SINCE+OFF;m.cr=soyCreador()?1:0;
-  const cl=CL,cli=mq;colaTx=colaTx.then(()=>cifrar(m,cl)).then(t=>{if(cli&&cli.connected)cli.publish(cl.tema,t,{qos:0})}).catch(()=>{})}
+  m.n=Math.random().toString(36).slice(2,11);const cl=CL,cs=clis.filter(x=>x.ok).map(x=>x.cli);colaTx=colaTx.then(()=>cifrar(m,cl)).then(t=>{for(const cli of cs)if(cli.connected)try{cli.publish(cl.tema,t,{qos:0})}catch(e){}}).catch(()=>{})}
 function hola(q){const t=Date.now();if(!q&&t-ultHola<400)return;ultHola=t;send({t:'hi',q:q?1:0})}
 function recolor(){for(const p of Object.values(people)){const c=color(p.id);if(p.c===c)continue;p.c=c;p.el.style.setProperty('--pc',c);p.el.querySelector('path').setAttribute('fill',c);p.el.querySelector('span').style.background=c;p.edge.style.background=c}}
 function list(){btn.hidden=!code;if(!code)panel.hidden=true;
@@ -146,49 +146,61 @@ function onMsg(m,from){
   else if(m.t==='m'){const p=getP(m);p.d={k:typeof m.k==='string'?m.k.slice(0,80):'',fx:+m.fx,fy:+m.fy,px:+m.px,py:+m.py}}
   else if(m.t==='c'){const p=getP(m);p.el.classList.remove('click');void p.el.offsetWidth;p.el.classList.add('click')}
   else if(m.t==='hi'){const nuevo=!people[m.id];getP(m);if(nuevo||m.q)hola()}
-  else if(m.t==='cerrar'){if(m.cr===1)cerrada();return}
+  else if(m.t==='cerrar'){const c=code;cierreValido(c,m).then(v=>{if(v&&code===c)cerrada()});return}
   else if(m.t==='g'){getP(m);if(m.page===PAGE)emit('mensaje',m.d,info(m.id))}
 }
 function cargarMqtt(cb){if(typeof window.mqtt!=='undefined')return cb();status('Cargando…');const s=document.createElement('script');s.src='/lib/mqtt.min.js';
   s.onload=cb;s.onerror=()=>status('No se pudo cargar la conexión. Recarga la página.');document.head.append(s)}
+/* me conecto a LOS DOS brokers a la vez y publico en ambos: si uno falla, la sala sigue por el otro
+   y nunca se parte en dos (los mensajes repetidos se descartan por su número 'n'). */
+let clis=[];const vistos=new Set(),vistosL=[];
+function nuevoVisto(n){if(!n)return true;if(vistos.has(n))return false;vistos.add(n);vistosL.push(n);if(vistosL.length>800)vistos.delete(vistosL.shift());return true}
+function recalcular(){const antes=mqOk;mqOk=clis.some(x=>x.ok);if(antes&&!mqOk)status('Sin conexión. Reintentando…');changed()}
 async function connect(c){const g=++gen;
-  if(mq){try{mq.end(true)}catch(e){}mq=null}mqOk=false;
-  const cl=await claves(c);if(g!==gen)return;
-  const url=MQ_URLS[mqI%MQ_URLS.length],T=cl.tema,TC=cl.cierre;
-  const adios=await cifrar({t:'bye',id:me.id},cl);if(g!==gen)return;
-  const cli=mq=window.mqtt.connect(url,{clientId:'gh_'+me.id+'_'+Math.random().toString(36).slice(2,6),clean:true,keepalive:15,reconnectPeriod:1500,connectTimeout:8000,
-    will:{topic:T,payload:adios,qos:0,retain:false}});
-  clearTimeout(vigia);vigia=setTimeout(()=>{if(g===gen&&!mqOk){mqI++;status('Probando otro servidor…');connect(c)}},9000);
-  cli.on('connect',()=>{if(g!==gen)return;cli.subscribe(TC,{qos:0});cli.subscribe(T,{qos:0},err=>{if(g!==gen)return;if(err){status('No se pudo entrar a la sala. Reintentando…');return}
-    mqOk=true;clearTimeout(vigia);setCode(c);hola(true)})});
-  cli.on('message',(t,b)=>{if(g!==gen)return;const txt=b.toString();
-    if(t===TC){if(txt&&!soyCreador())descifrar(txt,cl).then(m=>{if(g===gen&&m&&m.t==='cerrada')cerrada()}).catch(()=>{});return}
-    if(t!==T)return;colaRx=colaRx.then(()=>descifrar(txt,cl)).then(m=>{if(g===gen&&m)onMsg(m)}).catch(()=>{})});
-  cli.on('offline',()=>{if(g!==gen)return;mqOk=false;status('Sin conexión. Reintentando…');changed()});
-  cli.on('close',()=>{if(g!==gen)return;mqOk=false;changed()});
-  cli.on('error',()=>{});
+  for(const x of clis)try{x.cli.end(true)}catch(e){}clis=[];mqOk=false;
+  const cl=await claves(c);if(g!==gen)return;const T=cl.tema,TC=cl.cierre;
+  const adios=await cifrar({t:'bye',id:me.id,n:'b'+me.id+Date.now()},cl);if(g!==gen)return;
+  for(const url of MQ_URLS){const x={ok:false};
+    const cli=x.cli=window.mqtt.connect(url,{clientId:'gh_'+me.id+'_'+Math.random().toString(36).slice(2,6),clean:true,keepalive:15,reconnectPeriod:1500,connectTimeout:8000,
+      will:{topic:T,payload:adios,qos:0,retain:false}});
+    clis.push(x);
+    cli.on('connect',()=>{if(g!==gen)return;cli.subscribe(TC,{qos:0});cli.subscribe(T,{qos:0},err=>{if(g!==gen||err)return;const primero=!mqOk;x.ok=true;mqOk=true;if(primero)setCode(c);hola(true);changed()})});
+    cli.on('message',(t,b)=>{if(g!==gen)return;const txt=b.toString();
+      if(t===TC){if(txt)descifrar(txt,cl).then(m=>cierreValido(c,m)).then(v=>{if(v&&g===gen)cerrada()}).catch(()=>{});return}
+      if(t!==T)return;colaRx=colaRx.then(()=>descifrar(txt,cl)).then(m=>{if(g===gen&&m&&nuevoVisto(m.n))onMsg(m)}).catch(()=>{})});
+    cli.on('offline',()=>{if(g!==gen)return;x.ok=false;recalcular()});
+    cli.on('close',()=>{if(g!==gen)return;x.ok=false;recalcular()});
+    cli.on('error',()=>{});
+  }
+  setTimeout(()=>{if(g===gen&&!mqOk)status('No logro conectar con el servidor de salas. Revisa tu internet o prueba con datos.')},12000);
 }
+/* cerrar la sala: el código sale del hash de un secreto que solo tiene quien la creó.
+   El aviso de cierre trae ese secreto y todos comprueban que corresponde al código. */
+const ALF='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+async function codigoDe(tok){const h=new Uint8Array(await crypto.subtle.digest('SHA-256',TE.encode('gamehub-cierre:'+tok)));return Array.from(h.slice(0,7),x=>ALF[x%ALF.length]).join('')}
+async function cierreValido(c,m){return !!(m&&(m.t==='cerrada'||m.t==='cerrar')&&typeof m.tok==='string'&&m.tok.length<=64&&await codigoDe(m.tok)===c)}
+const miTok=()=>{try{return code&&sessionStorage.getItem('ghTok-'+code)||''}catch(e){return ''}};
 // latido: cada 3 s digo que sigo aquí; quien no da señales en 10 s se va de la lista
 setInterval(()=>{if(!code||!mqOk)return;send({t:'hi'});const t=Date.now();for(const p of Object.values(people))if(t-p.seen>10000)drop(p.id)},3000);
-function setCode(c){code=c;sessionStorage.setItem('ratitoSala',c);try{localStorage.setItem('ghUltimaSala',c)}catch(e){}$('am-close').hidden=!soyCreador();const u=new URL(location.origin+'/');u.searchParams.set('sala',c);$('am-url').value=u.href;
+function setCode(c){code=c;sessionStorage.setItem('ratitoSala',c);try{localStorage.setItem('ghUltimaSala',c)}catch(e){}$('am-close').hidden=!miTok();const u=new URL(location.origin+'/');u.searchParams.set('sala',c);$('am-url').value=u.href;
   $('am-off').hidden=true;$('am-on').hidden=false;if(!running){running=true;requestAnimationFrame(frame)}list()}
 function start(c){setTimeout(changed,0);
   cargarMqtt(()=>{if(code!==c)SINCE=Date.now();code=c;try{sessionStorage.setItem('ratitoSala',c)}catch(e){}status('Conectando a la sala '+c+'…');$('am-off').hidden=true;$('am-on').hidden=false;
     const u=new URL(location.origin+'/');u.searchParams.set('sala',c);$('am-url').value=u.href;list();connect(c)})}
-function leave(){if(code)send({t:'bye'});gen++;const m=mq;mq=null;mqOk=false;setTimeout(()=>{try{m&&m.end(true)}catch(e){}},150);code=null;sessionStorage.removeItem('ratitoSala');
+function leave(){if(code)send({t:'bye'});gen++;const viejos=clis;clis=[];mqOk=false;setTimeout(()=>{for(const x of viejos)try{x.cli.end(true)}catch(e){}},200);code=null;sessionStorage.removeItem('ratitoSala');
   for(const id of Object.keys(people))drop(id);
   $('am-off').hidden=false;$('am-on').hidden=true;btn.innerHTML='Sala';btn.hidden=true;panel.hidden=true;status('Crea una sala y manda el link: jugarán la misma partida y verán el cursor del otro, en cualquier juego.');changed()}
-$('am-new').onclick=()=>{const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789',c=Array.from(crypto.getRandomValues(new Uint8Array(6)),x=>A[x%A.length]).join('');try{sessionStorage.setItem('ratitoCreador',c)}catch(e){}start(c)};
+$('am-new').onclick=async()=>{const tok=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join(''),c=await codigoDe(tok);try{sessionStorage.setItem('ratitoCreador',c);sessionStorage.setItem('ghTok-'+c,tok)}catch(e){}start(c)};
 $('am-leave').onclick=leave;
 /* solo quien creó la sala la puede cerrar; los demás pueden salir y volver a entrar con el link */
-$('am-close').onclick=()=>{if(!code||!soyCreador()||!mqOk)return;const c=code;send({t:'cerrar'});const cl=CL,cli=mq;cifrar({t:'cerrada'},cl).then(t=>{try{cli.publish(cl.cierre,t,{qos:1,retain:true})}catch(e){}});
+$('am-close').onclick=()=>{const tok=miTok();if(!code||!tok||!mqOk)return;send({t:'cerrar',tok});const cl=CL,cs=clis.filter(x=>x.ok).map(x=>x.cli);cifrar({t:'cerrada',tok},cl).then(t=>{for(const cli of cs)try{cli.publish(cl.cierre,t,{qos:1,retain:true})}catch(e){}});
   try{localStorage.removeItem('ghUltimaSala')}catch(e){}leave();status('Cerraste la sala.')};
 function cerrada(){try{localStorage.removeItem('ghUltimaSala')}catch(e){}leave();status('El líder cerró esa sala. Crea otra o pide un link nuevo.');panel.hidden=false}
 $('am-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('am-url').value);$('am-copy').textContent='¡Listo!';setTimeout(()=>$('am-copy').textContent='Copiar',1200)}catch(e){$('am-url').select()}};
 addEventListener('pagehide',()=>{if(code)send({t:'bye'})});
 addEventListener('pageshow',e=>{if(e.persisted&&code)connect(code)});
 // al volver a la pestaña (cel desbloqueado), si la conexión murió, reconectar ya
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'||!code)return;if(!mq||!mq.connected)connect(code);else hola(true)});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'||!code)return;if(!clis.some(x=>x.cli.connected))connect(code);else hola(true)});
 
 
 /* ---------- API para los juegos: window.RatitoSala ---------- */
