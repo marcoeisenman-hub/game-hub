@@ -36,6 +36,13 @@ h1 i:hover{transform:translateY(-.12em) rotate(-6deg)}
 .tabs button[aria-selected=true]{background:var(--ink);color:#fff}
 .tabs b{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--soft);font-size:.78rem;color:var(--ink)}
 .tabs button[aria-selected=true] b{background:#fff}
+.modo{display:inline-flex;gap:6px;margin-left:auto;padding:4px;border:2px solid var(--ink);border-radius:999px;background:#fff}
+.tabs .modo button{border:0;padding:8px 14px;font-size:.92rem}
+.tabs .modo button[aria-pressed=true]{background:var(--ink);color:#fff}
+.tabs .modo button[aria-pressed=true] b{background:#fff}
+@media (max-width:560px){.modo{margin-left:0}}
+.card .copa{position:absolute;top:10px;right:10px;font-size:.78rem;font-weight:900;background:#FFF4D1;border:2px solid var(--ink);border-radius:999px;padding:2px 8px}
+#todo:not(.mp) .card .copa{display:none}
 
 /* caja de sala (solo en Multiplayer) */
 .sala{display:none;gap:14px 24px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--ink);color:#fff;border-radius:22px;padding:20px 22px;margin-bottom:20px}
@@ -145,6 +152,7 @@ footer{margin-top:54px;color:var(--mut);font-size:.9rem}
   <nav class="tabs" role="tablist" id="juegos">
     <button role="tab" aria-selected="true" data-f="solo">Solo <b id="nSolo"></b></button>
     <button role="tab" aria-selected="false" data-f="mp">Multiplayer <b id="nMp"></b></button>
+    <span class="modo" id="modoMp" hidden><button type="button" data-m="casual" aria-pressed="true">Casual <b id="nCas"></b></button><button type="button" data-m="comp" aria-pressed="false">Competitivo 🏆 <b id="nComp"></b></button></span>
   </nav>
 
   <section class="sala" id="sala" aria-live="polite">
@@ -289,7 +297,7 @@ footer{margin-top:54px;color:var(--mut);font-size:.9rem}
   <footer>game.hub, hecho en Panamá. Todos los juegos son originales y funcionan en tu navegador.</footer>
 </div>
 <script>
-const todo=document.getElementById('todo'),cards=[...document.querySelectorAll('.card')],tabs=[...document.querySelectorAll('.tabs button')];
+const todo=document.getElementById('todo'),cards=[...document.querySelectorAll('.card')],tabs=[...document.querySelectorAll('.tabs > button')];
 const CANDADO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="10.5" width="16" height="11" rx="3"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>Crea una sala para jugar';
 const AMIGOS='<svg class="amigos" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" role="img" aria-label="Se juega con amigos"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M17 14.6c2.6.2 4.2 2 4.6 5"/></svg>';
 cards.forEach((c,i)=>{c.style.animationDelay=(i*45)+'ms';if(c.hasAttribute('data-mp')){const d=document.createElement('div');d.className='candado';d.innerHTML=CANDADO;c.querySelector('.thumb').append(d);c.querySelector('h3').insertAdjacentHTML('beforeend',AMIGOS)}});
@@ -320,7 +328,16 @@ function pintarAmigos(){const s=sala(),box=document.getElementById('salaAmigos')
     if(!quien.length){if(b)b.remove();return}
     if(!b){b=document.createElement('div');b.className='aqui';c.append(b)}
     b.innerHTML=quien.map(a=>`<span style="--pc:${esc(a.color)}"><i></i>${esc(a.name||'Amigo')} está aquí</span>`).join('')})}
-function filtro(f){modo=f;tabs.forEach(t=>t.setAttribute('aria-selected',t.dataset.f===f));cards.forEach(c=>c.hidden=(f==='mp'&&!c.hasAttribute('data-mp'))||(f!=='mp'&&c.dataset.solo==='no'));
+/* Multiplayer: Casual = todos; Competitivo = los que dan puntos a la tabla de la sala */
+const SIN_PUNTOS=['/juegos/garabato/','/juegos/orbitas/','/juegos/arena/'];
+const daPuntos=c=>c.hasAttribute('data-mp')&&!SIN_PUNTOS.includes(new URL(c.href).pathname);
+let modoMp='casual';try{if(localStorage.getItem('ghModoMp')==='comp')modoMp='comp'}catch(e){}
+cards.forEach(c=>{if(daPuntos(c)&&!c.querySelector('.copa')){const b=document.createElement('span');b.className='copa';b.textContent='🏆 puntos';if(getComputedStyle(c).position==='static')c.style.position='relative';c.append(b)}});
+document.getElementById('nCas').textContent=cards.filter(c=>c.hasAttribute('data-mp')).length;document.getElementById('nComp').textContent=cards.filter(daPuntos).length;
+const modoBtns=[...document.querySelectorAll('#modoMp button')];
+modoBtns.forEach(b=>b.onclick=()=>{modoMp=b.dataset.m;try{localStorage.setItem('ghModoMp',modoMp)}catch(e){}filtro('mp')});
+function filtro(f){modo=f;tabs.forEach(t=>t.setAttribute('aria-selected',t.dataset.f===f));document.getElementById('modoMp').hidden=f!=='mp';modoBtns.forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===modoMp));
+  cards.forEach(c=>c.hidden=(f==='mp'&&(!c.hasAttribute('data-mp')||(modoMp==='comp'&&!daPuntos(c))))||(f!=='mp'&&c.dataset.solo==='no'));
   todo.classList.toggle('mp',f==='mp');history.replaceState(null,'',f==='mp'?'#multiplayer':location.pathname+location.search)}
 tabs.forEach(t=>t.onclick=()=>filtro(t.dataset.f));
 let enSalaGuardada=false;try{enSalaGuardada=!!sessionStorage.getItem('ratitoSala')}catch(e){}
