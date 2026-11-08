@@ -154,9 +154,15 @@ function cargarMqtt(cb){if(typeof window.mqtt!=='undefined')return cb();status('
 /* me conecto a LOS DOS brokers a la vez y publico en ambos: si uno falla, la sala sigue por el otro
    y nunca se parte en dos (los mensajes repetidos se descartan por su número 'n'). */
 let clis=[],miSeq=0;const vistos=new Set(),vistosL=[],ultSeq=Object.create(null);
-/* orden por emisor: si un broker perdió un mensaje y el otro lo trae tarde, se descarta (ya llegó uno más nuevo) */
-function enOrden(m){if(m.t!=='m')return true; // solo posiciones del cursor: las jugadas nunca se descartan
-  if(!Number.isFinite(m.s)||typeof m.id!=='string')return true;const k=m.id+':'+(m.since||0);if(ultSeq[k]!=null&&m.s<=ultSeq[k])return false;ultSeq[k]=m.s;return true}
+/* orden por emisor: cada mensaje trae un número (s). Se entregan en orden; si falta uno,
+   se espera hasta 400 ms a que llegue por el otro broker y si no, se sigue sin él. */
+function entregar(m,g){if(typeof m.id!=='string'||!Number.isFinite(m.s)){onMsg(m);return}
+  const k=m.id+':'+(m.since||0),st=ultSeq[k]||(ultSeq[k]={next:null,buf:new Map(),t:0});
+  const sacar=()=>{while(st.buf.has(st.next)){const x=st.buf.get(st.next);st.buf.delete(st.next);st.next++;if(g===gen)onMsg(x)}};
+  if(st.next==null)st.next=m.s;
+  if(m.s<st.next)return; // llegó tarde de verdad: ya se siguió sin él
+  st.buf.set(m.s,m);sacar();
+  if(st.buf.size&&!st.t)st.t=setTimeout(()=>{st.t=0;if(!st.buf.size)return;st.next=Math.min(...st.buf.keys());sacar();if(st.buf.size)entregar(st.buf.values().next().value,g)},400)}
 function nuevoVisto(n){if(!n)return true;if(vistos.has(n))return false;vistos.add(n);vistosL.push(n);if(vistosL.length>800)vistos.delete(vistosL.shift());return true}
 function recalcular(){const antes=mqOk;mqOk=clis.some(x=>x.ok);if(antes&&!mqOk)status('Sin conexión. Reintentando…');changed()}
 async function connect(c){const g=++gen;
@@ -168,7 +174,7 @@ async function connect(c){const g=++gen;
     cli.on('connect',()=>{if(g!==gen)return;cli.subscribe(TC,{qos:0});cli.subscribe(T,{qos:0},err=>{if(g!==gen||err)return;const primero=!mqOk;x.ok=true;mqOk=true;if(primero)setCode(c);hola(true);changed()})});
     cli.on('message',(t,b)=>{if(g!==gen)return;const txt=b.toString();
       if(t===TC){if(txt)descifrar(txt,cl).then(m=>cierreValido(c,m)).then(v=>{if(v&&g===gen)cerrada()}).catch(()=>{});return}
-      if(t!==T)return;colaRx=colaRx.then(()=>descifrar(txt,cl)).then(m=>{if(g===gen&&m&&nuevoVisto(m.n)&&enOrden(m))onMsg(m)}).catch(()=>{})});
+      if(t!==T)return;colaRx=colaRx.then(()=>descifrar(txt,cl)).then(m=>{if(g===gen&&m&&nuevoVisto(m.n))entregar(m,g)}).catch(()=>{})});
     cli.on('offline',()=>{if(g!==gen)return;x.ok=false;recalcular()});
     cli.on('close',()=>{if(g!==gen)return;x.ok=false;recalcular()});
     cli.on('error',()=>{});
