@@ -167,6 +167,7 @@ function nuevoVisto(n){if(!n)return true;if(vistos.has(n))return false;vistos.ad
 function recalcular(){const antes=mqOk;mqOk=clis.some(x=>x.ok);if(antes&&!mqOk)status('Sin conexión. Reintentando…');changed()}
 async function connect(c){const g=++gen;
   for(const x of clis)try{x.cli.end(true)}catch(e){}clis=[];mqOk=false;
+  for(const k in ultSeq){clearTimeout(ultSeq[k].t);delete ultSeq[k]} // búfer de orden nuevo en cada conexión
   const cl=await claves(c);if(g!==gen)return;const T=cl.tema,TC=cl.cierre;
   for(const url of MQ_URLS){const x={ok:false};
     const cli=x.cli=window.mqtt.connect(url,{clientId:'gh_'+me.id+'_'+Math.random().toString(36).slice(2,6),clean:true,keepalive:15,reconnectPeriod:1500,connectTimeout:8000});
