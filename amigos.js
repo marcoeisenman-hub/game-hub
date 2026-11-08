@@ -139,34 +139,43 @@ function wire(c,isHost){
   c.on('open',()=>{c.send({t:'hi',id:me.id,name:me.name,page:PAGE,since:SINCE+OFF,cr:soyCreador()?1:0,now:isHost?Date.now()+OFF:undefined});
     if(isHost)for(const p of Object.values(people))c.send({t:'hi',id:p.id,name:p.name,page:p.page,cr:p.cr?1:0,since:p.since==null?undefined:p.since})});
   c.on('data',m=>{if(!isHost&&m&&m.t==='hi'&&Number.isFinite(m.now)&&!c._off){c._off=1;OFF=m.now-Date.now();send({t:'hi'});changed()}
+    if(!isHost&&m&&m.t==='mover'){if(c===hc){hc=null;retry=0;again(0)}return}
     if(!isHost&&m&&m.t==='full'){leave();status('La sala está llena (máximo 8 personas). Crea otra sala.');return}onMsg(m,isHost?c:null)});
   c.on('close',()=>{
     if(wg!==gen)return;
     if(isHost){conns=conns.filter(x=>x!==c);if(c._pid){drop(c._pid);relay({t:'bye',id:c._pid,name:''},null)}}
-    else if(code&&c===hc){for(const id of Object.keys(people))drop(id);status('Reconectando…');again()}});
+    else if(code&&c===hc){for(const id of Object.keys(people))drop(id);status('Reconectando…');again(0)}});
 }
-function again(){const g=gen;setTimeout(()=>{if(code&&g===gen)connect(code)},300+Math.random()*1200+Math.min(retry++,10)*400)}
-function connect(c){
-  const g=++gen;
+const SLOTS=4,sid=(c,k)=>PRE+c+(k?'-'+k:'');let slot=0,probeT=0;
+function again(k){const g=gen;setTimeout(()=>{if(code&&g===gen)connect(code,k||0)},300+Math.random()*900+Math.min(retry++,10)*400)}
+/* La sala vive en el "centro" (slot 0). Si ese centro quedó colgado (cel bloqueado, página cerrada mal),
+   el siguiente toma el slot 1, 2, 3… para que nadie se quede en 'Conectando…'. Un centro de slot alto
+   revisa cada 5 s si el slot 0 volvió, y si sí, todos se mudan allá. */
+function connect(c,k){
+  k=k||0;const g=++gen;slot=k;clearInterval(probeT);
   hc=null;conns=[];host=false;for(const id of Object.keys(people))drop(id);
   if(peer)try{peer.destroy()}catch(e){}
-  // 1) intentar ser el centro de la sala
-  const p=new Peer(PRE+c);peer=p;
-  p.on('disconnected',()=>{if(g!==gen||p.destroyed)return;try{p.reconnect()}catch(e){again()}});
-  p.on('open',()=>{if(g!==gen)return;host=true;retry=0;setCode(c)});
-  p.on('connection',cn=>{if(g!==gen)return;if(conns.length>=7){cn.on('open',()=>{cn.send({t:'full'});setTimeout(()=>cn.close(),300)});return}conns.push(cn);wire(cn,true)});
+  const next=()=>{if(g!==gen)return;if(k+1<SLOTS)connect(c,k+1);else again(0)};
+  const p=new Peer(sid(c,k));peer=p;
+  p.on('disconnected',()=>{if(g!==gen||p.destroyed)return;try{p.reconnect()}catch(e){again(0)}});
+  p.on('open',()=>{if(g!==gen)return;host=true;retry=0;setCode(c);if(k>0)probeT=setInterval(()=>probe(c,g,p),5000)});
+  p.on('connection',cn=>{if(g!==gen)return;if(cn.metadata&&cn.metadata.probe){cn.on('open',()=>setTimeout(()=>{try{cn.close()}catch(e){}},500));return}
+    if(conns.length>=7){cn.on('open',()=>{cn.send({t:'full'});setTimeout(()=>cn.close(),300)});return}conns.push(cn);wire(cn,true)});
   p.on('error',err=>{if(g!==gen)return;
-    if(err.type==='unavailable-id'){ // 2) ya hay centro: entrar como invitado
+    if(host&&err.type==='peer-unavailable')return; // una sonda que no encontró nada: normal
+    if(err.type==='unavailable-id'){ // ya hay centro en este slot: entrar como invitado
       try{p.destroy()}catch(e){}
       const q=new Peer();peer=q;
-      q.on('disconnected',()=>{if(g!==gen||q.destroyed)return;try{q.reconnect()}catch(e){again()}});
-      q.on('open',()=>{if(g!==gen)return;const h=hc=q.connect(PRE+c,{reliable:true});wire(h,false);
+      q.on('disconnected',()=>{if(g!==gen||q.destroyed)return;try{q.reconnect()}catch(e){again(0)}});
+      q.on('open',()=>{if(g!==gen)return;const h=hc=q.connect(sid(c,k),{reliable:true});wire(h,false);
         h.on('open',()=>{if(g!==gen)return;retry=0;setCode(c)});
-        setTimeout(()=>{if(g===gen&&hc===h&&!h.open){status('Reconectando…');again()}},6000)});
-      q.on('error',e2=>{if(g!==gen)return;if(e2.type==='peer-unavailable'||e2.type==='network'||e2.type==='disconnected')again();else status('No se pudo conectar. Revisa tu internet.')});
-    }else if(err.type==='network'||err.type==='server-error'||err.type==='socket-error'){status('Sin conexión. Reintentando…');again()}
+        setTimeout(()=>{if(g===gen&&hc===h&&!h.open)next()},4000)});
+      q.on('error',e2=>{if(g!==gen)return;if(e2.type==='peer-unavailable')next();else if(e2.type==='network'||e2.type==='disconnected'||e2.type==='server-error'||e2.type==='socket-error')again(0);else status('No se pudo conectar. Revisa tu internet.')});
+    }else if(err.type==='network'||err.type==='server-error'||err.type==='socket-error'){status('Sin conexión. Reintentando…');again(0)}
     else status('No se pudo conectar. Revisa tu internet.')});
 }
+function probe(c,g,p){if(g!==gen||!host||p.destroyed)return;for(let j=0;j<slot;j++){const t=p.connect(sid(c,j),{metadata:{probe:1}});
+  t.on('open',()=>{if(g!==gen)return;try{t.close()}catch(e){}for(const x of conns)try{x.open&&x.send({t:'mover'})}catch(e){}setTimeout(()=>{if(g===gen){retry=0;connect(c,0)}},400)})}}
 function setCode(c){code=c;sessionStorage.setItem('ratitoSala',c);const u=new URL(location.origin+'/');u.searchParams.set('sala',c);$('am-url').value=u.href;
   $('am-off').hidden=true;$('am-on').hidden=false;if(!running){running=true;requestAnimationFrame(frame)}list();send({t:'hi'})}
 function start(c){setTimeout(changed,0);
@@ -185,6 +194,8 @@ addEventListener('pagehide',()=>{if(code)send({t:'bye'});
   // soltar el código de la sala YA, para que la siguiente página (o el amigo) lo pueda tomar sin quedarse 'Conectando…'
   try{if(peer){for(const c of conns)try{c.close()}catch(e){}if(hc)try{hc.close()}catch(e){}peer.destroy()}}catch(e){}});
 addEventListener('pageshow',e=>{if(e.persisted&&code){retry=0;connect(code)}});
+// al volver a la pestaña (cel desbloqueado), si la conexión murió, reconectar ya
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'||!code)return;const vivo=peer&&!peer.destroyed&&!peer.disconnected&&(host||(hc&&hc.open));if(!vivo){retry=0;connect(code,0)}});
 
 
 /* ---------- API para los juegos: window.RatitoSala ---------- */

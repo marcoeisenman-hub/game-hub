@@ -112,11 +112,12 @@ td .p.cero{color:#B4B9C1}
 </main>
 <script src="/carrera.js"></script>
 <script src="./palabras.js"></script>
+<script src="./palabras-en.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
 const PAL=window.STOP_PALABRAS||{};
-const CATS=Object.keys(PAL);
+const CATS=Object.keys(PAL).filter(c=>c!=='Comida'); // Comida chocaba con Fruta o verdura
 const FACILES='ABCDEFGILMNOPRST',TODAS='ABCDEFGHIJLMNOPRSTUVZ';
 const APP='stop';
 const BOTS=[{id:'bot1',name:'🤖 Lucía',color:'#F28C28',bot:1,nivel:.85},{id:'bot2',name:'🤖 Tito',color:'#1E9E6A',bot:1,nivel:.65},{id:'bot3',name:'🤖 Maru',color:'#6C4BD8',bot:1,nivel:.5}];
@@ -125,10 +126,16 @@ const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';'
 const norm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zñ0-9 ]/g,'').replace(/\s+/g,' ').trim();
 const F=()=>window.GameHubFx||{};
 /* ---------- ¿existe la palabra? (true / false / null = no sé) ---------- */
-const DIC={};for(const c of CATS){const set=new Set();for(const w of PAL[c]){const n=norm(w);if(n){set.add(n);set.add(n.replace(/ /g,''))}}DIC[c]=set}
+/* idiomas: es, en o ambos. Nombres, apellidos y marcas valen en los dos */
+const EN=window.STOP_WORDS_EN||{},NEUTRAS=['Nombre','Apellido','Marca'];
+const EN_NOM={'Nombre':'Name','Apellido':'Last name','Animal':'Animal','País':'Country','Ciudad':'City','Fruta o verdura':'Fruit or veggie','Color':'Color','Profesión':'Job','Deporte':'Sport','Parte del cuerpo':'Body part','Instrumento':'Instrument','Marca':'Brand'};
+const idi=()=>(G&&G.cfg&&G.cfg.idioma)||cfg.idioma||'es';
+const etiqueta=c=>{const e=EN_NOM[c],i=idi();return !e||i==='es'?c:i==='en'?e:(e===c?c:c+' / '+e)};
+function lista(c,i){i=i||idi();const es=PAL[c]||[],en=(EN[c]||[]).concat(NEUTRAS.includes(c)?es:[]);if(!PAL[c]&&!EN[c])return null;return i==='es'?es:i==='en'?en:es.concat(EN[c]||[])}
+const DICS={};function dic(c){const i=idi(),k=i+':'+c;if(k in DICS)return DICS[k];const l=lista(c,i);if(!l)return DICS[k]=null;const set=new Set();for(const w of l){const n=norm(w);if(n){set.add(n);set.add(n.replace(/ /g,''))}}return DICS[k]=set}
 const letraOk=(txt,letra)=>{const n=norm(txt);return n.length>=2&&n[0]===norm(letra)};
-function conocida(cat,txt,letra){if(!letraOk(txt,letra))return false;const d=DIC[cat];if(!d)return null;const base=norm(txt);
-  for(const n of [base,base.replace(/^(el|la|los|las|un|una) /,'')])if([n,n.replace(/ /g,''),n.replace(/es$/,''),n.replace(/s$/,'')].some(x=>d.has(x)))return true;
+function conocida(cat,txt,letra){if(!letraOk(txt,letra))return false;const d=dic(cat);if(!d)return null;const base=norm(txt);
+  for(const n of [base,base.replace(/^(el|la|los|las|un|una|the|a|an) /,'')])if([n,n.replace(/ /g,''),n.replace(/es$/,''),n.replace(/s$/,'')].some(x=>d.has(x)))return true;
   return null}
 /* ---------- estado ---------- */
 let sala=null,G=null,hasta=0,envie=null,visto={},prog={},ultProg=0;
@@ -139,14 +146,15 @@ const gente=()=>online()?sala.jugadores().map(p=>({id:p.id,name:String(p.name||'
 const tx=d=>{if(online())sala.enviar({...d,app:APP})};
 const quedan=()=>Math.max(0,hasta-Date.now());
 const nombre=id=>{const p=G&&G.people.find(q=>q.id===id);return p?(p.id===yo()&&online()?'Tú':p.name):'?'};
-function cfgInicial(){return{rondas:5,dur:90000,cats:['Nombre','Animal','País','Fruta o verdura','Color','Comida'],extra:'',faciles:true}}
+function nBots(){const n=online()?gente().length:1;const b=cfg.bots==null?(n<2?3:0):cfg.bots;return Math.max(n<2?1:0,Math.min(3,b))}
+function cfgInicial(){return{rondas:5,dur:90000,cats:['Nombre','Animal','País','Fruta o verdura','Color','Profesión'],extra:'',faciles:true,bots:null,idioma:'es'}}
 let cfg=cfgInicial();
 
 /* ================= LÍDER ================= */
 function publicar(){if(!G)return;G.quedan=quedan();tx({t:'estado',G});aplicar(G,true)}
 function fase(f,ms){G.fase=f;hasta=ms?Date.now()+ms:0;publicar()}
 function nuevaPartida(){if(!soyLider())return;const p=gente();
-  G={id:Math.random().toString(36).slice(2,9),cfg:{...cfg,cats:[...cfg.cats,...(cfg.extra?[cfg.extra]:[])]},ronda:0,letras:[],people:p.length<2?[...p,...BOTS]:p,totales:{},historial:[]};
+  G={id:Math.random().toString(36).slice(2,9),cfg:{...cfg,cats:[...cfg.cats,...(cfg.extra?[cfg.extra]:[])]},ronda:0,letras:[],people:[...p,...BOTS.slice(0,nBots())],totales:{},historial:[]};
   nuevaRonda()}
 function nuevaRonda(){const usadas=G.letras,base=(G.cfg.faciles?FACILES:TODAS).split('');let L=base.filter(x=>!usadas.includes(x));if(!L.length)L=base;
   if(online())for(const p of gente())if(!G.people.some(q=>q.id===p.id))G.people.push(p);
@@ -182,12 +190,12 @@ function liderTick(){if(!soyLider()||!G)return;const q=quedan(),t=Date.now();
   else if(G.fase==='juntar'&&q<=0)empezarVoto();
   else if(G.fase==='votacion'&&q<=0)siguienteCat()}
 function respBot(b,completo){const t=G.t0?Math.min(1,(Date.now()-G.t0)/G.cfg.dur*1.4):1;return G.cats.map(c=>{if(!completo&&Math.random()>b.nivel*(.3+.7*t))return '';
-  const l=(PAL[c]||[]).filter(w=>norm(w)[0]===norm(G.letra)&&!w.includes(' '));if(!l.length)return completo&&!PAL[c]?G.letra+'…':'';
+  const l=(lista(c)||[]).filter(w=>norm(w)[0]===norm(G.letra)&&!w.includes(' '));if(!l.length)return '';
   l.sort((x,y)=>x.length-y.length);const pool=l.slice(0,Math.max(3,Math.ceil(l.length*.3)));const w=pool[Math.floor(Math.random()*pool.length)];return w.charAt(0).toUpperCase()+w.slice(1)})}
 
 /* ================= PUNTOS ================= */
 function valida(g,cat,pid){const r=(g.resp[pid]||[])[cat];if(!r||!letraOk(r,g.letra))return false;const v=Object.entries(g.votos[cat+':'+pid]||{}).filter(([k])=>k!==pid).map(([,x])=>x);
-  const up=v.filter(x=>x===1).length,down=v.filter(x=>x===-1).length;return conocida(g.cats[cat],r,g.letra)||!DIC[g.cats[cat]]?!(down>up):up>down}
+  const up=v.filter(x=>x===1).length,down=v.filter(x=>x===-1).length;return conocida(g.cats[cat],r,g.letra)||!dic(g.cats[cat])?!(down>up):up>down}
 function puntos(g){const total={},celda={};for(const p of g.people)total[p.id]=0;
   g.cats.forEach((_,i)=>{const val={};for(const p of g.people)val[p.id]=valida(g,i,p.id)?norm((g.resp[p.id]||[])[i]).replace(/^(el|la|los|las|un|una) /,''):'';
     const llenos=g.people.filter(p=>val[p.id]);
@@ -202,7 +210,7 @@ function aplicar(g,local){const antes=G;G=g;if(!local&&g.quedan!=null)hasta=Date
   const k=g.rid+':'+g.fase+':'+(g.fase==='votacion'?g.cat:'');const nuevo=visto.k!==k;visto.k=k;
   if(nuevo&&g.fase==='ruleta'){prog={};ruleta(g.letra)}
   if(nuevo&&g.fase==='jugando'&&$('campos').dataset.id!==g.rid){envie=null;$('campos').dataset.id=g.rid;
-    $('campos').innerHTML=g.cats.map((c,i)=>`<label>${esc(c)}<input data-i="${i}" autocomplete="off" autocapitalize="words" maxlength="40" placeholder="${esc(g.letra)}…"></label>`).join('');
+    $('campos').innerHTML=g.cats.map((c,i)=>`<label>${esc(etiqueta(c))}<input data-i="${i}" autocomplete="off" autocapitalize="words" maxlength="40" placeholder="${esc(g.letra)}…"></label>`).join('');
     $('letra').textContent=g.letra;const f=$('campos').querySelector('input');if(f&&matchMedia('(pointer:fine)').matches&&dentro())setTimeout(()=>f.focus({preventScroll:true}),100)}
   if(nuevo&&g.fase==='basta')grito(g);
   if(nuevo&&g.fase==='votacion'&&F().tono)F().tono(520,.08,'triangle',.06);
@@ -225,7 +233,7 @@ function enviarResp(){if(!G||envie===G.rid||!dentro())return;envie=G.rid;const r
 function pintar(){const g=G,f=g&&g.fase,L=soyLider();
   $('lobby').hidden=!!g&&f!=='lobby';$('juego').hidden=!g||!['ruleta','jugando','basta','juntar'].includes(f);$('votacion').hidden=f!=='votacion';$('resultado').hidden=f!=='resultado';
   const go=$('go'),st=$('estado');go.hidden=false;
-  if(!g){st.innerHTML=online()?(L?'Tú eres el líder: arma la partida.':'El líder está armando la partida…'):'Juegas contra 3 bots.<small>O crea una sala y juega con tus amigos.</small>';go.textContent=L?'Empezar':'Esperando…';go.disabled=!L;lobby()}
+  if(!g){st.innerHTML=online()?(L?'Tú eres el líder: arma la partida.':'El líder está armando la partida…'):'Juegas contra bots.<small>O crea una sala y juega con tus amigos.</small>';go.textContent=L?'Empezar':'Esperando…';go.disabled=!L;lobby()}
   else if(f==='ruleta'){st.innerHTML='Ronda '+g.ronda+' de '+g.cfg.rondas+'<small>Sorteando la letra…</small>';go.hidden=true}
   else if(f==='jugando'){st.innerHTML=dentro()?'Ronda '+g.ronda+' de '+g.cfg.rondas+' · ¡Escribe!<small>Llena todo para gritar STOP</small>':'Ronda '+g.ronda+' en juego<small>Entras en la siguiente</small>';go.hidden=true}
   else if(f==='basta'||f==='juntar'){st.innerHTML='¡STOP!<small>Juntando respuestas…</small>';go.hidden=true}
@@ -237,23 +245,26 @@ function pintarProgreso(){const g=G;if(!g||!['jugando','basta'].includes(g.fase)
   $('progreso').innerHTML=g.people.filter(p=>p.id!==yo()).map(p=>`<span style="--pc:${esc(p.color)}"><i></i>${esc(p.name)}<span class="dots">${g.cats.map((_,i)=>`<u class="${i<(prog[p.id]||0)?'on':''}"></u>`).join('')}</span></span>`).join('')}
 function lobby(){const L=soyLider(),c=cfg;
   const ch=(grupo,val,txt,on)=>`<button class="chip" type="button" data-g="${grupo}" data-v="${esc(val)}" aria-pressed="${on}" ${L?'':'disabled'}>${esc(txt)}</button>`;
-  $('lobby').innerHTML=`<h3>Jugadores</h3><div class="gente">${(online()?gente():[...gente(),...BOTS]).map(p=>`<span style="--pc:${esc(p.color)}"><i></i>${esc(p.id===yo()&&online()?p.name+' (tú)':p.name)}</span>`).join('')}${online()&&gente().length<2?' <b class="nota">· si nadie más entra, juegan 3 bots</b>':''}</div>
+  const nb=nBots();
+  $('lobby').innerHTML=`<h3>Jugadores</h3><div class="gente">${[...gente(),...BOTS.slice(0,nb)].map(p=>`<span style="--pc:${esc(p.color)}"><i></i>${esc(p.id===yo()&&online()?p.name+' (tú)':p.name)}</span>`).join('')}</div>
+  <h3>Bots</h3><div class="opc">${[0,1,2,3].map(n=>ch('bots',n,n?n+' bot'+(n>1?'s':''):'Sin bots',nb===n)).join('')}</div>${(online()?gente().length:1)<2?'<p class="nota">Si juegas sin nadie más, va al menos 1 bot.</p>':''}
   <h3>Rondas</h3><div class="opc">${[3,5,7].map(n=>ch('rondas',n,n+' rondas',c.rondas===n)).join('')}</div>
   <h3>Tiempo por ronda</h3><div class="opc">${[60000,90000,120000].map(n=>ch('dur',n,n/1000+' s',c.dur===n)).join('')}</div>
-  <h3>Categorías <span class="nota">(${c.cats.length+(c.extra?1:0)} · de 4 a 10)</span></h3><div class="opc">${CATS.map(k=>ch('cat',k,k,c.cats.includes(k))).join('')}</div>
+  <h3>Categorías <span class="nota">(${c.cats.length+(c.extra?1:0)} · de 4 a 10)</span></h3><div class="opc">${CATS.map(k=>ch('cat',k,etiqueta(k),c.cats.includes(k))).join('')}</div>
   ${L?`<div class="extra"><input id="extra" maxlength="24" placeholder="Inventa una categoría (ej. Superhéroe)" value="${esc(c.extra)}"></div>`:c.extra?`<div class="opc" style="margin-top:8px"><span class="chip" aria-pressed="true">${esc(c.extra)} ✨</span></div>`:''}
+  <h3>Idioma de las palabras</h3><div class="opc">${ch('idioma','es','🇪🇸 Español',(c.idioma||'es')==='es')}${ch('idioma','en','🇺🇸 Inglés',c.idioma==='en')}${ch('idioma','ambos','Los dos',c.idioma==='ambos')}</div>
   <h3>Letras</h3><div class="opc">${ch('faciles',1,'Solo letras fáciles',c.faciles)}${ch('faciles',0,'Todas (con H, J, U, V, Z…)',!c.faciles)}</div>`;
   const ex=$('extra');if(ex)ex.oninput=()=>{cfg.extra=ex.value.trim().slice(0,24);enviarCfg(false)}}
 $('lobby').addEventListener('click',e=>{const b=e.target.closest('.chip[data-g]');if(!b||!soyLider()||b.disabled)return;const v=b.dataset.v;
-  if(b.dataset.g==='rondas')cfg.rondas=+v;else if(b.dataset.g==='dur')cfg.dur=+v;else if(b.dataset.g==='faciles')cfg.faciles=v==='1';
+  if(b.dataset.g==='rondas')cfg.rondas=+v;else if(b.dataset.g==='dur')cfg.dur=+v;else if(b.dataset.g==='faciles')cfg.faciles=v==='1';else if(b.dataset.g==='bots')cfg.bots=+v;else if(b.dataset.g==='idioma'&&['es','en','ambos'].includes(v))cfg.idioma=v;
   else if(b.dataset.g==='cat'){const i=cfg.cats.indexOf(v);if(i>=0){if(cfg.cats.length+(cfg.extra?1:0)>4)cfg.cats.splice(i,1)}else if(cfg.cats.length+(cfg.extra?1:0)<10)cfg.cats.push(v)}
   enviarCfg(true)});
 function enviarCfg(repintar){tx({t:'cfg',cfg});if(repintar)pintar()}
 function votacion(){const g=G,i=g.cat,L=soyLider();const dur=VOTO,q=quedan();
-  let h=`<div class="voto-cat"><small>Letra ${esc(g.letra)} · categoría ${i+1} de ${g.cats.length}</small><b>${esc(g.cats[i])}</b></div><div class="barra"><i style="width:${Math.min(100,q/dur*100)}%"></i></div>`;
+  let h=`<div class="voto-cat"><small>Letra ${esc(g.letra)} · categoría ${i+1} de ${g.cats.length}</small><b>${esc(etiqueta(g.cats[i]))}</b></div><div class="barra"><i style="width:${Math.min(100,q/dur*100)}%"></i></div>`;
   for(const p of g.people){const r=(g.resp[p.id]||[])[i]||'',ok=valida(g,i,p.id),con=conocida(g.cats[i],r,g.letra),vs=g.votos[i+':'+p.id]||{},mio=vs[yo()]||0;
     const up=Object.values(vs).filter(x=>x===1).length,down=Object.values(vs).filter(x=>x===-1).length,puedo=dentro()&&p.id!==yo()&&r&&letraOk(r,g.letra);
-    const tag=!r?'':!letraOk(r,g.letra)?'<span class="tag no">otra letra</span>':!DIC[g.cats[i]]?'<span class="tag rep">✨ vale si no la votan 👎</span>':con?'<span class="tag si">✔ la conozco</span>':'<span class="tag duda">❓ no la conozco</span>';
+    const tag=!r?'':!letraOk(r,g.letra)?'<span class="tag no">otra letra</span>':!dic(g.cats[i])?'<span class="tag rep">✨ vale si no la votan 👎</span>':con?'<span class="tag si">✔ la conozco</span>':'<span class="tag duda">❓ no la conozco</span>';
     h+=`<div class="resp"><div><div class="q" style="--pc:${esc(p.color)}"><i></i>${esc(nombre(p.id))}</div><div class="w${r?'':' vacia'}${r&&!ok?' mal':''}">${r?esc(r):'— vacío —'}${tag}</div></div>
       <div class="votos">${r&&letraOk(r,g.letra)?`<button class="up" type="button" data-p="${esc(p.id)}" data-v="1" aria-pressed="${mio===1}" ${puedo?'':'disabled'}>👍 ${up}</button><button class="down" type="button" data-p="${esc(p.id)}" data-v="-1" aria-pressed="${mio===-1}" ${puedo?'':'disabled'}>👎 ${down}</button>`:''}</div></div>`}
   const yaListo=!!g.listos[yo()],faltan=g.people.filter(p=>!p.bot&&!g.listos[p.id]).map(p=>nombre(p.id));
@@ -268,7 +279,7 @@ function resultado(){const g=G,p=g.puntos;if(!p)return;const ppl=g.people;
     h+='<div class="podio">'+pos.map((q,k)=>q?`<div><span>${esc(nombre(q.id))}</span><small>${g.totales[q.id]||0} pts</small><span class="col" style="height:${alto[k]}px;background:${esc(q.color)};animation-delay:${[.3,.6,0][k]}s">${med[k]}</span></div>`:'').join('')+'</div>';}
   else if(g.ganRonda&&g.ganRonda.length)h+=`<p style="text-align:center;font-weight:900;font-size:1.2rem;margin:8px 0">🏅 Ganó la ronda: ${esc(g.ganRonda.map(nombre).join(' y '))}</p>`;
   h+='<div class="scroll"><table><tr><th>'+esc(g.letra)+'</th>'+ppl.map(q=>`<th><span class="jug" style="--pc:${esc(q.color)}"><i></i>${esc(nombre(q.id))}</span></th>`).join('')+'</tr>';
-  g.cats.forEach((c,i)=>{h+='<tr><td><b>'+esc(c)+'</b></td>'+ppl.map(q=>{const r=(g.resp[q.id]||[])[i]||'',pt=p.celda[q.id+':'+i],ok=valida(g,i,q.id);
+  g.cats.forEach((c,i)=>{h+='<tr><td><b>'+esc(etiqueta(c))+'</b></td>'+ppl.map(q=>{const r=(g.resp[q.id]||[])[i]||'',pt=p.celda[q.id+':'+i],ok=valida(g,i,q.id);
     return `<td><span class="r${r&&!ok?' mal':''}">${r?esc(r):'—'}</span><span class="p${pt?'':' cero'}">+${pt}</span></td>`}).join('')+'</tr>'});
   h+='<tr class="tot"><td>Ronda</td>'+ppl.map(q=>'<td>'+p.total[q.id]+'</td>').join('')+'</tr>';
   h+='<tr class="tot"><td>Total</td>'+ppl.map(q=>'<td>'+(g.totales[q.id]||0)+'</td>').join('')+'</tr></table></div>';
@@ -277,7 +288,7 @@ function resultado(){const g=G,p=g.puntos;if(!p)return;const ppl=g.people;
 $('resultado').addEventListener('click',e=>{const b=e.target.closest('[data-e]');if(!b)return;tx({t:'reac',e:b.dataset.e});flotar(b.dataset.e)});
 function flotar(x){if(!['😂','🔥','👏','💀','🤨'].includes(x))return;const d=document.createElement('div');d.className='flota';d.textContent=x;d.style.left=(10+Math.random()*80)+'vw';document.body.append(d);setTimeout(()=>d.remove(),1900)}
 function validar(){const g=G,b=$('stop');if(!g||g.fase!=='jugando'||!dentro()){b.disabled=true;return}let todos=true;
-  for(const inp of $('campos').querySelectorAll('input')){const v=inp.value,lo=letraOk(v,g.letra),c=lo&&conocida(g.cats[+inp.dataset.i],v,g.letra);inp.classList.toggle('ok',!!c);inp.classList.toggle('duda',lo&&!c);inp.classList.toggle('no',!!norm(v)&&!lo);if(!lo)todos=false}
+  for(const inp of $('campos').querySelectorAll('input')){const v=inp.value,lo=letraOk(v,g.letra);inp.classList.toggle('no',!!norm(v)&&!lo);if(!lo)todos=false}
   b.disabled=!todos}
 let progT=0;function mandarProg(){if(!G)return;ultProg=Date.now();tx({t:'prog',id:G.rid,n:[...$('campos').querySelectorAll('input')].filter(x=>letraOk(x.value,G.letra)).length})}
 $('campos').addEventListener('input',()=>{validar();clearTimeout(progT);if(Date.now()-ultProg>300)mandarProg();else progT=setTimeout(mandarProg,320)});
