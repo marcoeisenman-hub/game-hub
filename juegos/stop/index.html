@@ -149,6 +149,7 @@ function nuevaPartida(){if(!soyLider())return;const p=gente();
   G={id:Math.random().toString(36).slice(2,9),cfg:{...cfg,cats:[...cfg.cats,...(cfg.extra?[cfg.extra]:[])]},ronda:0,letras:[],people:p.length<2?[...p,...BOTS]:p,totales:{},historial:[]};
   nuevaRonda()}
 function nuevaRonda(){const usadas=G.letras,base=(G.cfg.faciles?FACILES:TODAS).split('');let L=base.filter(x=>!usadas.includes(x));if(!L.length)L=base;
+  if(online())for(const p of gente())if(!G.people.some(q=>q.id===p.id))G.people.push(p);
   G.ronda++;G.rid=G.id+'-'+G.ronda;G.letra=L[Math.floor(Math.random()*L.length)];G.letras.push(G.letra);G.cats=G.cfg.cats;
   G.resp={};G.votos={};G.quien=null;G.cat=0;G.listos={};G.puntos=null;G.ganRonda=null;G.final=null;
   G.tBot=G.people.some(p=>p.bot)?G.cfg.dur*(.55+Math.random()*.35):null;
@@ -186,7 +187,7 @@ function respBot(b,completo){const t=G.t0?Math.min(1,(Date.now()-G.t0)/G.cfg.dur
 
 /* ================= PUNTOS ================= */
 function valida(g,cat,pid){const r=(g.resp[pid]||[])[cat];if(!r||!letraOk(r,g.letra))return false;const v=Object.entries(g.votos[cat+':'+pid]||{}).filter(([k])=>k!==pid).map(([,x])=>x);
-  const up=v.filter(x=>x===1).length,down=v.filter(x=>x===-1).length;return conocida(g.cats[cat],r,g.letra)?!(down>up):up>down}
+  const up=v.filter(x=>x===1).length,down=v.filter(x=>x===-1).length;return conocida(g.cats[cat],r,g.letra)||!DIC[g.cats[cat]]?!(down>up):up>down}
 function puntos(g){const total={},celda={};for(const p of g.people)total[p.id]=0;
   g.cats.forEach((_,i)=>{const val={};for(const p of g.people)val[p.id]=valida(g,i,p.id)?norm((g.resp[p.id]||[])[i]).replace(/^(el|la|los|las|un|una) /,''):'';
     const llenos=g.people.filter(p=>val[p.id]);
@@ -252,7 +253,7 @@ function votacion(){const g=G,i=g.cat,L=soyLider();const dur=VOTO,q=quedan();
   let h=`<div class="voto-cat"><small>Letra ${esc(g.letra)} · categoría ${i+1} de ${g.cats.length}</small><b>${esc(g.cats[i])}</b></div><div class="barra"><i style="width:${Math.min(100,q/dur*100)}%"></i></div>`;
   for(const p of g.people){const r=(g.resp[p.id]||[])[i]||'',ok=valida(g,i,p.id),con=conocida(g.cats[i],r,g.letra),vs=g.votos[i+':'+p.id]||{},mio=vs[yo()]||0;
     const up=Object.values(vs).filter(x=>x===1).length,down=Object.values(vs).filter(x=>x===-1).length,puedo=dentro()&&p.id!==yo()&&r&&letraOk(r,g.letra);
-    const tag=!r?'':!letraOk(r,g.letra)?'<span class="tag no">otra letra</span>':con?'<span class="tag si">✔ la conozco</span>':'<span class="tag duda">❓ no la conozco</span>';
+    const tag=!r?'':!letraOk(r,g.letra)?'<span class="tag no">otra letra</span>':!DIC[g.cats[i]]?'<span class="tag rep">✨ vale si no la votan 👎</span>':con?'<span class="tag si">✔ la conozco</span>':'<span class="tag duda">❓ no la conozco</span>';
     h+=`<div class="resp"><div><div class="q" style="--pc:${esc(p.color)}"><i></i>${esc(nombre(p.id))}</div><div class="w${r?'':' vacia'}${r&&!ok?' mal':''}">${r?esc(r):'— vacío —'}${tag}</div></div>
       <div class="votos">${r&&letraOk(r,g.letra)?`<button class="up" type="button" data-p="${esc(p.id)}" data-v="1" aria-pressed="${mio===1}" ${puedo?'':'disabled'}>👍 ${up}</button><button class="down" type="button" data-p="${esc(p.id)}" data-v="-1" aria-pressed="${mio===-1}" ${puedo?'':'disabled'}>👎 ${down}</button>`:''}</div></div>`}
   const yaListo=!!g.listos[yo()],faltan=g.people.filter(p=>!p.bot&&!g.listos[p.id]).map(p=>nombre(p.id));
