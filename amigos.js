@@ -82,6 +82,7 @@ panel.innerHTML=`<h3>Sala</h3>
   <label for="am-name">Tu nombre</label><input id="am-name" maxlength="16">
   <ul class="am-list" id="am-list"></ul>
   <button class="sec w" id="am-leave">Salir de la sala</button>
+  <button class="sec w" id="am-close" hidden>Cerrar la sala para todos</button>
 </div>`;
 document.body.append(btn,panel);
 btn.hidden=true; // solo se ve si estás en una sala (se crea desde Multiplayer en la portada)
@@ -93,13 +94,28 @@ btn.onclick=()=>{panel.hidden=!panel.hidden};
 $('am-name').value=me.name;
 $('am-name').oninput=()=>{me.name=clean($('am-name').value.trim());localStorage.setItem('ratitoNombre',me.name);send({t:'hi'});list()};
 
-/* ---------- red ---------- */
-let peer=null,host=false,conns=[],hc=null,code=null,people=Object.create(null),sendT=0,lc=null,retry=0,running=false,gen=0;
+/* ---------- red ----------
+   La sala va por un broker MQTT público (WebSocket seguro): todos publican y escuchan en el canal
+   de la sala, así no hay un "centro" que se pueda colgar (antes con PeerJS se quedaban en 'Conectando…'). */
+const MQ_URLS=['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt'],TOP='gamehub-v2/';
+let mq=null,mqOk=false,mqI=0,code=null,people=Object.create(null),sendT=0,lc=null,running=false,gen=0,ultHola=0,vigia=0;
 const status=t=>$('am-st').textContent=t;
 function soyCreador(){try{return !!code&&sessionStorage.getItem('ratitoCreador')===code}catch(e){return false}}
-function send(m){m.id=me.id;m.name=me.name;m.page=PAGE;m.since=SINCE+OFF;m.cr=soyCreador()?1:0;
-  if(host)conns.forEach(c=>c.open&&c.send(m));else if(hc&&hc.open)hc.send(m)}
-function relay(m,from){conns.forEach(c=>{if(c===from||!c.open)return;if(m.t==='g'){const p=people[c._pid];if(!p||p.page!==m.page)return}c.send(m)})}
+/* cifrado: el canal es un hash del código y cada mensaje va cifrado (AES-GCM) con una clave sacada del código.
+   Así, aunque el broker sea público, nadie sin el código puede leer ni meter jugadas. */
+const TE=new TextEncoder(),TD=new TextDecoder();let CL={c:null,key:null,tema:'',cierre:''};
+async function claves(c){if(CL.c===c&&CL.key)return CL;const h=new Uint8Array(await crypto.subtle.digest('SHA-256',TE.encode('gamehub-sala:'+c)));const hex=[...h].map(x=>x.toString(16).padStart(2,'0')).join('');
+  const base=await crypto.subtle.importKey('raw',TE.encode('gamehub-clave:'+c),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:TE.encode('gamehub-v2'),iterations:50000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  CL={c,key,tema:TOP+'s/'+hex.slice(0,32),cierre:TOP+'c/'+hex.slice(32,64)};return CL}
+const b64=u=>{let s='';for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s)};
+const unb64=t=>Uint8Array.from(atob(t),ch=>ch.charCodeAt(0));
+async function cifrar(o,cl){const iv=crypto.getRandomValues(new Uint8Array(12));const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},cl.key,TE.encode(JSON.stringify(o))));return b64(iv)+'.'+b64(ct)}
+async function descifrar(t,cl){const [a,b]=String(t).split('.');if(!a||!b)return null;return JSON.parse(TD.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(a)},cl.key,unb64(b))))}
+let colaTx=Promise.resolve(),colaRx=Promise.resolve();
+function send(m){if(!code||!mqOk||!CL.key||CL.c!==code)return;m.id=me.id;m.name=me.name;m.page=PAGE;m.since=SINCE+OFF;m.cr=soyCreador()?1:0;
+  const cl=CL,cli=mq;colaTx=colaTx.then(()=>cifrar(m,cl)).then(t=>{if(cli&&cli.connected)cli.publish(cl.tema,t,{qos:0})}).catch(()=>{})}
+function hola(q){const t=Date.now();if(!q&&t-ultHola<400)return;ultHola=t;send({t:'hi',q:q?1:0})}
 function recolor(){for(const p of Object.values(people)){const c=color(p.id);if(p.c===c)continue;p.c=c;p.el.style.setProperty('--pc',c);p.el.querySelector('path').setAttribute('fill',c);p.el.querySelector('span').style.background=c;p.edge.style.background=c}}
 function list(){btn.hidden=!code;if(!code)panel.hidden=true;
   recolor();
@@ -126,76 +142,53 @@ function getP(m){
 function drop(id){const p=people[id];if(!p)return;p.el.remove();p.edge.remove();delete people[id];list()}
 function onMsg(m,from){
   if(!m||typeof m!=='object'||typeof m.id!=='string'||!/^[a-z0-9]{6,12}$/.test(m.id)||m.id===me.id)return;
-  if(from){if(!from._pid)from._pid=m.id;else if(from._pid!==m.id)return}
   if(m.t==='bye')drop(m.id);
   else if(m.t==='m'){const p=getP(m);p.d={k:typeof m.k==='string'?m.k.slice(0,80):'',fx:+m.fx,fy:+m.fy,px:+m.px,py:+m.py}}
   else if(m.t==='c'){const p=getP(m);p.el.classList.remove('click');void p.el.offsetWidth;p.el.classList.add('click')}
-  else if(m.t==='hi')getP(m);
+  else if(m.t==='hi'){const nuevo=!people[m.id];getP(m);if(nuevo||m.q)hola()}
+  else if(m.t==='cerrar'){if(m.cr===1)cerrada();return}
   else if(m.t==='g'){getP(m);if(m.page===PAGE)emit('mensaje',m.d,info(m.id))}
-  if(host&&from)relay(m,from);
 }
-function wire(c,isHost){
-  const wg=gen;
-  c.on('open',()=>{c.send({t:'hi',id:me.id,name:me.name,page:PAGE,since:SINCE+OFF,cr:soyCreador()?1:0,now:isHost?Date.now()+OFF:undefined});
-    if(isHost)for(const p of Object.values(people))c.send({t:'hi',id:p.id,name:p.name,page:p.page,cr:p.cr?1:0,since:p.since==null?undefined:p.since})});
-  c.on('data',m=>{if(!isHost&&m&&m.t==='hi'&&Number.isFinite(m.now)&&!c._off){c._off=1;OFF=m.now-Date.now();send({t:'hi'});changed()}
-    if(!isHost&&m&&m.t==='mover'){if(c===hc){hc=null;retry=0;again(0)}return}
-    if(!isHost&&m&&m.t==='full'){leave();status('La sala está llena (máximo 8 personas). Crea otra sala.');return}onMsg(m,isHost?c:null)});
-  c.on('close',()=>{
-    if(wg!==gen)return;
-    if(isHost){conns=conns.filter(x=>x!==c);if(c._pid){drop(c._pid);relay({t:'bye',id:c._pid,name:''},null)}}
-    else if(code&&c===hc){for(const id of Object.keys(people))drop(id);status('Reconectando…');again(0)}});
+function cargarMqtt(cb){if(typeof window.mqtt!=='undefined')return cb();status('Cargando…');const s=document.createElement('script');s.src='/lib/mqtt.min.js';
+  s.onload=cb;s.onerror=()=>status('No se pudo cargar la conexión. Recarga la página.');document.head.append(s)}
+async function connect(c){const g=++gen;
+  if(mq){try{mq.end(true)}catch(e){}mq=null}mqOk=false;
+  const cl=await claves(c);if(g!==gen)return;
+  const url=MQ_URLS[mqI%MQ_URLS.length],T=cl.tema,TC=cl.cierre;
+  const adios=await cifrar({t:'bye',id:me.id},cl);if(g!==gen)return;
+  const cli=mq=window.mqtt.connect(url,{clientId:'gh_'+me.id+'_'+Math.random().toString(36).slice(2,6),clean:true,keepalive:15,reconnectPeriod:1500,connectTimeout:8000,
+    will:{topic:T,payload:adios,qos:0,retain:false}});
+  clearTimeout(vigia);vigia=setTimeout(()=>{if(g===gen&&!mqOk){mqI++;status('Probando otro servidor…');connect(c)}},9000);
+  cli.on('connect',()=>{if(g!==gen)return;cli.subscribe(TC,{qos:0});cli.subscribe(T,{qos:0},err=>{if(g!==gen)return;if(err){status('No se pudo entrar a la sala. Reintentando…');return}
+    mqOk=true;clearTimeout(vigia);setCode(c);hola(true)})});
+  cli.on('message',(t,b)=>{if(g!==gen)return;const txt=b.toString();
+    if(t===TC){if(txt&&!soyCreador())descifrar(txt,cl).then(m=>{if(g===gen&&m&&m.t==='cerrada')cerrada()}).catch(()=>{});return}
+    if(t!==T)return;colaRx=colaRx.then(()=>descifrar(txt,cl)).then(m=>{if(g===gen&&m)onMsg(m)}).catch(()=>{})});
+  cli.on('offline',()=>{if(g!==gen)return;mqOk=false;status('Sin conexión. Reintentando…');changed()});
+  cli.on('close',()=>{if(g!==gen)return;mqOk=false;changed()});
+  cli.on('error',()=>{});
 }
-const SLOTS=4,sid=(c,k)=>PRE+c+(k?'-'+k:'');let slot=0,probeT=0;
-function again(k){const g=gen;setTimeout(()=>{if(code&&g===gen)connect(code,k||0)},300+Math.random()*900+Math.min(retry++,10)*400)}
-/* La sala vive en el "centro" (slot 0). Si ese centro quedó colgado (cel bloqueado, página cerrada mal),
-   el siguiente toma el slot 1, 2, 3… para que nadie se quede en 'Conectando…'. Un centro de slot alto
-   revisa cada 5 s si el slot 0 volvió, y si sí, todos se mudan allá. */
-function connect(c,k){
-  k=k||0;const g=++gen;slot=k;clearInterval(probeT);
-  hc=null;conns=[];host=false;for(const id of Object.keys(people))drop(id);
-  if(peer)try{peer.destroy()}catch(e){}
-  const next=()=>{if(g!==gen)return;if(k+1<SLOTS)connect(c,k+1);else again(0)};
-  const p=new Peer(sid(c,k));peer=p;
-  p.on('disconnected',()=>{if(g!==gen||p.destroyed)return;try{p.reconnect()}catch(e){again(0)}});
-  p.on('open',()=>{if(g!==gen)return;host=true;retry=0;setCode(c);if(k>0)probeT=setInterval(()=>probe(c,g,p),5000)});
-  p.on('connection',cn=>{if(g!==gen)return;if(cn.metadata&&cn.metadata.probe){cn.on('open',()=>setTimeout(()=>{try{cn.close()}catch(e){}},500));return}
-    if(conns.length>=7){cn.on('open',()=>{cn.send({t:'full'});setTimeout(()=>cn.close(),300)});return}conns.push(cn);wire(cn,true)});
-  p.on('error',err=>{if(g!==gen)return;
-    if(host&&err.type==='peer-unavailable')return; // una sonda que no encontró nada: normal
-    if(err.type==='unavailable-id'){ // ya hay centro en este slot: entrar como invitado
-      try{p.destroy()}catch(e){}
-      const q=new Peer();peer=q;
-      q.on('disconnected',()=>{if(g!==gen||q.destroyed)return;try{q.reconnect()}catch(e){again(0)}});
-      q.on('open',()=>{if(g!==gen)return;const h=hc=q.connect(sid(c,k),{reliable:true});wire(h,false);
-        h.on('open',()=>{if(g!==gen)return;retry=0;setCode(c)});
-        setTimeout(()=>{if(g===gen&&hc===h&&!h.open)next()},8000)});
-      q.on('error',e2=>{if(g!==gen)return;if(e2.type==='peer-unavailable')next();else if(e2.type==='network'||e2.type==='disconnected'||e2.type==='server-error'||e2.type==='socket-error')again(0);else status('No se pudo conectar. Revisa tu internet.')});
-    }else if(err.type==='network'||err.type==='server-error'||err.type==='socket-error'){status('Sin conexión. Reintentando…');again(0)}
-    else status('No se pudo conectar. Revisa tu internet.')});
-}
-function probe(c,g,p){if(g!==gen||!host||p.destroyed)return;for(let j=0;j<slot;j++){const t=p.connect(sid(c,j),{metadata:{probe:1}});
-  t.on('open',()=>{if(g!==gen)return;try{t.close()}catch(e){}for(const x of conns)try{x.open&&x.send({t:'mover'})}catch(e){}setTimeout(()=>{if(g===gen){retry=0;connect(c,0)}},400)})}}
-function setCode(c){code=c;sessionStorage.setItem('ratitoSala',c);const u=new URL(location.origin+'/');u.searchParams.set('sala',c);$('am-url').value=u.href;
-  $('am-off').hidden=true;$('am-on').hidden=false;if(!running){running=true;requestAnimationFrame(frame)}list();send({t:'hi'})}
+// latido: cada 3 s digo que sigo aquí; quien no da señales en 10 s se va de la lista
+setInterval(()=>{if(!code||!mqOk)return;send({t:'hi'});const t=Date.now();for(const p of Object.values(people))if(t-p.seen>10000)drop(p.id)},3000);
+function setCode(c){code=c;sessionStorage.setItem('ratitoSala',c);try{localStorage.setItem('ghUltimaSala',c)}catch(e){}$('am-close').hidden=!soyCreador();const u=new URL(location.origin+'/');u.searchParams.set('sala',c);$('am-url').value=u.href;
+  $('am-off').hidden=true;$('am-on').hidden=false;if(!running){running=true;requestAnimationFrame(frame)}list()}
 function start(c){setTimeout(changed,0);
-  if(typeof Peer==='undefined'){status('Cargando…');const s=document.createElement('script');s.src='/lib/peerjs.min.js';
-    s.onload=()=>start(c);s.onerror=()=>status('No se pudo cargar la conexión. Recarga la página.');document.head.append(s);return}
-  if(code!==c)SINCE=Date.now();code=c;try{sessionStorage.setItem('ratitoSala',c)}catch(e){}status('Conectando a la sala '+c+'…');$('am-off').hidden=true;$('am-on').hidden=false;
-  const u=new URL(location.origin+'/');u.searchParams.set('sala',c);$('am-url').value=u.href;list();connect(c);
-}
-function leave(){if(code)send({t:'bye'});gen++;code=null;sessionStorage.removeItem('ratitoSala');
-  for(const id of Object.keys(people))drop(id);if(peer)try{peer.destroy()}catch(e){}peer=null;conns=[];hc=null;host=false;
+  cargarMqtt(()=>{if(code!==c)SINCE=Date.now();code=c;try{sessionStorage.setItem('ratitoSala',c)}catch(e){}status('Conectando a la sala '+c+'…');$('am-off').hidden=true;$('am-on').hidden=false;
+    const u=new URL(location.origin+'/');u.searchParams.set('sala',c);$('am-url').value=u.href;list();connect(c)})}
+function leave(){if(code)send({t:'bye'});gen++;const m=mq;mq=null;mqOk=false;setTimeout(()=>{try{m&&m.end(true)}catch(e){}},150);code=null;sessionStorage.removeItem('ratitoSala');
+  for(const id of Object.keys(people))drop(id);
   $('am-off').hidden=false;$('am-on').hidden=true;btn.innerHTML='Sala';btn.hidden=true;panel.hidden=true;status('Crea una sala y manda el link: jugarán la misma partida y verán el cursor del otro, en cualquier juego.');changed()}
 $('am-new').onclick=()=>{const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789',c=Array.from(crypto.getRandomValues(new Uint8Array(6)),x=>A[x%A.length]).join('');try{sessionStorage.setItem('ratitoCreador',c)}catch(e){}start(c)};
 $('am-leave').onclick=leave;
+/* solo quien creó la sala la puede cerrar; los demás pueden salir y volver a entrar con el link */
+$('am-close').onclick=()=>{if(!code||!soyCreador()||!mqOk)return;const c=code;send({t:'cerrar'});const cl=CL,cli=mq;cifrar({t:'cerrada'},cl).then(t=>{try{cli.publish(cl.cierre,t,{qos:1,retain:true})}catch(e){}});
+  try{localStorage.removeItem('ghUltimaSala')}catch(e){}leave();status('Cerraste la sala.')};
+function cerrada(){try{localStorage.removeItem('ghUltimaSala')}catch(e){}leave();status('El líder cerró esa sala. Crea otra o pide un link nuevo.');panel.hidden=false}
 $('am-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('am-url').value);$('am-copy').textContent='¡Listo!';setTimeout(()=>$('am-copy').textContent='Copiar',1200)}catch(e){$('am-url').select()}};
-addEventListener('pagehide',()=>{if(code)send({t:'bye'});
-  // soltar el código de la sala YA, para que la siguiente página (o el amigo) lo pueda tomar sin quedarse 'Conectando…'
-  try{if(peer){for(const c of conns)try{c.close()}catch(e){}if(hc)try{hc.close()}catch(e){}peer.destroy()}}catch(e){}});
-addEventListener('pageshow',e=>{if(e.persisted&&code){retry=0;connect(code)}});
+addEventListener('pagehide',()=>{if(code)send({t:'bye'})});
+addEventListener('pageshow',e=>{if(e.persisted&&code)connect(code)});
 // al volver a la pestaña (cel desbloqueado), si la conexión murió, reconectar ya
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'||!code)return;const vivo=peer&&!peer.destroyed&&!peer.disconnected&&(host||(hc&&hc.open));if(!vivo){retry=0;connect(code,0)}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'||!code)return;if(!mq||!mq.connected)connect(code);else hola(true)});
 
 
 /* ---------- API para los juegos: window.RatitoSala ---------- */
@@ -207,9 +200,9 @@ function jugadores(){const list=[{...info(me.id),since:SINCE+OFF,cr:soyCreador()
   // el que creó la sala manda siempre; si no está en este juego, el que llegó primero
   return list.sort((a,b)=>(b.cr-a.cr)||a.since-b.since||(a.id<b.id?-1:a.id>b.id?1:0)).map(({since,cr,...j})=>j)}
 let lastSig='';
-function changed(){const act=!!code&&(host||(hc&&hc.open));const sig=(act?'1':'0')+(code||'')+jugadores().map(j=>j.id+j.name).join(',');if(sig!==lastSig){lastSig=sig;emit('cambio')}}
+function changed(){const act=!!code&&mqOk;const sig=(act?'1':'0')+(code||'')+jugadores().map(j=>j.id+j.name).join(',');if(sig!==lastSig){lastSig=sig;emit('cambio')}}
 window.RatitoSala={
-  get activo(){return !!code&&!!(host||(hc&&hc.open))},
+  get activo(){return !!code&&mqOk},
   get codigo(){return code},
   crear(){$('am-new').click();panel.hidden=false},
   get yo(){return info(me.id)},

@@ -66,9 +66,20 @@ input[type=range]{width:100%;margin:18px 0 6px;accent-color:var(--ink);height:28
     </div>
   </section>
   <section class="fin" id="fin" hidden><small>Puntaje final</small><h2 id="ftot"></h2><p id="fmsg"></p><ol id="frank"></ol><div class="acc"><button class="btn" id="otra">Jugar otra vez</button></div></section>
-</main>
+<div id="tablaSala" style="max-height:180px;overflow:auto;flex-shrink:0"></div></main>
 <script src="/lib/partida.js"></script>
 <script>
+// Resultado de partida: el líder suma; cada cliente anuncia una sola vez.
+const premiosVistos=new Set();
+function recibirPremio(g){const sala=window.RatitoSala,T=window.GameHubTabla;
+  if(!sala?.activo||!T)return;
+  T.css();
+  if(g?.tabla&&Array.isArray(g.ganadores)&&g.ganadores.length&&!premiosVistos.has(g.id)){
+    premiosVistos.add(g.id);T.guardar(g.tabla);T.anunciar(g.ganadores,'A ojo',sala.yo.id);
+  }
+  document.getElementById('tablaSala').innerHTML=T.html();
+}
+
 // [pregunta, respuesta, unidad, mínimo del deslizador, máximo, dato]
 const PREG=[
 ['¿Cuántos metros mide el monte Everest?',8849,'m',100,100000,'Medición oficial de China y Nepal en 2020.'],
@@ -156,14 +167,32 @@ function pintar(){
 function tablaPts(){const tb=$('tabla');if(!P.enSala){tb.hidden=true;return}const t=P.puntos();tb.hidden=false;
   tb.innerHTML='<strong>Puntos</strong>'+P.jugadores().map(j=>({...j,p:t[j.id]||0,ya:!!P.respuestas()[j.id]})).sort((a,b)=>b.p-a.p).map(j=>`<div><i style="background:${j.color}"></i>${j.name}${j.yo?' (tú)':''} ${j.ya?'':'<em>pensando…</em>'}<b>${nf.format(j.p)}</b></div>`).join('')}
 $('sig').onclick=()=>{if(P.ronda>=RONDAS-1)return fin();P.siguiente()};
-function fin(){const t=P.puntos(),yo=P.jugadores().find(j=>j.yo)||{id:'yo'},tot=t[yo.id]||0;
+function fin(){puntosSala();const t=P.puntos(),yo=P.jugadores().find(j=>j.yo)||{id:'yo'},tot=t[yo.id]||0;
   $('juego').hidden=true;$('fin').hidden=false;$('ftot').textContent=nf.format(tot);
   $('fmsg').textContent=tot>=5600?'Tienes una calculadora en los ojos.':tot>=4200?'Muy buen ojo.':tot>=2800?'Nada mal.':'Los números engañan. Otra vez.';
   $('frank').innerHTML=P.enSala?P.jugadores().map(j=>({...j,p:t[j.id]||0})).sort((a,b)=>b.p-a.p).map(j=>`<li>${j.name}${j.yo?' (tú)':''}: ${nf.format(j.p)}</li>`).join(''):'';
   const b=$('otra');b.disabled=!P.mando;b.textContent=P.mando?'Jugar otra vez':'El líder empieza otra'}
 $('otra').onclick=()=>P.otraVez();
 pintar();
+
+let premioSala=null,resultadoSala=null;
+const premioApp='tabla-aojo';
+function puntosSala(){const S=premioSala;if(!S?.activo||!window.GameHubTabla)return;
+  if(resultadoSala&&resultadoSala.seed!==P.seed)resultadoSala=null;
+  const js=P.jugadores();
+  const completa=P.enSala&&P.ronda===RONDAS-1&&Array.from({length:RONDAS},(_,r)=>js.every(j=>P.respuestas(r)[j.id])).every(Boolean);
+  if(S.lider()&&completa&&!resultadoSala){const t=P.puntos(),high=Math.max(...js.map(j=>t[j.id]||0)),ganadores=js.filter(j=>(t[j.id]||0)===high).map(({id,name,color})=>({id,name,color}));
+    resultadoSala={id:premioApp+':'+P.seed,seed:P.seed,ganadores,tabla:GameHubTabla.sumar(ganadores)};
+  }
+  if(S.lider()&&resultadoSala)S.enviar({app:premioApp,type:'state',resultado:resultadoSala});
+  recibirPremio(resultadoSala);
+}
+function conectarPremios(S){premioSala=S;S.al('mensaje',(d,de)=>{if(d?.app!==premioApp||d.type!=='state'||de.id!==S.jugadores()[0]?.id||d.resultado?.seed!==P.seed)return;resultadoSala=d.resultado;recibirPremio(resultadoSala)});S.al('cambio',puntosSala);puntosSala()}
+if(window.RatitoSala)conectarPremios(window.RatitoSala);else addEventListener('ratitosala',()=>conectarPremios(window.RatitoSala),{once:true});
+setInterval(puntosSala,500);
+
 </script>
+<script src="/carrera.js" defer></script>
 <script src="/lib/peerjs.min.js" defer></script>
 <script src="/amigos.js" defer></script>
 </body>

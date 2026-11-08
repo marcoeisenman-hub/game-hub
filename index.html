@@ -329,6 +329,11 @@ if(location.hash==='#multiplayer'||new URLSearchParams(location.search).get('sal
 function avisar(){const b=document.getElementById('sala');b.classList.remove('aviso');void b.offsetWidth;b.classList.add('aviso')}
 function conectarBotones(){
   document.getElementById('crear').onclick=()=>{const s=sala();if(s&&s.crear)s.crear()};
+  // volver a la última sala (si alguien se salió, puede regresar mientras el líder no la cierre)
+  let ult='';try{ult=localStorage.getItem('ghUltimaSala')||''}catch(e){}
+  if(/^[A-Z0-9]{5,8}$/.test(ult)&&!document.getElementById('volverSala')){const v=document.createElement('button');v.className='btn sec';v.id='volverSala';v.type='button';v.textContent='Volver a la sala '+ult;
+    v.onclick=()=>{location.href='/?sala='+ult+'#multiplayer'};document.getElementById('crear').after(v);
+    const ver=()=>{v.hidden=enSala()};ver();setInterval(ver,1000)}
   document.getElementById('unir').onsubmit=e=>{e.preventDefault();const c=document.getElementById('codigo').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
     if(!/^[A-Z0-9]{5,8}$/.test(c)){document.getElementById('codigo').focus();avisar();return}location.href='/?sala='+c+'#multiplayer'};
 }

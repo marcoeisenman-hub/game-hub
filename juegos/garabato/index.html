@@ -92,28 +92,12 @@ function siguienteRev(){if(!lider()||!G||!G.fin)return;const r=G.rev;if(r.i+1<G.
 
 
 /* Los robots solo los ejecuta el líder; sus entregas usan el mismo validador. */
-function dibujarBot(texto){
- const t=texto.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),ts=[];
- const linea=(p,c=0,w=1)=>ts.push({c,w,p:p.flat().map(Math.round)});
- const circulo=(x,y,r,c=0)=>linea(Array.from({length:37},(_,i)=>[x+Math.cos(i*Math.PI/18)*r,y+Math.sin(i*Math.PI/18)*r]),c);
- const forma=/gato|perro|tiburon|pez|pulpo|vaca|pollo|pinguino|mono|sapo|abeja|elefante|dinosaurio/.test(t)?'animal':/\b(sol|luna|nube|lluvia)\b/.test(t)&&!t.includes('lentes de sol')?'sol':/casa|colegio|kiosko|super|banco/.test(t)?'casa':/cohete|astronauta/.test(t)?'cohete':/pizza|hamburguesa|empanada|pina|helado|raspao|patacon|platano/.test(t)?'comida':'persona';
- if(forma==='animal'){circulo(390,310,115,3);linea([[290,260],[285,145],[350,205]],3);linea([[430,205],[500,145],[490,260]],3);circulo(355,285,9);circulo(430,285,9);linea([[385,315],[400,325],[415,315]]);linea([[330,355],[390,385],[450,355]]);linea([[300,320],[215,300]]);linea([[490,320],[575,300]]);}
- else if(forma==='sol'){circulo(390,275,100,4);for(let i=0;i<12;i++){const a=i*Math.PI/6;linea([[390+Math.cos(a)*125,275+Math.sin(a)*125],[390+Math.cos(a)*165,275+Math.sin(a)*165]],3)}circulo(355,260,8);circulo(425,260,8);linea([[350,300],[390,325],[430,300]]);}
- else if(forma==='casa'){linea([[210,290],[390,125],[570,290],[210,290]],2);linea([[245,290],[245,480],[535,480],[535,290]],6);linea([[355,480],[355,365],[420,365],[420,480]],9);linea([[270,325],[320,325],[320,375],[270,375],[270,325]],6);circulo(620,130,45,4);}
- else if(forma==='cohete'){linea([[330,400],[330,240],[390,130],[450,240],[450,400],[330,400]],6);circulo(390,270,35,7);linea([[330,330],[270,430],[330,400]],2);linea([[450,330],[510,430],[450,400]],2);linea([[345,415],[365,510],[390,440],[415,510],[435,415]],3);}
- else if(forma==='comida'){circulo(390,300,145,3);linea([[250,290],[530,290]],9);linea([[260,330],[520,330]],5);circulo(350,260,8);circulo(430,260,8);linea([[350,365],[390,390],[430,365]]);linea([[250,330],[190,260]]);linea([[530,330],[590,260]]);}
- else{circulo(390,190,68,7);circulo(365,180,7);circulo(415,180,7);linea([[365,215],[390,230],[415,215]]);linea([[390,260],[390,400]],6);linea([[270,300],[390,325],[520,245]],6);linea([[390,400],[300,500]],6);linea([[390,400],[475,500]],6);}
- if(/lentes|sol/.test(t)&&forma!=='sol')linea([[330,260],[375,260],[375,285],[330,285],[330,260],[420,260],[465,260],[465,285],[420,285],[420,260]],0);
- return ts;
-}
-function adivinarBot(trazos){
- // Adivina por los trazos que realmente recibió, sin leer frases ocultas.
- if(!Array.isArray(trazos)||!trazos.length)return 'Un ninja invisible esperando el recreo';
- const color=c=>trazos.filter(s=>s.c===c).length,frases=color(3)>=8?['El sol contando un chiste','Una estrella con demasiada energía']:color(9)&&color(5)?['Una hamburguesa saludando','Una pizza haciendo ejercicio']:color(9)?['La casa del profe de arte','Un kiosko en vacaciones']:color(2)&&color(6)?['Un cohete buscando wifi','Un astronauta en un cohete']:color(3)?['Un gato con bigotes de espagueti','Un perro que se cree tigre']:['Un robot bailando en el recreo','Un astronauta haciendo yoga','Un profe festejando el viernes'];
- return frases[Math.floor(Math.random()*frases.length)];
-}
+function dibujarBot(texto){return window.GarabatoBot?GarabatoBot.dibujar(texto):[]}
+function adivinarBot(trazos){return window.GarabatoBot?GarabatoBot.adivinar(trazos):'Un garabato'}
+/* ideas sin repetir en la misma partida (ni las de la partida anterior) */
+let ideasUsadas=[];function ideaBot(){let l=IDEAS.filter(x=>!ideasUsadas.includes(x));if(!l.length){ideasUsadas=[];l=IDEAS.slice()}const v=l[Math.floor(Math.random()*l.length)];ideasUsadas.push(v);return v}
 function simularBots(){if(!lider()||!G||G.fin)return;const id=G.id,k=G.k;
- G.ps.forEach((p,i)=>{if(!p.bot||G.cad[cadenaDe(i,k)][k])return;botTimers.push(setTimeout(()=>{if(!lider()||!G||G.id!==id||G.k!==k||G.fin)return;const ch=G.cad[cadenaDe(i,k)],t=tipoPaso(k),prev=ch[k-1];const v=t==='escribir'?IDEAS[Math.floor(Math.random()*IDEAS.length)]:t==='dibujar'?dibujarBot(String(prev?.v||'')):adivinarBot(prev?.v);recibir({id,k,v},{id:p.id,botInterno:true})},1800+i*700+(tipoPaso(k)==='dibujar'?1800:0)))});
+ G.ps.forEach((p,i)=>{if(!p.bot||G.cad[cadenaDe(i,k)][k])return;botTimers.push(setTimeout(()=>{if(!lider()||!G||G.id!==id||G.k!==k||G.fin)return;const ch=G.cad[cadenaDe(i,k)],t=tipoPaso(k),prev=ch[k-1];const v=t==='escribir'?ideaBot():t==='dibujar'?dibujarBot(String(prev?.v||'')):adivinarBot(prev?.v);recibir({id,k,v},{id:p.id,botInterno:true})},1800+i*700+(tipoPaso(k)==='dibujar'?1800:0)))});
 }
 
 /* ---------- todos ---------- */
@@ -208,5 +192,6 @@ conSala(api=>{sala=api;
   tx({type:'hola'});render(true)});
 setTimeout(()=>render(true),50);
 </script>
+<script src="./bots.js"></script>
 <script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script>
 </body></html>

@@ -46,6 +46,7 @@ body{background:#fff}
 <svg id="map" aria-label="Mapa del mundo: toca donde crees que queda el lugar"></svg>
 <div class="top"><small id="nr">Ronda 1 de 5</small><h1 id="q">Cargando mapa…</h1><p id="pista">Toca el mapa donde creas que queda. Puedes acercar con dos dedos o la rueda.</p></div>
 <div id="tabla" hidden></div>
+<div id="tablaSala" style="position:fixed;left:12px;bottom:85px;max-width:calc(100% - 24px);max-height:160px;overflow:auto;z-index:21;background:#fff;border-radius:12px"></div>
 <div class="bar"><div class="res" id="res" hidden></div><button class="btn" id="ok" disabled>Confirmar</button><button class="btn" id="sig" hidden>Siguiente</button></div>
 <div class="zoom"><button id="zin" aria-label="Acercar">+</button><button id="zout" aria-label="Alejar">−</button></div>
 <div class="fin" id="fin" hidden><div><small>Puntaje final</small><h2 id="ftot">0</h2><p id="fmsg"></p><ol id="frank"></ol><button class="btn" id="otra">Jugar otra vez</button></div></div>
@@ -53,6 +54,17 @@ body{background:#fff}
 <script src="/lib/topojson-client.min.js"></script>
 <script src="/lib/partida.js"></script>
 <script>
+// Resultado de partida: el líder suma; cada cliente anuncia una sola vez.
+const premiosVistos=new Set();
+function recibirPremio(g){const sala=window.RatitoSala,T=window.GameHubTabla;
+  if(!sala?.activo||!T)return;
+  T.css();
+  if(g?.tabla&&Array.isArray(g.ganadores)&&g.ganadores.length&&!premiosVistos.has(g.id)){
+    premiosVistos.add(g.id);T.guardar(g.tabla);T.anunciar(g.ganadores,'¿Dónde queda?',sala.yo.id);
+  }
+  document.getElementById('tablaSala').innerHTML=T.html();
+}
+
 // [nombre, pista, lat, lon]
 const LUGARES=[
 ['Machu Picchu','Ruinas incas en los Andes',-13.163,-72.545],['La Torre Eiffel','Torre de hierro de 1889',48.858,2.294],['El Coliseo','Anfiteatro romano',41.890,12.492],
@@ -142,7 +154,7 @@ function tablaPts(){if(!P.enSala){tabla.hidden=true;return}const t=P.puntos();ta
   tabla.innerHTML='<strong>Puntos</strong>'+P.jugadores().map(j=>({...j,p:t[j.id]||0,ya:!!P.respuestas()[j.id]})).sort((a,b)=>b.p-a.p).map(j=>`<div><i style="background:${j.color}"></i>${j.name}${j.yo?' (tú)':''} ${j.ya?'':'<em>pensando…</em>'}<b>${nf.format(j.p)}</b></div>`).join('')}
 ok.onclick=()=>{if(!pin)return;const L=lugar(),d=km(pin,[L[2],L[3]]);P.responder({lat:+pin[0].toFixed(3),lon:+pin[1].toFixed(3),km:Math.round(d),pts:puntos(d)})};
 sig.onclick=()=>{if(P.ronda>=RONDAS-1)return fin();P.siguiente()};
-function fin(){const t=P.puntos(),me=P.jugadores().find(j=>j.yo)||{id:'yo'},tot=t[me.id]||0;
+function fin(){puntosSala();const t=P.puntos(),me=P.jugadores().find(j=>j.yo)||{id:'yo'},tot=t[me.id]||0;
   document.getElementById('ftot').textContent=nf.format(tot);
   document.getElementById('fmsg').textContent=tot>=20000?'Tienes un GPS en la cabeza.':tot>=14000?'Muy buena geografía.':tot>=8000?'Nada mal.':'El mundo es grande. Otra vez.';
   document.getElementById('frank').innerHTML=P.enSala?P.jugadores().map(j=>({...j,p:t[j.id]||0})).sort((a,b)=>b.p-a.p).map(j=>`<li>${j.name}${j.yo?' (tú)':''}: ${nf.format(j.p)}</li>`).join(''):'';
@@ -154,7 +166,25 @@ setInterval(ofin,500);
 addEventListener('resize',size);
 fetch('/lib/countries-110m.json').then(r=>r.json()).then(t=>{mundo=topojson.feature(t,t.objects.countries);size()}).catch(()=>{q.textContent='No se pudo cargar el mapa. Recarga la página.'});
 size();
+
+let premioSala=null,resultadoSala=null;
+const premioApp='tabla-mapa';
+function puntosSala(){const S=premioSala;if(!S?.activo||!window.GameHubTabla)return;
+  if(resultadoSala&&resultadoSala.seed!==P.seed)resultadoSala=null;
+  const js=P.jugadores();
+  const completa=P.enSala&&P.ronda===RONDAS-1&&Array.from({length:RONDAS},(_,r)=>js.every(j=>P.respuestas(r)[j.id])).every(Boolean);
+  if(S.lider()&&completa&&!resultadoSala){const t=P.puntos(),high=Math.max(...js.map(j=>t[j.id]||0)),ganadores=js.filter(j=>(t[j.id]||0)===high).map(({id,name,color})=>({id,name,color}));
+    resultadoSala={id:premioApp+':'+P.seed,seed:P.seed,ganadores,tabla:GameHubTabla.sumar(ganadores)};
+  }
+  if(S.lider()&&resultadoSala)S.enviar({app:premioApp,type:'state',resultado:resultadoSala});
+  recibirPremio(resultadoSala);
+}
+function conectarPremios(S){premioSala=S;S.al('mensaje',(d,de)=>{if(d?.app!==premioApp||d.type!=='state'||de.id!==S.jugadores()[0]?.id||d.resultado?.seed!==P.seed)return;resultadoSala=d.resultado;recibirPremio(resultadoSala)});S.al('cambio',puntosSala);puntosSala()}
+if(window.RatitoSala)conectarPremios(window.RatitoSala);else addEventListener('ratitosala',()=>conectarPremios(window.RatitoSala),{once:true});
+setInterval(puntosSala,500);
+
 </script>
+<script src="/carrera.js" defer></script>
 <script src="/lib/peerjs.min.js" defer></script>
 <script src="/amigos.js" defer></script>
 </body>

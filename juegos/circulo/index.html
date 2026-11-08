@@ -31,6 +31,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;cursor:crosshair}
 <body>
 <a class="volver" href="/">← game.hub</a>
 <div id="best">Mejor: —</div>
+<div id="competicion" style="position:fixed;left:16px;top:150px;z-index:6;background:white;padding:10px;border-radius:12px;max-width:260px" hidden><label><input id="competitivo" type="checkbox"> Competitivo</label><button id="ronda" class="btn">Nueva ronda</button><p id="estadoRonda"></p><div id="tablaSala"></div></div>
 <div id="tabla" hidden aria-live="polite"></div>
 <canvas id="c" aria-label="Zona para dibujar el círculo"></canvas>
 <div class="hud"><h1>Círculo perfecto</h1><p>Dibuja un círculo alrededor del punto, de una sola pasada.</p></div>
@@ -73,13 +74,13 @@ function tabla(){
 function tx(d){if(sala&&sala.activo)sala.enviar(d)}
 function angle(p){return Math.atan2(p.y-cy,p.x-cx)}
 function swept(){let s=0;for(let i=1;i<pts.length;i++){let d=angle(pts[i])-angle(pts[i-1]);if(d>Math.PI)d-=2*Math.PI;if(d<-Math.PI)d+=2*Math.PI;s+=d}return s}
-function fail(t){if(drawing)tx({s:'fail'});done=true;drawing=false;S.textContent='';M.textContent=t;draw()}
+function fail(t){entregar(0);if(drawing)tx({s:'fail'});done=true;drawing=false;S.textContent='';M.textContent=t;draw()}
 function live(){
   const rs=pts.map(p=>Math.hypot(p.x-cx,p.y-cy)),r=rs.reduce((a,b)=>a+b,0)/rs.length;
   const dev=Math.sqrt(rs.reduce((a,v)=>a+(v-r)**2,0)/rs.length)/r;
   return {r,score:Math.max(0,100-dev*100*3.2)};
 }
-let dedo=null;c.addEventListener('pointerdown',e=>{if(drawing&&dedo!==null&&e.pointerId!==dedo)return;dedo=e.pointerId;c.setPointerCapture(e.pointerId);pts=[{x:e.clientX,y:e.clientY,t:performance.now()}];drawing=true;done=false;doneScore=null;M.textContent='';S.textContent='';tx({s:'start',p:[(e.clientX-cx)/U(),(e.clientY-cy)/U()]});
+let dedo=null;c.addEventListener('pointerdown',e=>{if(competitivo&&!puedeDibujar())return;if(drawing&&dedo!==null&&e.pointerId!==dedo)return;dedo=e.pointerId;c.setPointerCapture(e.pointerId);pts=[{x:e.clientX,y:e.clientY,t:performance.now()}];drawing=true;done=false;doneScore=null;M.textContent='';S.textContent='';tx({s:'start',p:[(e.clientX-cx)/U(),(e.clientY-cy)/U()]});
   if(Math.hypot(e.clientX-cx,e.clientY-cy)<40)fail('Muy cerca del punto. Empieza más lejos.')});
 c.addEventListener('pointermove',e=>{if(!drawing||e.pointerId!==dedo)return;const p={x:e.clientX,y:e.clientY,t:performance.now()};
   const l=pts[pts.length-1];if(Math.hypot(p.x-l.x,p.y-l.y)<2)return;pts.push(p);
@@ -98,15 +99,32 @@ function finish(){
   S.textContent=score.toFixed(1)+'%';S.style.color=col((100-score)/320);doneScore=score;draw(score);
   {const F=window.GameHubFx;if(F&&F.acorde){if(score>=92){F.acorde(score>=97?784:587);F.chispas(innerWidth/2,innerHeight/2,['#1E9E6A','#F5B700','#2D6CDF'],score>=97?40:20)}else if(score<70)F.error();else F.tono(440,.15)}}
   const nuevo=score>best;if(nuevo){if(window.GameHubFx&&GameHubFx.confeti)GameHubFx.confeti(80);best=score;localStorage.setItem('ratitoCirculo',best);showBest()}
-  last=score;tx({s:'end',score,best,p:[(pts[pts.length-1].x-cx)/U(),(pts[pts.length-1].y-cy)/U()]});tabla();
+  last=score;entregar(+score.toFixed(1));tx({s:'end',score,best,p:[(pts[pts.length-1].x-cx)/U(),(pts[pts.length-1].y-cy)/U()]});tabla();
   M.textContent=(nuevo?'¡Nuevo récord! ':'')+(score>=97?'Casi una máquina.':score>=92?'Excelente pulso.':score>=85?'Bastante bien.':score>=70?'Puedes mejorar.':'Ánimo, otra vez.')+' Toca para intentar de nuevo.';
 }
 addEventListener('resize',size);size();
 /* jugar con amigos */
 function conSala(fn){window.RatitoSala?fn(RatitoSala):addEventListener('ratitosala',()=>fn(RatitoSala),{once:true})}
 const ok=v=>Number.isFinite(v)&&Math.abs(v)<4,okP=p=>Array.isArray(p)&&ok(p[0])&&ok(p[1]);
+let competitivo=false,ronda=null,liderRonda='',codigoRonda='',finLocal=0,enviado='',vistos=new Set();
+const panel=document.getElementById('competicion'),interruptor=document.getElementById('competitivo'),boton=document.getElementById('ronda');
+function enSala(){return !!sala?.activo}
+function puedeDibujar(){return enSala()&&ronda&&!ronda.closed&&ronda.people.some(p=>p.id===sala.yo.id)&&!Object.hasOwn(ronda.results,sala.yo.id)&&enviado!==ronda.id}
+function premio(){const T=window.GameHubTabla;if(!enSala()||!T)return;T.css();if(ronda?.tabla&&ronda.codigo===sala.codigo&&!vistos.has(ronda.id)){vistos.add(ronda.id);T.guardar(ronda.tabla);T.anunciar(ronda.ganadores,'Círculo perfecto',sala.yo.id)}document.getElementById('tablaSala').innerHTML=T.html()}
+function mostrarCompetitivo(){panel.hidden=!enSala();interruptor.checked=competitivo;interruptor.disabled=!enSala()||!sala.lider();boton.hidden=!competitivo;boton.disabled=!enSala()||!sala.lider()||sala.jugadores().length<2||!!ronda&&!ronda.closed;
+const estado=document.getElementById('estadoRonda');estado.textContent=!competitivo?'Juego libre':!ronda?'Un intento por jugador · 30 s':ronda.aborted?'Ronda cancelada por cambio de sala':ronda.closed?'Ronda terminada':!ronda.people.some(p=>p.id===sala.yo.id)?'Entras en la siguiente ronda':enviado===ronda.id||Object.hasOwn(ronda.results,sala.yo.id)?'Intento enviado. Esperando…':'Dibuja · '+Math.max(0,Math.ceil(((sala.lider()?ronda.end:finLocal)-Date.now())/1000))+' s';premio()}
+function publicarCompetitivo(){premio();tx({app:'circulo-competitivo',type:'state',competitivo,ronda,restante:ronda?Math.max(0,ronda.end-Date.now()):0});mostrarCompetitivo()}
+function cerrarRonda(){if(!enSala()||!sala.lider()||!ronda||ronda.closed)return;const ids=sala.jugadores().map(p=>p.id);if(Date.now()<ronda.end&&!ronda.people.every(p=>Object.hasOwn(ronda.results,p.id)||!ids.includes(p.id)))return;ronda.closed=true;drawing=false;
+const jugadores=ronda.people.filter(p=>ids.includes(p.id)&&Object.hasOwn(ronda.results,p.id));const high=Math.max(...jugadores.map(p=>ronda.results[p.id]));ronda.ganadores=high>0?jugadores.filter(p=>ronda.results[p.id]===high):[];if(ronda.people.length>1&&ronda.ganadores.length&&window.GameHubTabla)ronda.tabla=GameHubTabla.sumar(ronda.ganadores);publicarCompetitivo()}
+function recibirIntento(d,de){if(!enSala()||!sala.lider()||!competitivo||!ronda||ronda.closed||d.id!==ronda.id||Date.now()>ronda.end||!ronda.people.some(p=>p.id===de.id)||Object.hasOwn(ronda.results,de.id)||!Number.isFinite(d.score)||d.score<0||d.score>100)return;ronda.results[de.id]=d.score;cerrarRonda();publicarCompetitivo()}
+function entregar(score){if(!competitivo||!puedeDibujar())return;enviado=ronda.id;const d={app:'circulo-competitivo',type:'result',id:ronda.id,score};if(sala.lider())recibirIntento(d,sala.yo);else tx(d);mostrarCompetitivo()}
+function mensajeCompetitivo(d,de){if(d.type==='hello'&&sala.lider())publicarCompetitivo();if(d.type==='result')recibirIntento(d,de);if(d.type==='state'&&!sala.lider()&&de.id===sala.jugadores()[0]?.id){const nueva=d.ronda?.id!==ronda?.id;competitivo=d.competitivo===true;ronda=d.ronda;finLocal=Date.now()+Math.max(0,Number(d.restante)||0);if(nueva){enviado='';drawing=false;pts=[];S.textContent='';M.textContent='';draw()}if(!competitivo||ronda?.closed)drawing=false;mostrarCompetitivo()}}
+function cambioCompetitivo(){const lid=enSala()?sala.jugadores()[0]?.id:'';const codigo=enSala()?sala.codigo:'';if(lid!==liderRonda||codigo!==codigoRonda){liderRonda=lid;codigoRonda=codigo;drawing=false;if(ronda&&!ronda.closed){ronda.closed=true;ronda.aborted=true}if(!enSala()){competitivo=false;ronda=null}}if(enSala()){if(sala.lider()){cerrarRonda();publicarCompetitivo()}else tx({app:'circulo-competitivo',type:'hello'})}mostrarCompetitivo()}
+interruptor.onchange=()=>{if(!enSala()||!sala.lider())return;competitivo=interruptor.checked;drawing=false;if(ronda&&!ronda.closed){ronda.closed=true;ronda.aborted=true}publicarCompetitivo()};
+boton.onclick=()=>{if(!enSala()||!sala.lider()||!competitivo||sala.jugadores().length<2||ronda&&!ronda.closed)return;ronda={id:crypto.randomUUID(),codigo:sala.codigo,end:Date.now()+30000,people:sala.jugadores().map(({id,name,color})=>({id,name,color})),results:{},closed:false};enviado='';drawing=false;pts=[];S.textContent='';M.textContent='';draw();publicarCompetitivo()};
+setInterval(()=>{cerrarRonda();mostrarCompetitivo()},250);
 conSala(S0=>{sala=S0;
-  sala.al('mensaje',(d,de)=>{if(!d||typeof d!=='object')return;
+  sala.al('mensaje',(d,de)=>{if(!d||typeof d!=='object')return;if(d.app==='circulo-competitivo'){mensajeCompetitivo(d,de);return}
     const a=amigos[de.id]||(amigos[de.id]={pts:[],best:0,last:null});a.name=de.name;a.color=de.color;
     if(d.s==='start'&&okP(d.p)){a.pts=[d.p];a.end=0;a.score=null}
     else if(d.s==='pt'&&okP(d.p)&&!a.end){a.pts.push(d.p);if(a.pts.length>800)a.pts.shift()}
@@ -114,11 +132,11 @@ conSala(S0=>{sala=S0;
     else if(d.s==='fail'){a.end=performance.now();a.score=null}
     else if(d.s==='hola'){a.best=Math.max(a.best,+d.best||0);if(d.last!=null&&ok(d.last/100))a.last=+d.last}
     tabla();draw()});
-  sala.al('cambio',()=>{for(const id of Object.keys(amigos))if(!sala.jugadores().some(j=>j.id===id))delete amigos[id];tx({s:'hola',best,last});tabla();draw()});
-  tabla()});
+  sala.al('cambio',()=>{cambioCompetitivo();for(const id of Object.keys(amigos))if(!sala.jugadores().some(j=>j.id===id))delete amigos[id];tx({s:'hola',best,last});tabla();draw()});
+  cambioCompetitivo();tabla()});
 (function tick(){if(Object.values(amigos).some(a=>a.pts.length>1))draw();requestAnimationFrame(tick)})();
 </script>
-<script src="/lib/peerjs.min.js" defer></script>
+<script src="/carrera.js"></script>
 <script src="/amigos.js" defer></script>
 </body>
 </html>

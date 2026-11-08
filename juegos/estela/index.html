@@ -33,9 +33,21 @@ body.jugando .am-peer,body.jugando .am-edge{display:none!important}
   <div class="marco"><canvas id="cv" aria-label="Tablero de Estela. Flechas o WASD para girar; en celular desliza el dedo o usa los botones."></canvas></div>
   <div class="giros"><button type="button" id="izq" aria-label="Girar a la izquierda">⟲</button><button type="button" id="der" aria-label="Girar a la derecha">⟳</button></div>
   <p class="nota">Flechas o WASD. En celular desliza el dedo sobre el tablero hacia donde quieres ir, o usa los botones de girar. Cada vez va más rápido.</p>
-</main>
+<div id="tablaSala" style="max-height:180px;overflow:auto;flex-shrink:0"></div></main>
 <script>
 'use strict';
+
+// Resultado de partida: el líder suma; cada cliente anuncia una sola vez.
+const premiosVistos=new Set();
+function recibirPremio(g){const sala=window.RatitoSala,T=window.GameHubTabla;
+  if(!sala?.activo||!T)return;
+  T.css();
+  if(g?.tabla&&Array.isArray(g.ganadores)&&g.ganadores.length&&!premiosVistos.has(g.id)){
+    premiosVistos.add(g.id);T.guardar(g.tabla);T.anunciar(g.ganadores,'Estela',sala.yo.id);
+  }
+  document.getElementById('tablaSala').innerHTML=T.html();
+}
+
 const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d');
 const GW=60,GH=40,META=3,APP='estela';
 const COL=['#2D6CDF','#F5B700','#E63946','#1E9E6A','#6C4BD8','#F28C28','#0FA3B1','#E84A8A'];
@@ -78,7 +90,7 @@ function tick(){if(!R||R.fin||!lider())return;R.n++;
   tx({type:'t',id:R.id,n:R.n,d});aplicar(d);
   const vivos=R.ps.filter(p=>p.vivo),humVivos=vivos.filter(p=>!p.bot);
   if(vivos.length<=1){const w=vivos.length>=1?vivos[0].id:null;if(w)marc[w]=(marc[w]||0)+1;
-    const camp=Object.keys(marc).find(k=>marc[k]>=META)||null;const f={type:'fin',id:R.id,gan:w,marc,camp};tx(f);fin(f);
+    const camp=Object.keys(marc).find(k=>marc[k]>=META)||null;const f={type:'fin',id:R.id,gan:w,marc,camp};if(online()&&sala.lider()&&camp&&window.GameHubTabla){f.ganadores=R.ps.filter(p=>p.id===camp&&!p.bot).map(({id,name,color})=>({id,name,color}));if(f.ganadores.length)f.tabla=GameHubTabla.sumar(f.ganadores)}tx(f);fin(f);
     if(!camp)timer=setTimeout(()=>{if(R&&R.fin&&lider())empezar()},2600);return}
   // si ya no queda ninguna persona viva, se acelera para ver quién gana
   timer=setTimeout(tick,humVivos.length?Math.max(40,82-R.n*.22):22)}
@@ -93,14 +105,14 @@ function ronda(d){if(!d||!Array.isArray(d.ps)||!d.ps.length)return;
 let pedido=0;function pedir(){const t=Date.now();if(t-pedido<1000)return;pedido=t;tx({type:'pedir'})}
 function snapshot(d){if(!Array.isArray(d.ps)||!Array.isArray(d.g))return;ronda({id:d.id,ps:d.ps,marc:d.marc});R.n=d.n|0;R.start=performance.now()+Math.min(3000,+d.falta||0);
   const g=new Uint8Array(GW*GH);let k=0;for(let i=0;i+1<d.g.length&&k<g.length;i+=2){g.fill(d.g[i]|0,k,Math.min(g.length,k+(d.g[i+1]|0)));k+=d.g[i+1]|0}R.grid=g;
-  d.ps.forEach((p,i)=>{if(R.ps[i])R.ps[i].vivo=p.vivo!==false});if(d.fin)R.fin=d.fin;campeon=d.camp||null;pintaJug()}
+  d.ps.forEach((p,i)=>{if(R.ps[i])R.ps[i].vivo=p.vivo!==false});if(d.fin)R.fin=d.fin;campeon=d.camp||null;recibirPremio(d.fin);pintaJug()}
 function aplicar(d){if(!R||!Array.isArray(d))return;R.ps.forEach((p,i)=>{if(!p.vivo)return;const x=d[i*5]|0,y=d[i*5+1]|0,v=d[i*5+2];p.dx=d[i*5+3]|0;p.dy=d[i*5+4]|0;
     if(v){p.x=x;p.y=y;if(x>=0&&y>=0&&x<GW&&y<GH)R.grid[y*GW+x]=i+1}else{p.vivo=false;boom(p);if(window.GameHubFx&&GameHubFx.tono){GameHubFx.tono(p.id===yo()?90:160,.3,'sawtooth',p.id===yo()?.08:.04)}if(p.id===yo())shake=14;else shake=Math.max(shake,5)}});pintaJug()}
-function fin(f){if(!R||f.id!==R.id)return;R.fin=f;if(f.marc&&typeof f.marc==='object')marc=f.marc;campeon=f.camp||null;pintaJug()}
+function fin(f){if(!R||f.id!==R.id)return;R.fin=f;if(f.marc&&typeof f.marc==='object')marc=f.marc;campeon=f.camp||null;recibirPremio(f);pintaJug()}
 function boom(p){const ex=p.x+p.dx,ey=p.y+p.dy;for(let k=0;k<26;k++){const a=Math.random()*6.283,s=2+Math.random()*9;parts.push({x:ex+.5,y:ey+.5,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:.6+Math.random()*.5,c:p.color})}}
 function nombre(id){const p=R&&R.ps.find(q=>q.id===id);return p?(p.id===yo()&&online()?'Tú':p.name):'Alguien'}
 function pintaJug(){const ps=R?R.ps:[];$('jug').innerHTML=ps.map(p=>`<span class="${p.vivo?'':'muerto'}" style="--pc:${esc(p.color)}"><i></i>${esc(p.id===yo()?'Tú':p.name)} <em>${'★'.repeat(Math.min(META,marc[p.id]||0))}</em></span>`).join('')}
-function estado(){let s,sub='';const now=performance.now();
+function estado(){recibirPremio(R?.fin);let s,sub='';const now=performance.now();
   if(!R){s=online()?(lider()?'Tú eres el líder: dale a Empezar.':'Esperando a que el líder empiece…'):'¿Listo?';sub='Gana el primero en llegar a '+META+' rondas.'}
   else if(R.fin){const w=R.fin.gan;s=campeon?(campeon===yo()?'¡GANASTE LA PARTIDA!':nombre(campeon)+' gana la partida'):w?(w===yo()?'¡Ganaste la ronda!':nombre(w)+' gana la ronda'):'Nadie sobrevivió';sub=R.fin.abort?'Cambió el líder: '+(lider()?'dale a Empezar.':'el nuevo líder puede empezar.'):campeon?(lider()?'Dale a Empezar para otra partida.':'El líder puede empezar otra.'):'Siguiente ronda en un momento…'}
   else if(now<R.start)s='Prepárate…';else{const m=R.ps.find(p=>p.id===yo());s=m?(m.vivo?'¡No choques!':'Te chocaste… mira quién gana (en cámara rápida si ya no queda nadie)'):'Mirando la ronda'}
@@ -165,5 +177,6 @@ conSala(api=>{sala=api;
   sala.al('cambio',()=>{const lid=online()?sala.jugadores()[0]?.id:'';if(lid!==leaderId){leaderId=lid;if(R&&!R.fin){clearTimeout(timer);R.fin={gan:null,id:R.id,abort:true};}}if(online()&&!lider())pedir();estado()});
   if(online()&&!lider())setTimeout(pedir,600);estado()});
 </script>
+<script src="/carrera.js" defer></script>
 <script src="/lib/peerjs.min.js" defer></script><script src="/amigos.js" defer></script>
 </body></html>
