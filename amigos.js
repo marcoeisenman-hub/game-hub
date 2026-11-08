@@ -155,7 +155,8 @@ function cargarMqtt(cb){if(typeof window.mqtt!=='undefined')return cb();status('
    y nunca se parte en dos (los mensajes repetidos se descartan por su número 'n'). */
 let clis=[],miSeq=0;const vistos=new Set(),vistosL=[],ultSeq=Object.create(null);
 /* orden por emisor: si un broker perdió un mensaje y el otro lo trae tarde, se descarta (ya llegó uno más nuevo) */
-function enOrden(m){if(!Number.isFinite(m.s)||typeof m.id!=='string')return true;const k=m.id+':'+(m.since||0);if(ultSeq[k]!=null&&m.s<=ultSeq[k])return false;ultSeq[k]=m.s;return true}
+function enOrden(m){if(m.t!=='m')return true; // solo posiciones del cursor: las jugadas nunca se descartan
+  if(!Number.isFinite(m.s)||typeof m.id!=='string')return true;const k=m.id+':'+(m.since||0);if(ultSeq[k]!=null&&m.s<=ultSeq[k])return false;ultSeq[k]=m.s;return true}
 function nuevoVisto(n){if(!n)return true;if(vistos.has(n))return false;vistos.add(n);vistosL.push(n);if(vistosL.length>800)vistos.delete(vistosL.shift());return true}
 function recalcular(){const antes=mqOk;mqOk=clis.some(x=>x.ok);if(antes&&!mqOk)status('Sin conexión. Reintentando…');changed()}
 async function connect(c){const g=++gen;
