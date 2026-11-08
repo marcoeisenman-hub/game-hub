@@ -114,7 +114,7 @@ async function cifrar(o,cl){const iv=crypto.getRandomValues(new Uint8Array(12));
 async function descifrar(t,cl){const [a,b]=String(t).split('.');if(!a||!b)return null;return JSON.parse(TD.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(a)},cl.key,unb64(b))))}
 let colaTx=Promise.resolve(),colaRx=Promise.resolve();
 function send(m){if(!code||!mqOk||!CL.key||CL.c!==code)return;m.id=me.id;m.name=me.name;m.page=PAGE;m.since=SINCE+OFF;m.cr=soyCreador()?1:0;
-  m.n=Math.random().toString(36).slice(2,11);const cl=CL,cs=clis.filter(x=>x.ok).map(x=>x.cli);colaTx=colaTx.then(()=>cifrar(m,cl)).then(t=>{for(const cli of cs)if(cli.connected)try{cli.publish(cl.tema,t,{qos:0})}catch(e){}}).catch(()=>{})}
+  m.n=Math.random().toString(36).slice(2,11);m.s=++miSeq;const cl=CL,cs=clis.filter(x=>x.ok).map(x=>x.cli);colaTx=colaTx.then(()=>cifrar(m,cl)).then(t=>{for(const cli of cs)if(cli.connected)try{cli.publish(cl.tema,t,{qos:0})}catch(e){}}).catch(()=>{})}
 function hola(q){const t=Date.now();if(!q&&t-ultHola<400)return;ultHola=t;send({t:'hi',q:q?1:0})}
 function recolor(){for(const p of Object.values(people)){const c=color(p.id);if(p.c===c)continue;p.c=c;p.el.style.setProperty('--pc',c);p.el.querySelector('path').setAttribute('fill',c);p.el.querySelector('span').style.background=c;p.edge.style.background=c}}
 function list(){btn.hidden=!code;if(!code)panel.hidden=true;
@@ -153,21 +153,21 @@ function cargarMqtt(cb){if(typeof window.mqtt!=='undefined')return cb();status('
   s.onload=cb;s.onerror=()=>status('No se pudo cargar la conexión. Recarga la página.');document.head.append(s)}
 /* me conecto a LOS DOS brokers a la vez y publico en ambos: si uno falla, la sala sigue por el otro
    y nunca se parte en dos (los mensajes repetidos se descartan por su número 'n'). */
-let clis=[];const vistos=new Set(),vistosL=[];
+let clis=[],miSeq=0;const vistos=new Set(),vistosL=[],ultSeq=Object.create(null);
+/* orden por emisor: si un broker perdió un mensaje y el otro lo trae tarde, se descarta (ya llegó uno más nuevo) */
+function enOrden(m){if(!Number.isFinite(m.s)||typeof m.id!=='string')return true;const k=m.id+':'+(m.since||0);if(ultSeq[k]!=null&&m.s<=ultSeq[k])return false;ultSeq[k]=m.s;return true}
 function nuevoVisto(n){if(!n)return true;if(vistos.has(n))return false;vistos.add(n);vistosL.push(n);if(vistosL.length>800)vistos.delete(vistosL.shift());return true}
 function recalcular(){const antes=mqOk;mqOk=clis.some(x=>x.ok);if(antes&&!mqOk)status('Sin conexión. Reintentando…');changed()}
 async function connect(c){const g=++gen;
   for(const x of clis)try{x.cli.end(true)}catch(e){}clis=[];mqOk=false;
   const cl=await claves(c);if(g!==gen)return;const T=cl.tema,TC=cl.cierre;
-  const adios=await cifrar({t:'bye',id:me.id,n:'b'+me.id+Date.now()},cl);if(g!==gen)return;
   for(const url of MQ_URLS){const x={ok:false};
-    const cli=x.cli=window.mqtt.connect(url,{clientId:'gh_'+me.id+'_'+Math.random().toString(36).slice(2,6),clean:true,keepalive:15,reconnectPeriod:1500,connectTimeout:8000,
-      will:{topic:T,payload:adios,qos:0,retain:false}});
+    const cli=x.cli=window.mqtt.connect(url,{clientId:'gh_'+me.id+'_'+Math.random().toString(36).slice(2,6),clean:true,keepalive:15,reconnectPeriod:1500,connectTimeout:8000});
     clis.push(x);
     cli.on('connect',()=>{if(g!==gen)return;cli.subscribe(TC,{qos:0});cli.subscribe(T,{qos:0},err=>{if(g!==gen||err)return;const primero=!mqOk;x.ok=true;mqOk=true;if(primero)setCode(c);hola(true);changed()})});
     cli.on('message',(t,b)=>{if(g!==gen)return;const txt=b.toString();
       if(t===TC){if(txt)descifrar(txt,cl).then(m=>cierreValido(c,m)).then(v=>{if(v&&g===gen)cerrada()}).catch(()=>{});return}
-      if(t!==T)return;colaRx=colaRx.then(()=>descifrar(txt,cl)).then(m=>{if(g===gen&&m&&nuevoVisto(m.n))onMsg(m)}).catch(()=>{})});
+      if(t!==T)return;colaRx=colaRx.then(()=>descifrar(txt,cl)).then(m=>{if(g===gen&&m&&nuevoVisto(m.n)&&enOrden(m))onMsg(m)}).catch(()=>{})});
     cli.on('offline',()=>{if(g!==gen)return;x.ok=false;recalcular()});
     cli.on('close',()=>{if(g!==gen)return;x.ok=false;recalcular()});
     cli.on('error',()=>{});
