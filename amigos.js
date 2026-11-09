@@ -1,4 +1,4 @@
-if(location.hostname==="ratito-juegos.vercel.app")location.replace("https://game-hub-juegos.vercel.app"+location.pathname+location.search+location.hash);
+if(["ratito-juegos.vercel.app","vaina-juegos.vercel.app","tanteo-juegos.vercel.app"].includes(location.hostname))location.replace("https://game-hub-juegos.vercel.app"+location.pathname+location.search+location.hash);
 /* efectos compartidos para todos los juegos: GameHubFx.tono / acorde / chispas / flotar / confeti / temblor */
 (()=>{if(window.GameHubFx&&window.GameHubFx.chispas)return;let AC=null;
 const silencio=()=>{try{return localStorage.getItem('gamehubSilencio')==='1'}catch(e){return false}};
